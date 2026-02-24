@@ -79,7 +79,7 @@ npm install --global pnpm @antfu/ni eslint taze npkill
 ### Go version manager (g)
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/stefanmaric/g/refs/heads/next/bin/g-install \
+curl -sSL https://raw.githubusercontent.com/stefanmaric/g/master/bin/install \
   | GOPATH="$HOME/go" GOROOT="$HOME/.go" bash
 g install latest && g set latest
 ```
