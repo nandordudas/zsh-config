@@ -40,11 +40,6 @@ confirm() {
   [[ "$response" =~ ^[Yy]$ ]]
 }
 
-# Reload zsh configuration
-function reload() {
-  exec zsh -l
-}
-
 # Bootstrap new Git project
 bootstrap() {
   local folder_name="${1:-$(tr -dc 'a-z0-9' </dev/urandom | head -c 13)}"
