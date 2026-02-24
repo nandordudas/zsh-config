@@ -1,0 +1,7 @@
+# Generated files — never commit these
+.zcompdump
+.zcompdump.*
+.zsh_history
+
+# Machine-local overrides — gitignored by design
+modules/local.zsh
