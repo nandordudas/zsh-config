@@ -104,6 +104,92 @@ sudo apt update && sudo apt install -y fastfetch
 curl -fsSL https://claude.ai/install.sh | bash
 ```
 
+### GitHub CLI (gh)
+
+Used as a credential helper for HTTPS git operations and for adding SSH keys to GitHub.
+
+```bash
+sudo apt install gh -y && gh auth login
+```
+
+---
+
+## Git configuration
+
+This repo includes a factory script that applies the full git setup to a new machine. It covers all settings, aliases, delta pager config, per-host identity (GitHub/Bitbucket), and SSH commit signing.
+
+### Apply to a new machine
+
+```bash
+~/.config/zsh/scripts/git-setup.sh
+# or with explicit values (skips prompts):
+~/.config/zsh/scripts/git-setup.sh \
+  --name "Nandor Dudas" \
+  --email "nandor.dudas@gmail.com" \
+  --github nandordudas \
+  --bitbucket nandordudas
+```
+
+The script is idempotent — safe to re-run after updates.
+
+### What it creates
+
+```
+~/.config/git/
+├── config                  # Main config (all settings, aliases, delta, signing)
+├── ignore                  # Global gitignore (.DS_Store, node_modules, .env, etc.)
+├── allowed_signers         # Local SSH signature verification (email + pubkey)
+├── github/.gitconfig       # Per-repo identity for ~/Code/GitHub/**
+└── bitbucket/.gitconfig    # Per-repo identity for ~/Code/BitBucket/**
+```
+
+### SSH commit signing
+
+Since Git 2.34, SSH keys can sign commits and tags — no GPG keyring needed. The same key used for GitHub authentication also signs commits.
+
+**How it works:**
+
+```gitconfig
+[gpg]
+    format = ssh
+[gpg "ssh"]
+    allowedSignersFile = ~/.config/git/allowed_signers
+[user]
+    signingKey = ~/.ssh/id_ed25519.pub
+[commit]
+    gpgSign = true
+[tag]
+    gpgSign = true
+```
+
+The `allowed_signers` file maps email addresses to public keys for local verification:
+```
+nandor.dudas@gmail.com ssh-ed25519 AAAA...
+```
+
+**After running the script**, register the SSH key on GitHub to get the "Verified" badge:
+
+```bash
+gh auth refresh -s admin:public_key,admin:ssh_signing_key
+gh ssh-key add ~/.ssh/id_ed25519.pub --title "$(hostname)" --type authentication
+gh ssh-key add ~/.ssh/id_ed25519.pub --title "$(hostname)" --type signing
+```
+
+**Verify a signed commit:**
+
+```bash
+git log --show-signature -1
+# Good "git" signature for nandor.dudas@gmail.com with ED25519 key SHA256:...
+```
+
+### Shell integration
+
+The `.zprofile` sets `GIT_CONFIG_GLOBAL` so git uses the XDG path:
+
+```bash
+export GIT_CONFIG_GLOBAL="$HOME/.config/git/config"
+```
+
 ---
 
 ## Installation
