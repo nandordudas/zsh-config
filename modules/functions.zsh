@@ -189,3 +189,47 @@ zsh-cache-clear() {
   done
   print "Cleared $removed cache file(s). Restart shell to regenerate."
 }
+
+# =============================================================================
+# GIT SSH SIGNING SETUP
+# =============================================================================
+#
+# Since Git 2.34, SSH keys can sign commits and tags instead of GPG keys.
+# This is simpler: no GPG keyring, no key expiry management, no passphrase
+# prompts — the same SSH key used for GitHub authentication also signs commits.
+#
+# ONE-TIME SETUP (new machine):
+#
+#   1. Generate key (skip if ~/.ssh/id_ed25519 already exists):
+#      ssh-keygen -t ed25519 -C "nandor.dudas@gmail.com" -f ~/.ssh/id_ed25519
+#
+#   2. Create allowed_signers (used by `git verify-commit` locally):
+#      echo "nandor.dudas@gmail.com $(cat ~/.ssh/id_ed25519.pub)" \
+#        > ~/.config/git/allowed_signers
+#
+#   3. Register key on GitHub (requires admin:public_key + admin:ssh_signing_key scopes):
+#      gh auth refresh -s admin:public_key,admin:ssh_signing_key
+#      gh ssh-key add ~/.ssh/id_ed25519.pub --title "$(hostname)" --type authentication
+#      gh ssh-key add ~/.ssh/id_ed25519.pub --title "$(hostname)" --type signing
+#
+#      OR add manually at: https://github.com/settings/ssh/new
+#      (add once as Authentication Key, once as Signing Key)
+#
+# GIT CONFIG (already applied to ~/.config/git/config):
+#   [user]
+#     signingKey = ~/.ssh/id_ed25519.pub
+#   [gpg]
+#     format = ssh
+#   [gpg "ssh"]
+#     allowedSignersFile = ~/.config/git/allowed_signers
+#   [commit]
+#     gpgSign = true
+#   [tag]
+#     gpgSign = true
+#
+# VERIFY a signed commit:
+#   git log --show-signature -1
+#   # Expected: Good "git" signature for nandor.dudas@gmail.com with ED25519 key SHA256:...
+#
+# NOTE: GitHub shows a "Verified" badge only after the key is registered as a
+#       Signing Key on GitHub (step 3 above). Local verification works immediately.
