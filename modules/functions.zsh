@@ -138,7 +138,7 @@ upgrade() {
   # Both approaches avoid slow remote version-list fetches (fnm ls-remote, npm outdated).
   if command -v fnm &> /dev/null; then
     printf "🟩 Updating Node.js LTS...\n"
-    fnm install --lts && fnm default lts-latest
+    fnm install --lts && fnm default lts-latest && fnm use lts-latest
 
     printf "📦 Updating global npm packages...\n"
     npm install --global npm@latest pnpm@latest @antfu/ni eslint taze npkill
