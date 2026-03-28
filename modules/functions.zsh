@@ -90,6 +90,13 @@ upgrade() {
 
   printf "✅ System upgraded successfully\n"
 
+  # --- Zsh Plugins (via zinit) ---
+  if (( ${+functions[zinit]} )); then
+    printf "🔌 Updating zsh plugins...\n"
+    zinit self-update --quiet
+    zinit update --all --quiet
+  fi
+
   # --- Rust ---
   if command -v rustup &> /dev/null; then
     printf "🦀 Updating Rust...\n"
@@ -111,6 +118,7 @@ upgrade() {
   if command -v "$HOME/go/bin/g" &> /dev/null; then
     printf "🐹 Checking Go versions...\n"
 
+    local LOCAL_GO REMOTE_GO
     # Get local version (strips 'go' prefix) -> "1.26.0"
     LOCAL_GO=$(go version 2>/dev/null | awk '{print $3}' | sed 's/go//')
 
@@ -130,6 +138,7 @@ upgrade() {
   if command -v fnm &> /dev/null; then
     printf "🟩 Checking Node.js versions...\n"
 
+    local CURRENT_NODE LATEST_LTS
     # Get current version (e.g., "v24.13.1")
     CURRENT_NODE=$(fnm current 2>/dev/null)
 
@@ -179,7 +188,9 @@ upgrade() {
 
 # FZF git checkout helper (quick alternative to forgit)
 gc() {
-  git checkout "$(git branch --all | fzf | sed 's/^[* ] *//')"
+  local branch
+  branch=$(git branch --all | fzf | sed 's/^[* ] *//')
+  [[ -n "$branch" ]] && git checkout "$branch"
 }
 
 # =============================================================================
