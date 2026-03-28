@@ -34,10 +34,13 @@ alias cdd='cd -'  # Back to previous directory
 # =============================================================================
 # DOCKER
 # =============================================================================
-alias dcup='docker compose up --detach'
-alias dcdown='docker compose down'
+# alias dcup='docker compose up --detach'
+# alias dcdown='docker compose down'
 alias dc='docker compose'
-alias dclogs='docker compose logs -f'
+alias dc-up='UID=$(id -u) GID=$(id -g) docker compose up'
+alias dc-down='docker compose down'
+alias dc-exec='docker compose exec'
+alias dc-logs='docker compose logs -f'
 
 # =============================================================================
 # GIT (quick aliases - forgit plugin provides more)

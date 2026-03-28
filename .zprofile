@@ -23,7 +23,7 @@ path=(
   "$HOME/.cargo/bin"           # fnm, cargo-installed tools
   "$HOME/go/bin"               # go-installed binaries (g, etc.)
   "$HOME/.go/bin"              # go toolchain itself
-  "$XDG_CONFIG_HOME/zsh/bin"  # personal scripts
+  "$XDG_CONFIG_HOME/zsh/bin"   # personal scripts
   /usr/local/bin
   /usr/bin
   /bin
