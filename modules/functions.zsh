@@ -86,7 +86,6 @@ upgrade() {
 
   printf "🧹 Cleaning up...\n"
   sudo apt-get autoclean
-  sudo apt-get autoremove -y
 
   printf "✅ System upgraded successfully\n"
 
@@ -122,9 +121,8 @@ upgrade() {
     # Get local version (strips 'go' prefix) -> "1.26.0"
     LOCAL_GO=$(go version 2>/dev/null | awk '{print $3}' | sed 's/go//')
 
-    # Get remote version using awk (avoids grep/rg alias issues)
-    # Looks for lines starting with major.minor.patch (stable versions)
-    REMOTE_GO=$("$HOME/go/bin/g" list-all 2>/dev/null | awk '/^[0-9]+\.[0-9]+\.[0-9]+$/' | tail -n 1)
+    # Single API call — much faster than `g list-all` which fetches every version
+    REMOTE_GO=$(curl -sf 'https://go.dev/VERSION?m=text' 2>/dev/null | head -1 | sed 's/go//')
 
     if [[ -n "$REMOTE_GO" ]] && [[ "$LOCAL_GO" != "$REMOTE_GO" ]]; then
       printf "⬇️  Updating Go to %s (current: %s)...\n" "$REMOTE_GO" "$LOCAL_GO"
@@ -135,35 +133,15 @@ upgrade() {
   fi
 
   # --- Node.js (via fnm) ---
+  # fnm install --lts is idempotent: skips install if already on latest LTS.
+  # npm install --global is also idempotent: skips packages already at latest.
+  # Both approaches avoid slow remote version-list fetches (fnm ls-remote, npm outdated).
   if command -v fnm &> /dev/null; then
-    printf "🟩 Checking Node.js versions...\n"
+    printf "🟩 Updating Node.js LTS...\n"
+    fnm install --lts && fnm default lts-latest
 
-    local CURRENT_NODE LATEST_LTS
-    # Get current version (e.g., "v24.13.1")
-    CURRENT_NODE=$(fnm current 2>/dev/null)
-
-    # Get latest LTS - parse "v24.13.1 (Krypton)" -> "v24.13.1"
-    LATEST_LTS=$(fnm ls-remote --lts 2>/dev/null | tail -n 1 | awk '{print $1}')
-
-    if [[ -n "$LATEST_LTS" ]] && [[ "$CURRENT_NODE" != "$LATEST_LTS" ]]; then
-      printf "⬇️  Updating Node.js to %s (current: %s)...\n" "$LATEST_LTS" "${CURRENT_NODE:-none}"
-      fnm install --lts && fnm default lts-latest
-
-      # Refresh globals on version change
-      printf "📦 Refreshing global npm packages...\n"
-      npm install --global npm@latest pnpm@latest @antfu/ni eslint taze npkill
-    else
-      printf "✅ Node.js is already up to date (%s)\n" "$CURRENT_NODE"
-
-      # Only update npm packages if Node wasn't touched
-      printf "📦 Checking global npm packages...\n"
-      if npm outdated -g --depth=0 &> /dev/null; then
-        printf "   All global packages are up to date.\n"
-      else
-        printf "   Updating outdated global packages...\n"
-        npm install --global npm@latest pnpm@latest @antfu/ni eslint taze npkill
-      fi
-    fi
+    printf "📦 Updating global npm packages...\n"
+    npm install --global npm@latest pnpm@latest @antfu/ni eslint taze npkill
   fi
 
   # --- Summary ---
