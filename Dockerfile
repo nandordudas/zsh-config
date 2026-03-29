@@ -33,11 +33,15 @@ ENV PATH="/home/dev/.cargo/bin:$PATH"
 RUN cargo install du-dust procs cargo-update eza git-delta \
     --quiet 2>&1 | tail -5
 
-# ─── 3b. fnm — installed via release script to match tools.zsh expected path ──
-# cargo install fnm fails to compile in clean Ubuntu 24.04; use the official
-# binary installer and point it at ~/.cargo/bin so tools.zsh finds it.
-RUN curl -fsSL https://fnm.vercel.app/install | \
-    bash -s -- --install-dir /home/dev/.cargo/bin --skip-shell
+# ─── 3b. fnm — download binary directly to match tools.zsh expected path ─────
+# cargo install fnm fails to compile on Ubuntu 24.04; install script is
+# unreliable in non-interactive Docker builds. Download the release binary.
+RUN sudo apt-get install -y --no-install-recommends unzip && \
+    curl -fsSL "https://github.com/Schniz/fnm/releases/latest/download/fnm-linux.zip" \
+      -o /tmp/fnm.zip && \
+    unzip -q /tmp/fnm.zip -d /tmp/fnm-bin && \
+    install -m755 /tmp/fnm-bin/fnm /home/dev/.cargo/bin/fnm && \
+    rm -rf /tmp/fnm.zip /tmp/fnm-bin
 
 # ─── 4. Node.js via fnm ───────────────────────────────────────────────────────
 # eval "$(fnm env)" must run in the same shell as fnm commands that follow it.
