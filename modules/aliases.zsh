@@ -39,6 +39,11 @@ alias dc-up='UID=$(id -u) GID=$(id -g) docker compose up'
 alias dc-down='docker compose down'
 alias dc-exec='docker compose exec'
 alias dc-logs='docker compose logs -f'
+alias dps='docker ps'
+alias dpsa='docker ps -a'
+alias dimg='docker images'
+alias drm='docker rm $(docker ps -aq)'
+alias drmi='docker rmi $(docker images -qf dangling=true)'
 
 # =============================================================================
 # GIT (quick aliases - forgit plugin provides more)
@@ -49,6 +54,12 @@ alias gd='git diff'
 alias gco='git checkout'
 alias gcm='git commit -m'
 alias gaa='git add -A'
+alias gl='git log --oneline --graph --decorate --all'
+alias gst='git stash'
+alias gstp='git stash pop'
+alias gstl='git stash list'
+alias gwip='git add -A && git commit -m "wip: $(date +%H:%M)"'
+alias gunwip='git log -n 1 --format=%s | grep -q "^wip" && git reset HEAD~1'
 
 # =============================================================================
 # TOOLS & UTILITIES
@@ -63,7 +74,7 @@ alias ik='interactive_kill'
 alias qfind='find . -name'
 alias rand='openssl rand -base64 32'
 alias zshconfig='code --wait "$ZDOTDIR/.zshrc" && exec zsh'
-alias reload='exec zsh -l'
+alias reload='exec zsh'
 alias json='python3 -m json.tool'
 
 # =============================================================================
@@ -86,3 +97,25 @@ fi
 # DEVELOPMENT TOOLS
 # =============================================================================
 alias nvm='fnm'  # Use fnm instead of nvm
+
+# =============================================================================
+# CARGO (Rust)
+# =============================================================================
+alias cb='cargo build'
+alias ct='cargo test'
+alias crun='cargo run'
+alias cc='cargo check'
+alias cf='cargo fmt'
+alias clippy='cargo clippy -- -D warnings'
+
+# =============================================================================
+# GO
+# =============================================================================
+alias got='go test ./...'
+alias gomod='go mod tidy'
+alias gocover='go test -coverprofile=/tmp/cover.out ./... && go tool cover -html=/tmp/cover.out'
+
+# =============================================================================
+# NODE / PNPM
+# =============================================================================
+alias taze='taze -r'  # Check all workspaces for outdated deps
