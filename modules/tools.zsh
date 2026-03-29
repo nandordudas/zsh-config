@@ -8,6 +8,7 @@
 # Anonymous functions (() { ... }) scope local variables without polluting globals.
 
 _ztool_cache="$XDG_CACHE_HOME/zsh"
+mkdir -p "$_ztool_cache"
 
 # =============================================================================
 # STARSHIP PROMPT
