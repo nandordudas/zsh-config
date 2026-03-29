@@ -304,6 +304,8 @@ glo              # interactive git log with fzf
 
 ## Testing
 
+### Unit tests (no install required)
+
 Validate the repo without touching your real dotfiles:
 
 ```bash
@@ -312,6 +314,25 @@ bash ~/.config/zsh/scripts/test.sh
 
 Checks: bash/zsh syntax, required files, no personal data leaks,
 `git-setup.sh` argument parsing, and a full dry-run in an isolated temp home.
+
+### Full install test in Docker
+
+Test the complete install on a clean Ubuntu 24.04 environment:
+
+```bash
+# From the repo root
+docker build -t zsh-config-test .
+
+# Drop into an interactive shell to explore the result
+docker run -it --rm zsh-config-test
+```
+
+The Dockerfile runs all prerequisite installs in order, copies the config,
+and executes `test.sh` as part of the build — a failed test aborts the build.
+
+> **Note:** `gh auth login` and `chsh` are skipped in the container (they require
+> interactive authentication and PAM respectively). Docker-in-Docker is also
+> excluded — run Docker setup steps on the host.
 
 ---
 
