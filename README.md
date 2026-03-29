@@ -1,5 +1,8 @@
 # zsh-config
 
+> [!NOTE]
+> This is an **opinionated** personal zsh configuration. It reflects specific tool choices, aliases, and workflows that suit one developer's daily use. Fork and adapt it rather than using it as-is.
+
 Fast, modular zsh configuration using [Zinit](https://github.com/zdharma-continuum/zinit) turbo mode and cached eval outputs.
 
 **Target startup time:** < 100ms (`time zsh -i -c exit`)
@@ -128,6 +131,13 @@ sudo apt update && sudo apt install -y fastfetch
 ### 9. GitHub CLI (gh)
 
 Used as a credential helper for HTTPS git operations and for adding SSH keys to GitHub.
+
+> [!WARNING]
+> **WSL users:** `gh auth login` opens a browser for OAuth. If WSLg is not enabled or no browser is available, the interactive flow will hang or fail. Use the token-based alternative instead:
+> ```bash
+> gh auth login --with-token <<< "YOUR_GITHUB_TOKEN"
+> ```
+> Generate a token at GitHub → Settings → Developer settings → Personal access tokens.
 
 ```bash
 (type -p wget >/dev/null || sudo apt install wget -y) \
@@ -285,6 +295,9 @@ export GIT_CONFIG_GLOBAL="$HOME/.config/git/config"
 
 ## Post-install verification
 
+> [!TIP]
+> Run these checks after a fresh install or after pulling updates to confirm everything is wired up correctly.
+
 ```bash
 # Startup time
 time zsh -i -c exit
@@ -317,6 +330,9 @@ Checks: bash/zsh syntax, required files, no personal data leaks,
 
 ### Full install test in Docker
 
+> [!IMPORTANT]
+> The Docker build downloads all tools from the internet. It takes several minutes on first run. Subsequent builds reuse cached layers.
+
 Test the complete install on a clean Ubuntu 24.04 environment:
 
 ```bash
@@ -338,9 +354,13 @@ and executes `test.sh` as part of the build — a failed test aborts the build.
 
 ## Cache management
 
-If a tool behaves unexpectedly after an upgrade, clear the eval caches:
+> [!TIP]
+> If a tool behaves unexpectedly after an upgrade, clear the eval caches:
 
 ```bash
 zsh-cache-clear  # removes ~/.cache/zsh/{starship,zoxide,fnm,direnv}.zsh
 exec zsh -l      # regenerates caches on next start
 ```
+
+> [!CAUTION]
+> Do not delete `~/.local/share/zinit` unless you intend to reinstall all plugins from scratch. Zinit stores compiled plugin snapshots there; removing it triggers a full re-download on next shell start.
