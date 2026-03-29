@@ -30,10 +30,14 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
 ENV PATH="/home/dev/.cargo/bin:$PATH"
 
 # ─── 3. Cargo tools ───────────────────────────────────────────────────────────
-# fnm installed separately so failures aren't masked by the tail pipe.
 RUN cargo install du-dust procs cargo-update eza git-delta \
     --quiet 2>&1 | tail -5
-RUN cargo install fnm
+
+# ─── 3b. fnm — installed via release script to match tools.zsh expected path ──
+# cargo install fnm fails to compile in clean Ubuntu 24.04; use the official
+# binary installer and point it at ~/.cargo/bin so tools.zsh finds it.
+RUN curl -fsSL https://fnm.vercel.app/install | \
+    bash -s -- --install-dir /home/dev/.cargo/bin --skip-shell
 
 # ─── 4. Node.js via fnm ───────────────────────────────────────────────────────
 # eval "$(fnm env)" must run in the same shell as fnm commands that follow it.
