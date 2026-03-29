@@ -170,9 +170,11 @@ upgrade() {
 # =============================================================================
 
 # FZF git checkout helper (quick alternative to forgit)
-gc() {
+# Strips remotes/<remote>/ prefix so remote branches create local tracking branches
+# instead of checking out in detached HEAD mode.
+gcb() {
   local branch
-  branch=$(git branch --all | fzf | sed 's/^[* ] *//')
+  branch=$(git branch --all | fzf | sed 's|^[* ]*||; s|remotes/[^/]*/||')
   [[ -n "$branch" ]] && git checkout "$branch"
 }
 

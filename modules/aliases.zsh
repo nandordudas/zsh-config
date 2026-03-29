@@ -34,8 +34,6 @@ alias cdd='cd -'  # Back to previous directory
 # =============================================================================
 # DOCKER
 # =============================================================================
-# alias dcup='docker compose up --detach'
-# alias dcdown='docker compose down'
 alias dc='docker compose'
 alias dc-up='UID=$(id -u) GID=$(id -g) docker compose up'
 alias dc-down='docker compose down'
@@ -57,7 +55,6 @@ alias gaa='git add -A'
 # =============================================================================
 alias bat='batcat --theme auto:system --theme-dark default --theme-light GitHub'
 alias fd='fdfind'
-alias grep='rg'
 alias df='duf'
 alias du='dust'
 alias pss='procs'
@@ -72,7 +69,7 @@ alias json='python3 -m json.tool'
 # =============================================================================
 # SYSTEM
 # =============================================================================
-alias ps='ps aux'
+alias psa='ps aux'
 alias free='free -h'
 
 # =============================================================================
