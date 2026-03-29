@@ -82,6 +82,12 @@ interactive_kill() {
 
 # Comprehensive system upgrade function — parallel execution
 upgrade() {
+  # Suppress [N] PID job-start and job-done notifications — they break the
+  # in-place ANSI display by adding unexpected lines between redraws.
+  # LOCAL_OPTIONS ensures the change is reverted automatically on return.
+  setopt LOCAL_OPTIONS
+  unsetopt MONITOR NOTIFY
+
   local tmpdir
   tmpdir=$(mktemp -d)
 
@@ -92,9 +98,11 @@ upgrade() {
   local -a names=()
   local -a pids=()
 
-  # Kill background jobs and clean up on Ctrl+C or SIGTERM
+  # Kill background jobs and clean up on Ctrl+C or SIGTERM.
+  # kill -- -$pid sends SIGTERM to the entire process group so children
+  # of each subshell (e.g. apt, claude) are also terminated.
   trap '
-    (( ${#pids} > 0 )) && kill "${pids[@]}" 2>/dev/null
+    for _pid in $pids; do kill -- -$_pid 2>/dev/null; done
     rm -rf "$tmpdir"
     printf "\n[upgrade] cancelled\n"
     trap - INT TERM
