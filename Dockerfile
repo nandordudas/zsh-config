@@ -66,10 +66,15 @@ RUN GO_VER=$(curl -fsSL "https://go.dev/dl/?mode=json" | \
     tar -xz --strip-components=1 -C "$GOROOT"
 
 # ─── 6. Starship ──────────────────────────────────────────────────────────────
-RUN curl -sS https://starship.rs/install.sh | sh -s -- --yes -q
+RUN curl -fsSL "https://github.com/starship/starship/releases/latest/download/starship-x86_64-unknown-linux-musl.tar.gz" | \
+    sudo tar -xz -C /usr/local/bin
 
 # ─── 7. direnv ────────────────────────────────────────────────────────────────
-RUN curl -sfL https://direnv.net/install.sh | bash
+RUN DIRENV_VER=$(curl -fsSL "https://api.github.com/repos/direnv/direnv/releases/latest" | \
+      python3 -c "import sys,json; print(json.load(sys.stdin)['tag_name'])") && \
+    curl -fsSL "https://github.com/direnv/direnv/releases/download/${DIRENV_VER}/direnv.linux-amd64" \
+      -o /home/dev/.local/bin/direnv && \
+    chmod +x /home/dev/.local/bin/direnv
 
 # ─── 8. fzf (from git — apt ships an older version) ──────────────────────────
 RUN git clone --quiet --depth 1 https://github.com/junegunn/fzf.git ~/.fzf && \
