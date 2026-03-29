@@ -81,7 +81,7 @@ alias free='free -h'
 if (( IS_WSL )); then
   alias open='explorer.exe'
   alias pbcopy='clip.exe'
-  alias pbpaste='powershell.exe Get-Clipboard | batcat'
+  alias pbpaste='powershell.exe Get-Clipboard | tr -d "\r"'
   alias uuid="cat /proc/sys/kernel/random/uuid | tr -d '\n' | clip.exe"
 fi
 
