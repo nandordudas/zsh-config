@@ -23,7 +23,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     sudo apt-get update -qq && sudo apt-get upgrade -y && \
     sudo apt-get install -y --no-install-recommends \
-      zsh \
+      zsh tmux \
       bat fd-find ripgrep \
       duf zoxide \
       exiftool \
@@ -143,6 +143,9 @@ export ZDOTDIR="$XDG_CONFIG_HOME/zsh"
 EOF
 
 RUN touch ~/.config/zsh/modules/local.zsh
+
+RUN mkdir -p ~/.config/tmux && \
+    ln -sf ~/.config/zsh/tmux/tmux.conf ~/.config/tmux/tmux.conf
 
 # ─── Run test suite ───────────────────────────────────────────────────────────
 RUN bash ~/.config/zsh/scripts/test.sh

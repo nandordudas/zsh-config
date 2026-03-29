@@ -14,15 +14,17 @@ Fast, modular zsh configuration using [Zinit](https://github.com/zdharma-continu
 ~/.config/zsh/
 ├── .zprofile                # Login shell: PATH, env vars, dir creation
 ├── .zshrc                   # Orchestrator — sources modules in order
-└── modules/
-    ├── options.zsh          # Shell setopt declarations
-    ├── zinit.zsh            # Zinit bootstrap + all plugins (turbo mode)
-    ├── completions.zsh      # Completion zstyle config
-    ├── keybindings.zsh      # All key bindings (manual, no plugin)
-    ├── aliases.zsh          # Aliases
-    ├── functions.zsh        # Custom functions
-    ├── tools.zsh            # External tool init with eval caching
-    └── local.zsh            # Machine-local overrides (gitignored)
+├── modules/
+│   ├── options.zsh          # Shell setopt declarations
+│   ├── zinit.zsh            # Zinit bootstrap + all plugins (turbo mode)
+│   ├── completions.zsh      # Completion zstyle config
+│   ├── keybindings.zsh      # All key bindings (manual, no plugin)
+│   ├── aliases.zsh          # Aliases
+│   ├── functions.zsh        # Custom functions
+│   ├── tools.zsh            # External tool init with eval caching
+│   └── local.zsh            # Machine-local overrides (gitignored)
+└── tmux/
+    └── tmux.conf            # tmux config (symlink to ~/.config/tmux/tmux.conf)
 ```
 
 ---
@@ -40,6 +42,7 @@ sudo apt install -y \
   bat fd-find ripgrep \
   duf zoxide \
   exiftool \
+  tmux \
   unrar p7zip-full
 chsh -s $(command -v zsh)
 ```
@@ -210,7 +213,14 @@ This file is gitignored and holds machine-specific overrides:
 touch ~/.config/zsh/modules/local.zsh
 ```
 
-### 4. Open a new terminal
+### 4. Link the tmux config
+
+```bash
+mkdir -p ~/.config/tmux
+ln -sf ~/.config/zsh/tmux/tmux.conf ~/.config/tmux/tmux.conf
+```
+
+### 5. Open a new terminal
 
 On first launch Zinit auto-installs all plugins. Subsequent startups load from
 cache and are fast.

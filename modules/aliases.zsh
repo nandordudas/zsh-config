@@ -119,3 +119,12 @@ alias gocover='go test -coverprofile=/tmp/cover.out ./... && go tool cover -html
 # NODE / PNPM
 # =============================================================================
 alias taze='taze -r'  # Check all workspaces for outdated deps
+
+# =============================================================================
+# TMUX
+# =============================================================================
+alias tm='tmux new-session -A -s main'   # attach to 'main' or create it
+alias ta='tmux attach-session -t'        # attach to named session
+alias tl='tmux list-sessions'
+alias tn='tmux new-session -s'           # new named session
+alias tk='tmux kill-session -t'
