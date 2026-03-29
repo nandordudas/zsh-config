@@ -21,6 +21,7 @@ RUN sudo apt-get update -qq && sudo apt-get upgrade -y && \
       exiftool \
       unrar p7zip-full \
       curl wget git \
+      openssh-client \
       software-properties-common \
       ca-certificates gnupg
 
