@@ -92,6 +92,14 @@ upgrade() {
   local -a names=()
   local -a pids=()
 
+  # Kill background jobs and clean up on Ctrl+C or SIGTERM
+  trap '
+    (( ${#pids} > 0 )) && kill "${pids[@]}" 2>/dev/null
+    rm -rf "$tmpdir"
+    printf "\n[upgrade] cancelled\n"
+    trap - INT TERM
+  ' INT TERM
+
   # --- apt ---
   {
     printf 'running' > "$tmpdir/apt.status"
@@ -226,6 +234,7 @@ upgrade() {
   printf '  %-12s %s\n' 'Docker:' "$(docker --version 2>/dev/null | awk '{print $3}' | tr -d ',' || echo 'not found')"
   printf '  %-12s %s\n' 'Git:'    "$(git --version 2>/dev/null | awk '{print $3}' || echo 'not found')"
 
+  trap - INT TERM
   rm -rf "$tmpdir"
   printf '🎉 All done!\n'
 }
