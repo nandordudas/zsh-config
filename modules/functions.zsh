@@ -206,9 +206,9 @@ upgrade() {
   printf '\n'
 
   # --- Print logs in fixed order ---
+  local log
   for name in apt zinit rust go node claude; do
     [[ -f "$tmpdir/${name}.log" ]] || continue
-    local log
     log=$(cat "$tmpdir/${name}.log")
     [[ -n "$log" ]] && printf '=== %s ===\n%s\n\n' "$name" "$log"
   done
