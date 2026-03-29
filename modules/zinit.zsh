@@ -23,7 +23,7 @@ ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 
 # zsh-you-should-use
 export YSU_MESSAGE_POSITION="after"
-export YSU_HARDCORE=0
+# YSU_HARDCORE defaults to 0 (remind only); set to 1 to block commands that have an alias
 
 # =============================================================================
 # ZINIT BOOTSTRAP
