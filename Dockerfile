@@ -62,9 +62,6 @@ RUN PROCS_VER=$(curl -fsSL https://api.github.com/repos/dalance/procs/releases/l
     sudo install -m755 /tmp/procs /usr/local/bin/procs && \
     rm /tmp/procs.zip
 
-# cargo-update (cargo plugin — no pre-built binary available)
-RUN cargo install cargo-update --quiet
-
 # fnm (Node version manager) — installed to ~/.cargo/bin to match tools.zsh
 RUN curl -fsSL "https://github.com/Schniz/fnm/releases/latest/download/fnm-linux.zip" \
       -o /tmp/fnm.zip && \
