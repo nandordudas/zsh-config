@@ -236,7 +236,7 @@ $ gunwip
 
 | Alias | Expands to |
 |-------|-----------|
-| `bat` | `batcat --theme auto:system ...` |
+| `bat` | `batcat --theme TwoDark ...` |
 | `fd` | `fdfind` |
 | `df` | `duf` |
 | `du` | `dust` |
