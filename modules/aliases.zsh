@@ -64,7 +64,7 @@ alias gunwip='git log -n 1 --format=%s | grep -q "^wip" && git reset HEAD~1'
 # =============================================================================
 # TOOLS & UTILITIES
 # =============================================================================
-alias bat='batcat --theme auto:system --theme-dark default --theme-light GitHub'
+alias bat='batcat --theme TwoDark'
 alias fd='fdfind'
 alias df='duf'
 alias du='dust'
