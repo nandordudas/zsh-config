@@ -54,8 +54,10 @@ RUN fnm install --lts 2>&1 | tail -3 && \
 # ─── 5. Go version manager (g) ────────────────────────────────────────────────
 ENV GOPATH="/home/dev/go"
 ENV GOROOT="/home/dev/.go"
-RUN curl -sSL https://raw.githubusercontent.com/stefanmaric/g/master/bin/install \
-    | GOPATH="$GOPATH" GOROOT="$GOROOT" bash
+RUN mkdir -p "$GOPATH/bin" "$GOROOT" && \
+    curl -fsSL "https://raw.githubusercontent.com/stefanmaric/g/master/bin/g" \
+      -o "$GOPATH/bin/g" && \
+    chmod +x "$GOPATH/bin/g"
 ENV PATH="$GOPATH/bin:$GOROOT/bin:$PATH"
 RUN g install latest && g use latest
 
