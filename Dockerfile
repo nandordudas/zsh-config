@@ -82,8 +82,12 @@ RUN git clone --quiet --depth 1 https://github.com/junegunn/fzf.git ~/.fzf && \
     ~/.fzf/install --key-bindings --completion --no-update-rc
 
 # ─── 9. fastfetch ─────────────────────────────────────────────────────────────
-RUN sudo add-apt-repository -y ppa:zhangsongcui3371/fastfetch -q && \
-    sudo apt-get update -qq && sudo apt-get install -y fastfetch
+RUN FASTFETCH_VER=$(curl -fsSL "https://api.github.com/repos/fastfetch-cli/fastfetch/releases/latest" | \
+      python3 -c "import sys,json; print(json.load(sys.stdin)['tag_name'])") && \
+    curl -fsSL "https://github.com/fastfetch-cli/fastfetch/releases/download/${FASTFETCH_VER}/fastfetch-linux-amd64.deb" \
+      -o /tmp/fastfetch.deb && \
+    sudo dpkg -i /tmp/fastfetch.deb && \
+    rm /tmp/fastfetch.deb
 
 # ─── 10. GitHub CLI ───────────────────────────────────────────────────────────
 RUN sudo mkdir -p -m 755 /etc/apt/keyrings && \
