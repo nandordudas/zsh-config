@@ -166,8 +166,15 @@ upgrade() {
   if command -v fnm &>/dev/null; then
     {
       printf 'running' > "$tmpdir/node.status"
-      fnm install --lts && fnm default lts-latest && fnm use lts-latest
-      npm install --global npm@latest pnpm@latest @antfu/ni eslint taze npkill
+      local lts current
+      lts=$(fnm list-remote --lts 2>/dev/null | tail -1 | awk '{print $1}')
+      current=$(fnm current 2>/dev/null)
+      if [[ "v${lts#v}" != "v${current#v}" ]]; then
+        fnm install --lts && fnm default lts-latest && fnm use lts-latest
+      fi
+      if npm outdated --global 2>/dev/null | grep -q .; then
+        npm install --global npm@latest pnpm@latest @antfu/ni eslint taze npkill
+      fi
       # Always write 'done' as a separate statement — never chain with &&
       printf 'done' > "$tmpdir/node.status"
     } > "$tmpdir/node.log" 2>&1 &
