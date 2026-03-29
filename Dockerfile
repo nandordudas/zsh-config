@@ -29,15 +29,44 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
     | sh -s -- -y --no-modify-path --quiet
 ENV PATH="/home/dev/.cargo/bin:$PATH"
 
-# ─── 3. Cargo tools ───────────────────────────────────────────────────────────
-RUN cargo install du-dust procs cargo-update eza git-delta \
-    --quiet 2>&1 | tail -5
+# ─── 3. CLI tools from GitHub releases ────────────────────────────────────────
+# Pre-built binaries — cargo compile is slow and failures are easy to mask.
+# unzip is needed here and for fnm below.
+RUN sudo apt-get install -y --no-install-recommends unzip
 
-# ─── 3b. fnm — download binary directly to match tools.zsh expected path ─────
-# cargo install fnm fails to compile on Ubuntu 24.04; install script is
-# unreliable in non-interactive Docker builds. Download the release binary.
-RUN sudo apt-get install -y --no-install-recommends unzip && \
-    curl -fsSL "https://github.com/Schniz/fnm/releases/latest/download/fnm-linux.zip" \
+# eza (ls replacement)
+RUN curl -fsSL "https://github.com/eza-community/eza/releases/latest/download/eza_x86_64-unknown-linux-musl.tar.gz" | \
+    tar -xz -C /tmp && \
+    sudo install -m755 /tmp/eza /usr/local/bin/eza
+
+# git-delta (git pager)
+RUN DELTA_VER=$(curl -fsSL https://api.github.com/repos/dandavison/delta/releases/latest | \
+      python3 -c "import sys,json; print(json.load(sys.stdin)['tag_name'])") && \
+    curl -fsSL "https://github.com/dandavison/delta/releases/download/${DELTA_VER}/delta-${DELTA_VER}-x86_64-unknown-linux-musl.tar.gz" | \
+    tar -xz --strip-components=1 -C /tmp --wildcards '*/delta' && \
+    sudo install -m755 /tmp/delta /usr/local/bin/delta
+
+# dust (du replacement)
+RUN DUST_VER=$(curl -fsSL https://api.github.com/repos/bootandy/dust/releases/latest | \
+      python3 -c "import sys,json; print(json.load(sys.stdin)['tag_name'])") && \
+    curl -fsSL "https://github.com/bootandy/dust/releases/download/${DUST_VER}/dust-${DUST_VER}-x86_64-unknown-linux-musl.tar.gz" | \
+    tar -xz --strip-components=1 -C /tmp --wildcards '*/dust' && \
+    sudo install -m755 /tmp/dust /usr/local/bin/dust
+
+# procs (ps replacement)
+RUN PROCS_VER=$(curl -fsSL https://api.github.com/repos/dalance/procs/releases/latest | \
+      python3 -c "import sys,json; print(json.load(sys.stdin)['tag_name'])") && \
+    curl -fsSL "https://github.com/dalance/procs/releases/download/${PROCS_VER}/procs-${PROCS_VER}-x86_64-linux.zip" \
+      -o /tmp/procs.zip && \
+    unzip -q /tmp/procs.zip procs -d /tmp && \
+    sudo install -m755 /tmp/procs /usr/local/bin/procs && \
+    rm /tmp/procs.zip
+
+# cargo-update (cargo plugin — no pre-built binary available)
+RUN cargo install cargo-update --quiet
+
+# fnm (Node version manager) — installed to ~/.cargo/bin to match tools.zsh
+RUN curl -fsSL "https://github.com/Schniz/fnm/releases/latest/download/fnm-linux.zip" \
       -o /tmp/fnm.zip && \
     unzip -q /tmp/fnm.zip -d /tmp/fnm-bin && \
     install -m755 /tmp/fnm-bin/fnm /home/dev/.cargo/bin/fnm && \
