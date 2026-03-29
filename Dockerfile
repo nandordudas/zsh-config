@@ -29,14 +29,15 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
     | sh -s -- -y --no-modify-path --quiet
 ENV PATH="/home/dev/.cargo/bin:$PATH"
 
-# ─── 3. Cargo tools (includes fnm) ────────────────────────────────────────────
-RUN cargo install du-dust procs cargo-update eza git-delta fnm \
+# ─── 3. Cargo tools ───────────────────────────────────────────────────────────
+# fnm installed separately so failures aren't masked by the tail pipe.
+RUN cargo install du-dust procs cargo-update eza git-delta \
     --quiet 2>&1 | tail -5
+RUN cargo install fnm
 
 # ─── 4. Node.js via fnm ───────────────────────────────────────────────────────
-# Single RUN so fnm is on PATH throughout; eval sets NODE_PATH for npm globals.
-RUN export PATH="/home/dev/.cargo/bin:$PATH" && \
-    fnm install --lts 2>&1 | tail -3 && \
+# eval "$(fnm env)" must run in the same shell as fnm commands that follow it.
+RUN fnm install --lts 2>&1 | tail -3 && \
     eval "$(fnm env --shell bash)" && \
     fnm default lts-latest && fnm use lts-latest && \
     npm install --global npm@latest pnpm @antfu/ni eslint taze npkill \
