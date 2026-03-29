@@ -70,7 +70,8 @@ RUN curl -fsSL "https://github.com/starship/starship/releases/latest/download/st
     sudo tar -xz -C /usr/local/bin
 
 # ─── 7. direnv ────────────────────────────────────────────────────────────────
-RUN DIRENV_VER=$(curl -fsSL "https://api.github.com/repos/direnv/direnv/releases/latest" | \
+RUN mkdir -p /home/dev/.local/bin && \
+    DIRENV_VER=$(curl -fsSL "https://api.github.com/repos/direnv/direnv/releases/latest" | \
       python3 -c "import sys,json; print(json.load(sys.stdin)['tag_name'])") && \
     curl -fsSL "https://github.com/direnv/direnv/releases/download/${DIRENV_VER}/direnv.linux-amd64" \
       -o /home/dev/.local/bin/direnv && \
