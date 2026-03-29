@@ -26,30 +26,87 @@ Fast, modular zsh configuration using [Zinit](https://github.com/zdharma-continu
 
 ## Prerequisites
 
-### System packages
+Install all tools before cloning. Steps must be followed in this order — each section depends on the previous.
+
+### 1. System packages
 
 ```bash
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y zsh bat fd-find ripgrep duf zoxide exiftool
+sudo apt install -y \
+  zsh \
+  bat fd-find ripgrep \
+  duf zoxide \
+  exiftool \
+  unrar p7zip-full
 chsh -s $(command -v zsh)
 ```
 
-> **Debian/Ubuntu note:** `bat` is installed as `batcat` and `fd` as `fdfind`.
-> The config aliases both to their canonical names.
+| Package | Used as | Notes |
+|---|---|---|
+| `bat` | `bat` (alias `cat`) | Installed as `batcat` on Debian/Ubuntu |
+| `fd-find` | `fd` (alias `find`) | Installed as `fdfind` on Debian/Ubuntu |
+| `ripgrep` | background fzf search | — |
+| `duf` | `df` replacement | — |
+| `zoxide` | `z` (smart `cd`) | — |
+| `exiftool` | file metadata viewer | — |
+| `unrar`, `p7zip-full` | `extract()` function | Archive format support |
 
-### direnv — per-project environment variables
+### 2. Rust + cargo tools
+
+Install Rust first — subsequent steps depend on it.
 
 ```bash
-command -v direnv &>/dev/null || curl -sfL https://direnv.net/install.sh | bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source "$HOME/.cargo/env"
 ```
 
-### Starship prompt
+Install cargo-based tools (including `fnm`, the Node version manager):
 
 ```bash
-command -v starship &>/dev/null || curl -sS https://starship.rs/install.sh | sh
+cargo install du-dust procs cargo-update eza git-delta fnm
 ```
 
-### fzf — fuzzy finder
+| Binary | Used as | Notes |
+|---|---|---|
+| `eza` | `ls`/`ll`/`la`/`lt` | Modern ls with icons and git status |
+| `du-dust` | `du` replacement | Visual disk usage |
+| `procs` | `pss` alias | Modern `ps` |
+| `git-delta` | git pager | Syntax-highlighted diffs |
+| `cargo-update` | `cargo install-update` | Updates all cargo-installed binaries |
+| `fnm` | `fnm` / `nvm` alias | Node.js version manager |
+
+### 3. Node.js via fnm
+
+```bash
+fnm install --lts && fnm default lts-latest && fnm use lts-latest
+npm install --global npm@latest pnpm @antfu/ni eslint taze npkill
+```
+
+### 4. Go version manager (g)
+
+```bash
+curl -sSL https://raw.githubusercontent.com/stefanmaric/g/master/bin/install \
+  | GOPATH="$HOME/go" GOROOT="$HOME/.go" bash
+g install latest && g use latest
+```
+
+`GOROOT` (`~/.go`) holds the Go toolchain. `GOPATH` (`~/go`) holds installed binaries and the `g` manager itself.
+
+### 5. Starship prompt
+
+```bash
+curl -sS https://starship.rs/install.sh | sh
+```
+
+### 6. direnv — per-project environment variables
+
+```bash
+curl -sfL https://direnv.net/install.sh | bash
+```
+
+Automatically loads and unloads `.envrc` files when entering or leaving a directory.
+
+### 7. fzf — fuzzy finder
 
 Install from git to get the latest version (apt ships an outdated one):
 
@@ -61,56 +118,92 @@ Install from git to get the latest version (apt ships an outdated one):
 > `--no-update-rc` skips modifying `.bashrc`/`.zshrc` — the config handles
 > shell integration itself via `modules/tools.zsh`.
 
-### Docker
-
-```bash
-curl -fsSL https://get.docker.com | sh
-sudo usermod -aG docker $USER && newgrp docker
-```
-
-### fnm — Node.js version manager
-
-```bash
-curl -fsSL https://fnm.vercel.app/install | bash
-fnm install --lts && fnm default lts-latest
-npm install --global pnpm @antfu/ni eslint taze npkill
-```
-
-### Go version manager (g)
-
-```bash
-curl -sSL https://raw.githubusercontent.com/stefanmaric/g/master/bin/install \
-  | GOPATH="$HOME/go" GOROOT="$HOME/.go" bash
-g install latest && g set latest
-```
-
-### Rust + cargo tools
-
-```bash
-command -v rustup &>/dev/null || curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-cargo install du-dust procs cargo-update eza git-delta
-```
-
-### fastfetch — system info
+### 8. fastfetch — system info
 
 ```bash
 sudo add-apt-repository ppa:zhangsongcui3371/fastfetch
 sudo apt update && sudo apt install -y fastfetch
 ```
 
-### Claude CLI
+### 9. GitHub CLI (gh)
+
+Used as a credential helper for HTTPS git operations and for adding SSH keys to GitHub.
+
+```bash
+(type -p wget >/dev/null || sudo apt install wget -y) \
+  && sudo mkdir -p -m 755 /etc/apt/keyrings \
+  && wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+     | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
+  && sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+  && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+     | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+  && sudo apt update && sudo apt install gh -y
+gh auth login
+```
+
+### 10. Docker (optional)
+
+```bash
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER && newgrp docker
+```
+
+### 11. Claude CLI (optional)
+
+Used by the `upgrade()` function to check for updates.
 
 ```bash
 curl -fsSL https://claude.ai/install.sh | bash
 ```
 
-### GitHub CLI (gh)
+---
 
-Used as a credential helper for HTTPS git operations and for adding SSH keys to GitHub.
+## Installation
+
+### 1. Clone the repo
 
 ```bash
-sudo apt install gh -y && gh auth login
+git clone https://github.com/nandordudas/zsh-config.git ~/.config/zsh
 ```
+
+> If `~/.config/zsh` already exists, back it up first:
+> ```bash
+> mv ~/.config/zsh ~/.config/zsh.bak
+> ```
+
+### 2. Create `~/.zshenv`
+
+This file is **not included in the repo** because it must live at `$HOME/.zshenv`.
+Create it manually:
+
+```bash
+cat > ~/.zshenv << 'EOF'
+# ~/.zshenv
+# Sourced for ALL zsh invocations (interactive, non-interactive, scripts, git hooks).
+# Rule: only what every zsh process needs to locate the real config.
+
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
+export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
+
+# Redirect zsh's dotfile search from $HOME to ~/.config/zsh
+export ZDOTDIR="$XDG_CONFIG_HOME/zsh"
+EOF
+```
+
+### 3. Create `modules/local.zsh`
+
+This file is gitignored and holds machine-specific overrides:
+
+```bash
+touch ~/.config/zsh/modules/local.zsh
+```
+
+### 4. Open a new terminal
+
+On first launch Zinit auto-installs all plugins. Subsequent startups load from
+cache and are fast.
 
 ---
 
@@ -187,55 +280,6 @@ The `.zprofile` sets `GIT_CONFIG_GLOBAL` so git uses the XDG path:
 ```bash
 export GIT_CONFIG_GLOBAL="$HOME/.config/git/config"
 ```
-
----
-
-## Installation
-
-### 1. Clone the repo
-
-```bash
-git clone https://github.com/nandordudas/zsh-config.git ~/.config/zsh
-```
-
-> If `~/.config/zsh` already exists, back it up first:
-> ```bash
-> mv ~/.config/zsh ~/.config/zsh.bak
-> ```
-
-### 2. Create `~/.zshenv`
-
-This file is **not included in the repo** because it must live at `$HOME/.zshenv`.
-Create it manually:
-
-```bash
-cat > ~/.zshenv << 'EOF'
-# ~/.zshenv
-# Sourced for ALL zsh invocations (interactive, non-interactive, scripts, git hooks).
-# Rule: only what every zsh process needs to locate the real config.
-
-export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
-export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
-export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
-export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
-
-# Redirect zsh's dotfile search from $HOME to ~/.config/zsh
-export ZDOTDIR="$XDG_CONFIG_HOME/zsh"
-EOF
-```
-
-### 3. Create `modules/local.zsh`
-
-This file is gitignored and holds machine-specific overrides:
-
-```bash
-touch ~/.config/zsh/modules/local.zsh
-```
-
-### 4. Open a new terminal
-
-On first launch Zinit auto-installs all plugins. Subsequent startups load from
-cache and are fast.
 
 ---
 
