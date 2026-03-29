@@ -98,6 +98,7 @@ upgrade() {
     sudo apt update
     sudo apt-get upgrade -y --autoremove --purge
     sudo apt-get autoclean
+    # Always write 'done' as a separate statement — never chain with &&
     printf 'done' > "$tmpdir/apt.status"
   } > "$tmpdir/apt.log" 2>&1 &
   pids+=($!)
@@ -109,6 +110,7 @@ upgrade() {
       printf 'running' > "$tmpdir/zinit.status"
       zinit self-update --quiet
       zinit update --all --quiet
+      # Always write 'done' as a separate statement — never chain with &&
       printf 'done' > "$tmpdir/zinit.status"
     } > "$tmpdir/zinit.log" 2>&1 &
     pids+=($!)
@@ -121,6 +123,7 @@ upgrade() {
       printf 'running' > "$tmpdir/rust.status"
       command -v rustup &>/dev/null && rustup update
       command -v cargo  &>/dev/null && cargo install-update -a
+      # Always write 'done' as a separate statement — never chain with &&
       printf 'done' > "$tmpdir/rust.status"
     } > "$tmpdir/rust.log" 2>&1 &
     pids+=($!)
@@ -131,12 +134,12 @@ upgrade() {
   if command -v "$HOME/go/bin/g" &>/dev/null; then
     {
       printf 'running' > "$tmpdir/go.status"
-      local LOCAL_GO REMOTE_GO
       LOCAL_GO=$(go version 2>/dev/null | awk '{print $3}' | sed 's/go//')
       REMOTE_GO=$(curl -sf 'https://go.dev/VERSION?m=text' 2>/dev/null | head -1 | sed 's/go//')
       if [[ -n "$REMOTE_GO" && "$LOCAL_GO" != "$REMOTE_GO" ]]; then
         "$HOME/go/bin/g" install latest && "$HOME/go/bin/g" use latest
       fi
+      # Always write 'done' as a separate statement — never chain with &&
       printf 'done' > "$tmpdir/go.status"
     } > "$tmpdir/go.log" 2>&1 &
     pids+=($!)
@@ -149,6 +152,7 @@ upgrade() {
       printf 'running' > "$tmpdir/node.status"
       fnm install --lts && fnm default lts-latest && fnm use lts-latest
       npm install --global npm@latest pnpm@latest @antfu/ni eslint taze npkill
+      # Always write 'done' as a separate statement — never chain with &&
       printf 'done' > "$tmpdir/node.status"
     } > "$tmpdir/node.log" 2>&1 &
     pids+=($!)
@@ -160,6 +164,7 @@ upgrade() {
     {
       printf 'running' > "$tmpdir/claude.status"
       claude update
+      # Always write 'done' as a separate statement — never chain with &&
       printf 'done' > "$tmpdir/claude.status"
     } > "$tmpdir/claude.log" 2>&1 &
     pids+=($!)
@@ -176,13 +181,13 @@ upgrade() {
 
   # Poll status files; redraw block in-place until all jobs report done
   local all_done=0
+  local s
   while (( ! all_done )); do
     sleep 0.5
     # Move cursor up n lines
     printf '\033[%dA' "$n"
     all_done=1
     for name in $names; do
-      local s
       s=$(cat "$tmpdir/${name}.status" 2>/dev/null)
       if [[ "$s" == 'done' ]]; then
         printf '\033[2K\r  [%-8s] done\n' "$name"
