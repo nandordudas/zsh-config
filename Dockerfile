@@ -3,9 +3,12 @@ FROM ubuntu:24.04
 # Non-interactive apt throughout the build
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=UTC
+ENV LANG=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
 
 # Create a non-root user (mirrors real install — paths like ~/.cargo depend on $HOME)
-RUN apt-get update -qq && apt-get install -y --no-install-recommends sudo && \
+RUN apt-get update -qq && apt-get install -y --no-install-recommends sudo locales && \
+    locale-gen en_US.UTF-8 && \
     useradd -m -s /bin/bash dev && \
     echo "dev ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
