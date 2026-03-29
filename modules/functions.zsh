@@ -179,6 +179,28 @@ gcb() {
 }
 
 # =============================================================================
+# UTILITIES
+# =============================================================================
+
+# Show listening ports
+ports() {
+  ss -tlnp | awk 'NR==1 || /LISTEN/'
+}
+
+# Display PATH entries one per line, numbered
+path() {
+  echo $PATH | tr ':' '\n' | cat -n
+}
+
+# Create a throwaway temp directory and cd into it
+tmpcd() {
+  local d
+  d=$(mktemp -d)
+  printf "→ %s\n" "$d"
+  cd "$d"
+}
+
+# =============================================================================
 # CACHE MANAGEMENT
 # =============================================================================
 

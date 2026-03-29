@@ -63,8 +63,17 @@ zinit wait lucid for \
   zsh-users/zsh-history-substring-search \
   zdharma-continuum/fast-syntax-highlighting \
   MichaelAquilina/zsh-you-should-use \
-  Aloxaf/fzf-tab
+  Aloxaf/fzf-tab \
+  hlissner/zsh-autopair
 
 # Group 3: Git tooling (1 second delay — only needed when user types git commands)
 zinit wait"1" lucid for \
   wfxr/forgit
+
+# Group 4: Completions for language toolchains and Docker Compose
+# Loaded with a 1-second delay — not needed at prompt time.
+zinit wait"1" lucid for \
+  OMZP::golang \
+  OMZP::rust \
+  OMZP::docker-compose \
+  OMZP::npm
