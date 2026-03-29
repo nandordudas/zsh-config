@@ -12,9 +12,10 @@ setopt HIST_VERIFY              # Expand history to command line before executin
 setopt HIST_FIND_NO_DUPS        # Skip duplicate entries when searching history
 setopt EXTENDED_HISTORY         # Write :start:elapsed;command format to history file
 setopt SHARE_HISTORY            # Import new history entries from other sessions
-setopt INC_APPEND_HISTORY_TIME  # Write immediately with timestamps
-# Note: SHARE_HISTORY + INC_APPEND_HISTORY_TIME supersede the old trio of
-#       APPEND_HISTORY + INC_APPEND_HISTORY + SHARE_HISTORY.
+# Note: INC_APPEND_HISTORY_TIME is intentionally omitted. Per zsh docs, it delays
+#       writing until command completion, which directly conflicts with SHARE_HISTORY's
+#       goal of making entries immediately visible to other sessions. SHARE_HISTORY
+#       alone (which implies INC_APPEND_HISTORY) provides the best sharing behaviour.
 
 # =============================================================================
 # DIRECTORY NAVIGATION

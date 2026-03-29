@@ -5,7 +5,7 @@
 # =============================================================================
 
 # Create directory and cd into it
-function mkcd() {
+mkcd() {
   mkdir -p "$1" && cd "$1"
 }
 
@@ -41,7 +41,12 @@ confirm() {
 }
 
 # Bootstrap new Git project
+# Requires the 'git bootstrap' alias from scripts/git-setup.sh to be installed.
 bootstrap() {
+  if ! git config --get alias.bootstrap &>/dev/null; then
+    printf "Error: 'git bootstrap' alias not found. Run scripts/git-setup.sh first.\n" >&2
+    return 1
+  fi
   local folder_name="${1:-$(tr -dc 'a-z0-9' </dev/urandom | head -c 13)}"
   mkcd "${folder_name}" && git bootstrap || return 1
   cr
