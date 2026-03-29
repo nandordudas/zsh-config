@@ -80,89 +80,149 @@ interactive_kill() {
 # SYSTEM UPGRADES & MAINTENANCE
 # =============================================================================
 
-# Comprehensive system upgrade function
+# Comprehensive system upgrade function — parallel execution
 upgrade() {
-  # --- System Packages ---
-  printf "🔄 Updating package lists...\n"
-  sudo apt update || return 1
+  local tmpdir
+  tmpdir=$(mktemp -d)
 
-  printf "📦 Upgrading packages...\n"
-  sudo apt-get upgrade -y --autoremove --purge || return 1
+  # Cache sudo credentials before backgrounding — apt job needs them
+  sudo -v || { rm -rf "$tmpdir"; return 1; }
 
-  printf "🧹 Cleaning up...\n"
-  sudo apt-get autoclean
+  # Track which jobs were launched (in display order)
+  local -a names=()
+  local -a pids=()
 
-  printf "✅ System upgraded successfully\n"
+  # --- apt ---
+  {
+    printf 'running' > "$tmpdir/apt.status"
+    sudo apt update \
+      && sudo apt-get upgrade -y --autoremove --purge \
+      && sudo apt-get autoclean
+    printf 'done' > "$tmpdir/apt.status"
+  } > "$tmpdir/apt.log" 2>&1 &
+  pids+=($!)
+  names+=(apt)
 
-  # --- Zsh Plugins (via zinit) ---
+  # --- zinit ---
   if (( ${+functions[zinit]} )); then
-    printf "🔌 Updating zsh plugins...\n"
-    zinit self-update --quiet
-    zinit update --all --quiet
+    {
+      printf 'running' > "$tmpdir/zinit.status"
+      zinit self-update --quiet
+      zinit update --all --quiet
+      printf 'done' > "$tmpdir/zinit.status"
+    } > "$tmpdir/zinit.log" 2>&1 &
+    pids+=($!)
+    names+=(zinit)
   fi
 
-  # --- Rust ---
-  if command -v rustup &> /dev/null; then
-    printf "🦀 Updating Rust...\n"
-    rustup update
+  # --- rust (rustup must precede cargo) ---
+  if command -v rustup &>/dev/null || command -v cargo &>/dev/null; then
+    {
+      printf 'running' > "$tmpdir/rust.status"
+      command -v rustup &>/dev/null && rustup update
+      command -v cargo  &>/dev/null && cargo install-update -a
+      printf 'done' > "$tmpdir/rust.status"
+    } > "$tmpdir/rust.log" 2>&1 &
+    pids+=($!)
+    names+=(rust)
   fi
 
-  if command -v cargo &> /dev/null; then
-    printf "📦 Updating global Cargo packages...\n"
-    cargo install-update -a 2>&1 | tee /tmp/cargo-update.log || true
+  # --- go ---
+  if command -v "$HOME/go/bin/g" &>/dev/null; then
+    {
+      printf 'running' > "$tmpdir/go.status"
+      local LOCAL_GO REMOTE_GO
+      LOCAL_GO=$(go version 2>/dev/null | awk '{print $3}' | sed 's/go//')
+      REMOTE_GO=$(curl -sf 'https://go.dev/VERSION?m=text' 2>/dev/null | head -1 | sed 's/go//')
+      if [[ -n "$REMOTE_GO" && "$LOCAL_GO" != "$REMOTE_GO" ]]; then
+        "$HOME/go/bin/g" install latest && "$HOME/go/bin/g" use latest
+      fi
+      printf 'done' > "$tmpdir/go.status"
+    } > "$tmpdir/go.log" 2>&1 &
+    pids+=($!)
+    names+=(go)
   fi
 
-  # --- Claude CLI ---
-  if command -v claude &> /dev/null; then
-    printf "🤖 Updating Claude CLI...\n"
-    claude update
+  # --- node (fnm must precede npm) ---
+  if command -v fnm &>/dev/null; then
+    {
+      printf 'running' > "$tmpdir/node.status"
+      fnm install --lts && fnm default lts-latest && fnm use lts-latest
+      npm install --global npm@latest pnpm@latest @antfu/ni eslint taze npkill
+      printf 'done' > "$tmpdir/node.status"
+    } > "$tmpdir/node.log" 2>&1 &
+    pids+=($!)
+    names+=(node)
   fi
 
-  # --- Go (via g) ---
-  if command -v "$HOME/go/bin/g" &> /dev/null; then
-    printf "🐹 Checking Go versions...\n"
-
-    local LOCAL_GO REMOTE_GO
-    # Get local version (strips 'go' prefix) -> "1.26.0"
-    LOCAL_GO=$(go version 2>/dev/null | awk '{print $3}' | sed 's/go//')
-
-    # Single API call — much faster than `g list-all` which fetches every version
-    REMOTE_GO=$(curl -sf 'https://go.dev/VERSION?m=text' 2>/dev/null | head -1 | sed 's/go//')
-
-    if [[ -n "$REMOTE_GO" ]] && [[ "$LOCAL_GO" != "$REMOTE_GO" ]]; then
-      printf "⬇️  Updating Go to %s (current: %s)...\n" "$REMOTE_GO" "$LOCAL_GO"
-      "$HOME/go/bin/g" install latest && "$HOME/go/bin/g" use latest  # FIXED: use instead of set
-    else
-      printf "✅ Go is already up to date (%s)\n" "$LOCAL_GO"
-    fi
+  # --- claude ---
+  if command -v claude &>/dev/null; then
+    {
+      printf 'running' > "$tmpdir/claude.status"
+      claude update
+      printf 'done' > "$tmpdir/claude.status"
+    } > "$tmpdir/claude.log" 2>&1 &
+    pids+=($!)
+    names+=(claude)
   fi
 
-  # --- Node.js (via fnm) ---
-  # fnm install --lts is idempotent: skips install if already on latest LTS.
-  # npm install --global is also idempotent: skips packages already at latest.
-  # Both approaches avoid slow remote version-list fetches (fnm ls-remote, npm outdated).
-  if command -v fnm &> /dev/null; then
-    printf "🟩 Updating Node.js LTS...\n"
-    fnm install --lts && fnm default lts-latest && fnm use lts-latest
+  # --- Display loop ---
+  local n=${#names[@]}
 
-    printf "📦 Updating global npm packages...\n"
-    npm install --global npm@latest pnpm@latest @antfu/ni eslint taze npkill
-  fi
+  # Print initial status block
+  for name in $names; do
+    printf '  [%-8s] running...\n' "$name"
+  done
 
-  # --- Summary ---
-  printf "\n📋 Installed versions:\n"
-  printf "  %-12s %s\n" "OS:"     "$(lsb_release -ds 2>/dev/null)"
-  printf "  %-12s %s\n" "Kernel:" "$(uname -r)"
-  printf "  %-12s %s\n" "Go:"     "$(go version 2>/dev/null | awk '{print $3}' || echo 'not found')"
-  printf "  %-12s %s\n" "Rust:"   "$(rustc --version 2>/dev/null | awk '{print $2}' || echo 'not found')"
-  printf "  %-12s %s\n" "Cargo:"  "$(cargo --version 2>/dev/null | awk '{print $2}' || echo 'not found')"
-  printf "  %-12s %s\n" "Node:"   "$(node --version 2>/dev/null || echo 'not found')"
-  printf "  %-12s %s\n" "npm:"    "$(npm --version 2>/dev/null || echo 'not found')"
-  printf "  %-12s %s\n" "Claude:" "$(claude --version 2>/dev/null || echo 'not found')"
-  printf "  %-12s %s\n" "Docker:" "$(docker --version 2>/dev/null | awk '{print $3}' | tr -d ',' || echo 'not found')"
-  printf "  %-12s %s\n" "Git:"    "$(git --version 2>/dev/null | awk '{print $3}' || echo 'not found')"
+  # Poll status files; redraw block in-place until all jobs report done
+  local all_done=0
+  while (( ! all_done )); do
+    sleep 0.5
+    # Move cursor up n lines
+    printf '\033[%dA' "$n"
+    all_done=1
+    for name in $names; do
+      local s
+      s=$(cat "$tmpdir/${name}.status" 2>/dev/null)
+      if [[ "$s" == 'done' ]]; then
+        printf '\033[2K\r  [%-8s] done\n' "$name"
+      else
+        printf '\033[2K\r  [%-8s] running...\n' "$name"
+        all_done=0
+      fi
+    done
+  done
 
-  printf "🎉 All done!\n"
+  # Reap background jobs
+  for pid in $pids; do
+    wait "$pid" 2>/dev/null
+  done
+
+  printf '\n'
+
+  # --- Print logs in fixed order ---
+  for name in apt zinit rust go node claude; do
+    [[ -f "$tmpdir/${name}.log" ]] || continue
+    local log
+    log=$(cat "$tmpdir/${name}.log")
+    [[ -n "$log" ]] && printf '=== %s ===\n%s\n\n' "$name" "$log"
+  done
+
+  # --- Version summary ---
+  printf '📋 Installed versions:\n'
+  printf '  %-12s %s\n' 'OS:'     "$(lsb_release -ds 2>/dev/null)"
+  printf '  %-12s %s\n' 'Kernel:' "$(uname -r)"
+  printf '  %-12s %s\n' 'Go:'     "$(go version 2>/dev/null | awk '{print $3}' || echo 'not found')"
+  printf '  %-12s %s\n' 'Rust:'   "$(rustc --version 2>/dev/null | awk '{print $2}' || echo 'not found')"
+  printf '  %-12s %s\n' 'Cargo:'  "$(cargo --version 2>/dev/null | awk '{print $2}' || echo 'not found')"
+  printf '  %-12s %s\n' 'Node:'   "$(node --version 2>/dev/null || echo 'not found')"
+  printf '  %-12s %s\n' 'npm:'    "$(npm --version 2>/dev/null || echo 'not found')"
+  printf '  %-12s %s\n' 'Claude:' "$(claude --version 2>/dev/null || echo 'not found')"
+  printf '  %-12s %s\n' 'Docker:' "$(docker --version 2>/dev/null | awk '{print $3}' | tr -d ',' || echo 'not found')"
+  printf '  %-12s %s\n' 'Git:'    "$(git --version 2>/dev/null | awk '{print $3}' || echo 'not found')"
+
+  rm -rf "$tmpdir"
+  printf '🎉 All done!\n'
 }
 
 # =============================================================================
