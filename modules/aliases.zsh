@@ -34,16 +34,16 @@ alias cdd='cd -'  # Back to previous directory
 # =============================================================================
 # DOCKER
 # =============================================================================
-alias dc='docker compose'
-alias dc-up='UID=$(id -u) GID=$(id -g) docker compose up'
-alias dc-down='docker compose down'
-alias dc-exec='docker compose exec'
-alias dc-logs='docker compose logs -f'
-alias dps='docker ps'
-alias dpsa='docker ps -a'
-alias dimg='docker images'
-alias drm='docker rm $(docker ps -aq)'
-alias drmi='docker rmi $(docker images -qf dangling=true)'
+# alias dc='docker compose'        # use dco  (OMZP::docker-compose)
+# alias dc-down='docker compose down'   # use dcdn (OMZP::docker-compose)
+# alias dc-exec='docker compose exec'   # use dce  (OMZP::docker-compose)
+# alias dc-logs='docker compose logs -f'  # use dclf (OMZP::docker-compose)
+alias dc-up='UID=$(id -u) GID=$(id -g) docker compose up'  # unique: injects host UID/GID
+# alias dps='docker ps'            # use dps  (OMZP::docker)
+# alias dpsa='docker ps -a'        # use dpsa (OMZP::docker)
+# alias dimg='docker images'       # use dils (OMZP::docker)
+alias drm='docker rm $(docker ps -aq)'  # removes ALL containers (plugin's drm takes args)
+alias drmi='docker rmi $(docker images -qf dangling=true)'  # dangling only (plugin prunes all unused)
 
 # =============================================================================
 # GIT (quick aliases - forgit plugin provides more)
@@ -111,8 +111,8 @@ alias clippy='cargo clippy -- -D warnings'
 # =============================================================================
 # GO
 # =============================================================================
-alias got='go test ./...'
-alias gomod='go mod tidy'
+# alias got='go test ./...'   # use gota (OMZP::golang) — plugin's got is just 'go test'
+# alias gomod='go mod tidy'   # use gomt (OMZP::golang)
 alias gocover='go test -coverprofile=/tmp/cover.out ./... && go tool cover -html=/tmp/cover.out'
 
 # =============================================================================

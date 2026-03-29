@@ -70,10 +70,11 @@ zinit wait lucid for \
 zinit wait"1" lucid for \
   wfxr/forgit
 
-# Group 4: Completions for language toolchains and Docker Compose
+# Group 4: Completions for language toolchains and Docker
 # Loaded with a 1-second delay — not needed at prompt time.
 zinit wait"1" lucid for \
   OMZP::golang \
   OMZP::rust \
+  OMZP::docker \
   OMZP::docker-compose \
   OMZP::npm
