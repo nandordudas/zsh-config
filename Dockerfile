@@ -59,7 +59,11 @@ RUN mkdir -p "$GOPATH/bin" "$GOROOT" && \
       -o "$GOPATH/bin/g" && \
     chmod +x "$GOPATH/bin/g"
 ENV PATH="$GOPATH/bin:$GOROOT/bin:$PATH"
-RUN g install latest && g use latest
+# g install latest is unreliable in non-interactive Docker; download directly.
+RUN GO_VER=$(curl -fsSL "https://go.dev/dl/?mode=json" | \
+      python3 -c "import sys,json; print(json.load(sys.stdin)[0]['version'])") && \
+    curl -fsSL "https://go.dev/dl/${GO_VER}.linux-amd64.tar.gz" | \
+    tar -xz --strip-components=1 -C "$GOROOT"
 
 # ─── 6. Starship ──────────────────────────────────────────────────────────────
 RUN curl -sS https://starship.rs/install.sh | sh -s -- --yes -q
