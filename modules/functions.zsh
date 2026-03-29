@@ -124,8 +124,18 @@ upgrade() {
   if (( ${+functions[zinit]} )); then
     {
       printf 'running' > "$tmpdir/zinit.status"
-      zinit self-update --quiet
-      zinit update --all --quiet
+      # Self-update only if zinit's git repo is behind its remote
+      local zinit_dir="${ZINIT[HOME_DIR]:-${HOME}/.local/share/zinit/zinit.git}"
+      git -C "$zinit_dir" fetch origin --quiet 2>/dev/null
+      local behind
+      behind=$(git -C "$zinit_dir" rev-list HEAD..FETCH_HEAD --count 2>/dev/null)
+      (( behind > 0 )) && zinit self-update --quiet
+      # Plugin updates: skip if updated within the last 24 hours
+      local stamp="${HOME}/.cache/zinit-plugins-updated"
+      if [[ ! -f "$stamp" ]] || (( $(date +%s) - $(cat "$stamp") > 86400 )); then
+        zinit update --all --quiet
+        date +%s > "$stamp"
+      fi
       # Always write 'done' as a separate statement — never chain with &&
       printf 'done' > "$tmpdir/zinit.status"
     } > "$tmpdir/zinit.log" 2>&1 &
@@ -186,7 +196,12 @@ upgrade() {
   if command -v claude &>/dev/null; then
     {
       printf 'running' > "$tmpdir/claude.status"
-      claude update
+      local current latest
+      current=$(claude --version 2>/dev/null | awk '{print $1}')
+      latest=$(npm view @anthropic-ai/claude-code version 2>/dev/null)
+      if [[ -n "$latest" && "$current" != "$latest" ]]; then
+        claude update
+      fi
       # Always write 'done' as a separate statement — never chain with &&
       printf 'done' > "$tmpdir/claude.status"
     } > "$tmpdir/claude.log" 2>&1 &
