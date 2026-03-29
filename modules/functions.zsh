@@ -201,10 +201,10 @@ zsh-cache-clear() {
 # ONE-TIME SETUP (new machine):
 #
 #   1. Generate key (skip if ~/.ssh/id_ed25519 already exists):
-#      ssh-keygen -t ed25519 -C "nandor.dudas@gmail.com" -f ~/.ssh/id_ed25519
+#      ssh-keygen -t ed25519 -C "your@email.com" -f ~/.ssh/id_ed25519
 #
 #   2. Create allowed_signers (used by `git verify-commit` locally):
-#      echo "nandor.dudas@gmail.com $(cat ~/.ssh/id_ed25519.pub)" \
+#      echo "your@email.com $(cat ~/.ssh/id_ed25519.pub)" \
 #        > ~/.config/git/allowed_signers
 #
 #   3. Register key on GitHub (requires admin:public_key + admin:ssh_signing_key scopes):
@@ -229,7 +229,7 @@ zsh-cache-clear() {
 #
 # VERIFY a signed commit:
 #   git log --show-signature -1
-#   # Expected: Good "git" signature for nandor.dudas@gmail.com with ED25519 key SHA256:...
+#   # Expected: Good "git" signature for your@email.com with ED25519 key SHA256:...
 #
 # NOTE: GitHub shows a "Verified" badge only after the key is registered as a
 #       Signing Key on GitHub (step 3 above). Local verification works immediately.

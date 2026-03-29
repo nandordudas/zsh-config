@@ -4,9 +4,9 @@
 #
 # Usage:
 #   ./scripts/git-setup.sh
-#   ./scripts/git-setup.sh --name "Nandor Dudas" --email "nandor.dudas@gmail.com"
-#   ./scripts/git-setup.sh --name "Nandor Dudas" --email "nandor.dudas@gmail.com" \
-#                          --github nandordudas --bitbucket nandordudas
+#   ./scripts/git-setup.sh --name "Your Name" --email "your@email.com"
+#   ./scripts/git-setup.sh --name "Your Name" --email "your@email.com" \
+#                          --github yourusername --bitbucket yourusername
 #
 # What it does:
 #   1. Creates ~/.config/git/{github,bitbucket}/ directory structure
@@ -48,7 +48,7 @@ prompt() {
 }
 
 prompt GIT_NAME       "Git name"           "Nandor Dudas"
-prompt GIT_EMAIL      "Git email"          "nandor.dudas@gmail.com"
+prompt GIT_EMAIL      "Git email"          ""
 prompt GITHUB_USER    "GitHub username"    "nandordudas"
 prompt BITBUCKET_USER "Bitbucket username" "nandordudas"
 
@@ -138,7 +138,7 @@ cat > "$GIT_DIR/config" << 'CONFIG_EOF'
 	abbrev = 12
 	excludesFile = ~/.config/git/ignore
 	filemode = true
-	fsmonitor = true
+	fsmonitor = false
 	quotePath = false
 	untrackedCache = true
 	whitespace = fix,-indent-with-non-tab,trailing-space,cr-at-eol
@@ -434,13 +434,16 @@ sed -i \
 
 # =============================================================================
 # GITHUB CREDENTIAL HELPER (gh CLI)
+# Write directly to $GIT_DIR/config instead of --global, because GIT_CONFIG_GLOBAL
+# may not be set yet when this script runs (it is set by .zprofile at login time).
+# Using --global here would write to ~/.gitconfig and conflict with the XDG config.
 # =============================================================================
 GH_BIN=$(command -v gh 2>/dev/null || true)
 if [[ -n "$GH_BIN" ]]; then
-  git config --global credential."https://github.com".helper ""
-  git config --global --add credential."https://github.com".helper "!$GH_BIN auth git-credential"
-  git config --global credential."https://gist.github.com".helper ""
-  git config --global --add credential."https://gist.github.com".helper "!$GH_BIN auth git-credential"
+  git config --file "$GIT_DIR/config" credential."https://github.com".helper ""
+  git config --file "$GIT_DIR/config" --add credential."https://github.com".helper "!$GH_BIN auth git-credential"
+  git config --file "$GIT_DIR/config" credential."https://gist.github.com".helper ""
+  git config --file "$GIT_DIR/config" --add credential."https://gist.github.com".helper "!$GH_BIN auth git-credential"
 fi
 
 # =============================================================================

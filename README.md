@@ -124,10 +124,10 @@ This repo includes a factory script that applies the full git setup to a new mac
 ~/.config/zsh/scripts/git-setup.sh
 # or with explicit values (skips prompts):
 ~/.config/zsh/scripts/git-setup.sh \
-  --name "Nandor Dudas" \
-  --email "nandor.dudas@gmail.com" \
-  --github nandordudas \
-  --bitbucket nandordudas
+  --name "Your Name" \
+  --email "your@email.com" \
+  --github yourusername \
+  --bitbucket yourusername
 ```
 
 The script is idempotent — safe to re-run after updates.
@@ -164,7 +164,7 @@ Since Git 2.34, SSH keys can sign commits and tags — no GPG keyring needed. Th
 
 The `allowed_signers` file maps email addresses to public keys for local verification:
 ```
-nandor.dudas@gmail.com ssh-ed25519 AAAA...
+your@email.com ssh-ed25519 AAAA...
 ```
 
 **After running the script**, register the SSH key on GitHub to get the "Verified" badge:
@@ -179,7 +179,7 @@ gh ssh-key add ~/.ssh/id_ed25519.pub --title "$(hostname)" --type signing
 
 ```bash
 git log --show-signature -1
-# Good "git" signature for nandor.dudas@gmail.com with ED25519 key SHA256:...
+# Good "git" signature for your@email.com with ED25519 key SHA256:...
 ```
 
 ### Shell integration
