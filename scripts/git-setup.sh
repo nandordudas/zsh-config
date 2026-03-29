@@ -279,6 +279,11 @@ cat > "$GIT_DIR/config" << 'CONFIG_EOF'
 	cmd = code --wait --diff $LOCAL $REMOTE
 [mergetool "code"]
 	cmd = code --wait --merge $REMOTE $LOCAL $BASE $MERGED
+# includeIf activates the matching per-host config only for repos under the
+# given path. This lets you keep separate identities (signingKey, name, email)
+# per host without any manual switching — git selects the right one based on
+# where the repo lives. Add more blocks here for other hosts (e.g. GitLab,
+# work Bitbucket) following the same pattern.
 [includeIf "gitdir:~/Code/GitHub/**/.git"]
 	path = ~/.config/git/github/.gitconfig
 [includeIf "gitdir:~/Code/BitBucket/**/.git"]
