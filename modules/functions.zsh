@@ -95,9 +95,9 @@ upgrade() {
   # --- apt ---
   {
     printf 'running' > "$tmpdir/apt.status"
-    sudo apt update \
-      && sudo apt-get upgrade -y --autoremove --purge \
-      && sudo apt-get autoclean
+    sudo apt update
+    sudo apt-get upgrade -y --autoremove --purge
+    sudo apt-get autoclean
     printf 'done' > "$tmpdir/apt.status"
   } > "$tmpdir/apt.log" 2>&1 &
   pids+=($!)
