@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 FROM ubuntu:24.04
 
 # Non-interactive apt throughout the build
@@ -7,7 +8,9 @@ ENV LANG=en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8
 
 # Create a non-root user (mirrors real install — paths like ~/.cargo depend on $HOME)
-RUN apt-get update -qq && apt-get install -y --no-install-recommends sudo locales && \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update -qq && apt-get install -y --no-install-recommends sudo locales && \
     locale-gen en_US.UTF-8 && \
     useradd -m -s /bin/bash dev && \
     echo "dev ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
@@ -16,27 +19,25 @@ USER dev
 WORKDIR /home/dev
 
 # ─── 1. System packages ────────────────────────────────────────────────────────
-RUN sudo apt-get update -qq && sudo apt-get upgrade -y && \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    sudo apt-get update -qq && sudo apt-get upgrade -y && \
     sudo apt-get install -y --no-install-recommends \
       zsh \
       bat fd-find ripgrep \
       duf zoxide \
       exiftool \
-      unrar p7zip-full \
+      unrar p7zip-full unzip \
       curl wget git \
       openssh-client \
+      python3 \
       software-properties-common \
       ca-certificates gnupg
 
-# ─── 2. Rust ──────────────────────────────────────────────────────────────────
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
-    | sh -s -- -y --no-modify-path --quiet
+# ─── 2. CLI tools from GitHub releases ────────────────────────────────────────
+# ~/.cargo/bin is used for fnm (tools.zsh expects it there); no Rust needed.
+RUN mkdir -p /home/dev/.cargo/bin
 ENV PATH="/home/dev/.cargo/bin:$PATH"
-
-# ─── 3. CLI tools from GitHub releases ────────────────────────────────────────
-# Pre-built binaries — cargo compile is slow and failures are easy to mask.
-# unzip is needed here and for fnm below.
-RUN sudo apt-get install -y --no-install-recommends unzip
 
 # eza (ls replacement)
 RUN curl -fsSL "https://github.com/eza-community/eza/releases/latest/download/eza_x86_64-unknown-linux-musl.tar.gz" | \
@@ -73,7 +74,7 @@ RUN curl -fsSL "https://github.com/Schniz/fnm/releases/latest/download/fnm-linux
     install -m755 /tmp/fnm-bin/fnm /home/dev/.cargo/bin/fnm && \
     rm -rf /tmp/fnm.zip /tmp/fnm-bin
 
-# ─── 4. Node.js via fnm ───────────────────────────────────────────────────────
+# ─── 3. Node.js via fnm ───────────────────────────────────────────────────────
 # eval "$(fnm env)" must run in the same shell as fnm commands that follow it.
 RUN fnm install --lts 2>&1 | tail -3 && \
     eval "$(fnm env --shell bash)" && \
@@ -81,7 +82,7 @@ RUN fnm install --lts 2>&1 | tail -3 && \
     npm install --global npm@latest pnpm @antfu/ni eslint taze npkill \
       --silent 2>&1 | tail -3
 
-# ─── 5. Go version manager (g) ────────────────────────────────────────────────
+# ─── 4. Go version manager (g) ────────────────────────────────────────────────
 ENV GOPATH="/home/dev/go"
 ENV GOROOT="/home/dev/.go"
 RUN mkdir -p "$GOPATH/bin" "$GOROOT" && \
@@ -95,11 +96,11 @@ RUN GO_VER=$(curl -fsSL "https://go.dev/dl/?mode=json" | \
     curl -fsSL "https://go.dev/dl/${GO_VER}.linux-amd64.tar.gz" | \
     tar -xz --strip-components=1 -C "$GOROOT"
 
-# ─── 6. Starship ──────────────────────────────────────────────────────────────
+# ─── 5. Starship ──────────────────────────────────────────────────────────────
 RUN curl -fsSL "https://github.com/starship/starship/releases/latest/download/starship-x86_64-unknown-linux-musl.tar.gz" | \
     sudo tar -xz -C /usr/local/bin
 
-# ─── 7. direnv ────────────────────────────────────────────────────────────────
+# ─── 6. direnv ────────────────────────────────────────────────────────────────
 RUN mkdir -p /home/dev/.local/bin && \
     DIRENV_VER=$(curl -fsSL "https://api.github.com/repos/direnv/direnv/releases/latest" | \
       python3 -c "import sys,json; print(json.load(sys.stdin)['tag_name'])") && \
@@ -107,11 +108,11 @@ RUN mkdir -p /home/dev/.local/bin && \
       -o /home/dev/.local/bin/direnv && \
     chmod +x /home/dev/.local/bin/direnv
 
-# ─── 8. fzf (from git — apt ships an older version) ──────────────────────────
+# ─── 7. fzf (from git — apt ships an older version) ──────────────────────────
 RUN git clone --quiet --depth 1 https://github.com/junegunn/fzf.git ~/.fzf && \
     ~/.fzf/install --key-bindings --completion --no-update-rc
 
-# ─── 9. fastfetch ─────────────────────────────────────────────────────────────
+# ─── 8. fastfetch ─────────────────────────────────────────────────────────────
 RUN FASTFETCH_VER=$(curl -fsSL "https://api.github.com/repos/fastfetch-cli/fastfetch/releases/latest" | \
       python3 -c "import sys,json; print(json.load(sys.stdin)['tag_name'])") && \
     curl -fsSL "https://github.com/fastfetch-cli/fastfetch/releases/download/${FASTFETCH_VER}/fastfetch-linux-amd64.deb" \
@@ -119,8 +120,10 @@ RUN FASTFETCH_VER=$(curl -fsSL "https://api.github.com/repos/fastfetch-cli/fastf
     sudo dpkg -i /tmp/fastfetch.deb && \
     rm /tmp/fastfetch.deb
 
-# ─── 10. GitHub CLI ───────────────────────────────────────────────────────────
-RUN sudo mkdir -p -m 755 /etc/apt/keyrings && \
+# ─── 9. GitHub CLI ────────────────────────────────────────────────────────────
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    sudo mkdir -p -m 755 /etc/apt/keyrings && \
     wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg \
       | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null && \
     sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg && \
