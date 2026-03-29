@@ -34,9 +34,10 @@ RUN cargo install du-dust procs cargo-update eza git-delta fnm \
     --quiet 2>&1 | tail -5
 
 # ─── 4. Node.js via fnm ───────────────────────────────────────────────────────
-# Each RUN step is a new shell, so fnm env must be sourced explicitly.
-RUN fnm install --lts 2>&1 | tail -3
-RUN eval "$(fnm env --shell bash)" && \
+# Single RUN so fnm is on PATH throughout; eval sets NODE_PATH for npm globals.
+RUN export PATH="/home/dev/.cargo/bin:$PATH" && \
+    fnm install --lts 2>&1 | tail -3 && \
+    eval "$(fnm env --shell bash)" && \
     fnm default lts-latest && fnm use lts-latest && \
     npm install --global npm@latest pnpm @antfu/ni eslint taze npkill \
       --silent 2>&1 | tail -3
