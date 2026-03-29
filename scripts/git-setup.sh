@@ -5,8 +5,6 @@
 # Usage:
 #   ./scripts/git-setup.sh
 #   ./scripts/git-setup.sh --name "Your Name" --email "your@email.com"
-#   ./scripts/git-setup.sh --name "Your Name" --email "your@email.com" \
-#                          --github yourusername --bitbucket yourusername
 #
 # What it does:
 #   1. Creates ~/.config/git/{github,bitbucket}/ directory structure
@@ -25,15 +23,11 @@ set -euo pipefail
 # =============================================================================
 GIT_NAME=""
 GIT_EMAIL=""
-GITHUB_USER=""
-BITBUCKET_USER=""
 
 while [[ $# -gt 0 ]]; do
   case $1 in
-    --name)       GIT_NAME="$2";       shift 2 ;;
-    --email)      GIT_EMAIL="$2";      shift 2 ;;
-    --github)     GITHUB_USER="$2";    shift 2 ;;
-    --bitbucket)  BITBUCKET_USER="$2"; shift 2 ;;
+    --name)   GIT_NAME="$2";  shift 2 ;;
+    --email)  GIT_EMAIL="$2"; shift 2 ;;
     *) printf "Unknown option: %s\n" "$1" >&2; exit 1 ;;
   esac
 done
@@ -47,10 +41,8 @@ prompt() {
   fi
 }
 
-prompt GIT_NAME       "Git name"           "Nandor Dudas"
-prompt GIT_EMAIL      "Git email"          ""
-prompt GITHUB_USER    "GitHub username"    "nandordudas"
-prompt BITBUCKET_USER "Bitbucket username" "nandordudas"
+prompt GIT_NAME   "Git name"  ""
+prompt GIT_EMAIL  "Git email" ""
 
 # =============================================================================
 # PATHS

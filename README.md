@@ -125,9 +125,7 @@ This repo includes a factory script that applies the full git setup to a new mac
 # or with explicit values (skips prompts):
 ~/.config/zsh/scripts/git-setup.sh \
   --name "Your Name" \
-  --email "your@email.com" \
-  --github yourusername \
-  --bitbucket yourusername
+  --email "your@email.com"
 ```
 
 The script is idempotent — safe to re-run after updates.
@@ -259,6 +257,19 @@ ls ~/.cache/zsh/ # → starship.zsh  zoxide.zsh  fnm.zsh  direnv.zsh
 # Test forgit
 glo              # interactive git log with fzf
 ```
+
+## Testing
+
+Validate the repo without touching your real dotfiles:
+
+```bash
+bash ~/.config/zsh/scripts/test.sh
+```
+
+Checks: bash/zsh syntax, required files, no personal data leaks,
+`git-setup.sh` argument parsing, and a full dry-run in an isolated temp home.
+
+---
 
 ## Cache management
 
