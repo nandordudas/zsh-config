@@ -1,6 +1,13 @@
 # syntax=docker/dockerfile:1
 FROM ubuntu:24.04
 
+ARG DELTA_VER=0.19.2
+ARG DUST_VER=v1.2.4
+ARG PROCS_VER=v0.14.11
+ARG DIRENV_VER=v2.37.1
+ARG FASTFETCH_VER=2.61.0
+ARG GO_VER=go1.26.2
+
 # Non-interactive apt throughout the build
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=UTC
@@ -45,23 +52,17 @@ RUN curl -fsSL "https://github.com/eza-community/eza/releases/latest/download/ez
     sudo install -m755 /tmp/eza /usr/local/bin/eza
 
 # git-delta (git pager)
-RUN DELTA_VER=$(curl -fsSL https://api.github.com/repos/dandavison/delta/releases/latest | \
-      python3 -c "import sys,json; print(json.load(sys.stdin)['tag_name'])") && \
-    curl -fsSL "https://github.com/dandavison/delta/releases/download/${DELTA_VER}/delta-${DELTA_VER}-x86_64-unknown-linux-musl.tar.gz" | \
+RUN curl -fsSL "https://github.com/dandavison/delta/releases/download/${DELTA_VER}/delta-${DELTA_VER}-x86_64-unknown-linux-musl.tar.gz" | \
     tar -xz --strip-components=1 -C /tmp --wildcards '*/delta' && \
     sudo install -m755 /tmp/delta /usr/local/bin/delta
 
 # dust (du replacement)
-RUN DUST_VER=$(curl -fsSL https://api.github.com/repos/bootandy/dust/releases/latest | \
-      python3 -c "import sys,json; print(json.load(sys.stdin)['tag_name'])") && \
-    curl -fsSL "https://github.com/bootandy/dust/releases/download/${DUST_VER}/dust-${DUST_VER}-x86_64-unknown-linux-musl.tar.gz" | \
+RUN curl -fsSL "https://github.com/bootandy/dust/releases/download/${DUST_VER}/dust-${DUST_VER}-x86_64-unknown-linux-musl.tar.gz" | \
     tar -xz --strip-components=1 -C /tmp --wildcards '*/dust' && \
     sudo install -m755 /tmp/dust /usr/local/bin/dust
 
 # procs (ps replacement)
-RUN PROCS_VER=$(curl -fsSL https://api.github.com/repos/dalance/procs/releases/latest | \
-      python3 -c "import sys,json; print(json.load(sys.stdin)['tag_name'])") && \
-    curl -fsSL "https://github.com/dalance/procs/releases/download/${PROCS_VER}/procs-${PROCS_VER}-x86_64-linux.zip" \
+RUN curl -fsSL "https://github.com/dalance/procs/releases/download/${PROCS_VER}/procs-${PROCS_VER}-x86_64-linux.zip" \
       -o /tmp/procs.zip && \
     unzip -q /tmp/procs.zip procs -d /tmp && \
     sudo install -m755 /tmp/procs /usr/local/bin/procs && \
@@ -91,9 +92,7 @@ RUN mkdir -p "$GOPATH/bin" "$GOROOT" && \
     chmod +x "$GOPATH/bin/g"
 ENV PATH="$GOPATH/bin:$GOROOT/bin:$PATH"
 # g install latest is unreliable in non-interactive Docker; download directly.
-RUN GO_VER=$(curl -fsSL "https://go.dev/dl/?mode=json" | \
-      python3 -c "import sys,json; print(json.load(sys.stdin)[0]['version'])") && \
-    curl -fsSL "https://go.dev/dl/${GO_VER}.linux-amd64.tar.gz" | \
+RUN curl -fsSL "https://go.dev/dl/${GO_VER}.linux-amd64.tar.gz" | \
     tar -xz --strip-components=1 -C "$GOROOT"
 
 # ─── 5. Starship ──────────────────────────────────────────────────────────────
@@ -102,8 +101,6 @@ RUN curl -fsSL "https://github.com/starship/starship/releases/latest/download/st
 
 # ─── 6. direnv ────────────────────────────────────────────────────────────────
 RUN mkdir -p /home/dev/.local/bin && \
-    DIRENV_VER=$(curl -fsSL "https://api.github.com/repos/direnv/direnv/releases/latest" | \
-      python3 -c "import sys,json; print(json.load(sys.stdin)['tag_name'])") && \
     curl -fsSL "https://github.com/direnv/direnv/releases/download/${DIRENV_VER}/direnv.linux-amd64" \
       -o /home/dev/.local/bin/direnv && \
     chmod +x /home/dev/.local/bin/direnv
@@ -113,9 +110,7 @@ RUN git clone --quiet --depth 1 https://github.com/junegunn/fzf.git ~/.fzf && \
     ~/.fzf/install --key-bindings --completion --no-update-rc
 
 # ─── 8. fastfetch ─────────────────────────────────────────────────────────────
-RUN FASTFETCH_VER=$(curl -fsSL "https://api.github.com/repos/fastfetch-cli/fastfetch/releases/latest" | \
-      python3 -c "import sys,json; print(json.load(sys.stdin)['tag_name'])") && \
-    curl -fsSL "https://github.com/fastfetch-cli/fastfetch/releases/download/${FASTFETCH_VER}/fastfetch-linux-amd64.deb" \
+RUN curl -fsSL "https://github.com/fastfetch-cli/fastfetch/releases/download/${FASTFETCH_VER}/fastfetch-linux-amd64.deb" \
       -o /tmp/fastfetch.deb && \
     sudo dpkg -i /tmp/fastfetch.deb && \
     rm /tmp/fastfetch.deb
