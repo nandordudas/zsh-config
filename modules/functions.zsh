@@ -106,36 +106,79 @@ interactive_kill() {
 # SYSTEM UPGRADES & MAINTENANCE
 # =============================================================================
 
-# Smart cargo package updater — only rebuilds if updates available
-# Caches installed package manifest to avoid checking every upgrade cycle.
-# Expected packages (from README): du-dust, procs, cargo-update, eza, git-delta, fnm
+# Attempt to download prebuilt binary from GitHub releases
+# Returns 0 (success) if binary was downloaded and installed, 1 (failure) if not available
+# Usage: _cargo_download_binary "package_name" "github_repo" "asset_pattern" "extract_cmd"
+_cargo_download_binary() {
+  local package="$1" github_repo="$2" asset_pattern="$3" extract_cmd="$4"
+  local install_dir="${HOME}/.cargo/bin"
+  local temp_dir
+
+  [[ -n "$package" && -n "$github_repo" && -n "$asset_pattern" ]] || return 1
+
+  # Create temp directory for download
+  temp_dir=$(mktemp -d) || return 1
+  trap "rm -rf '$temp_dir'" RETURN
+
+  # Try to download from GitHub releases
+  # Use /latest/download/ redirect to avoid API rate limits
+  local release_url="https://github.com/${github_repo}/releases/latest/download/${asset_pattern}"
+
+  if ! curl -fsSL "$release_url" -o "$temp_dir/binary.tar.gz" 2>/dev/null; then
+    return 1
+  fi
+
+  # Extract and install binary
+  if eval "$extract_cmd" "$temp_dir/binary.tar.gz" "$install_dir" 2>/dev/null; then
+    printf "✓ Downloaded prebuilt: %s\n" "$package"
+    return 0
+  else
+    return 1
+  fi
+}
+
+# Extract tar.gz into directory, preserving binary permissions
+_extract_binary_tar() {
+  local archive="$1" dest_dir="$2"
+  tar -xzf "$archive" -C "$dest_dir" --wildcards '*/'"$3" 2>/dev/null || tar -xzf "$archive" -C "$dest_dir" 2>/dev/null
+}
+
+# Extract zip file and locate binary
+_extract_binary_zip() {
+  local archive="$1" dest_dir="$2" binary_name="$3"
+  local extracted
+  extracted=$(unzip -q -l "$archive" | grep -o "[^/]*${binary_name}[^ ]*" | head -1) || return 1
+  unzip -q -o "$archive" -d "$dest_dir" "$extracted" 2>/dev/null || return 1
+  # Move extracted binary to proper location
+  find "$dest_dir" -name "$binary_name" -exec mv {} "$dest_dir/$binary_name" \; 2>/dev/null
+}
+
+# Smart cargo package updater — hybrid approach: prebuilt first, source fallback
+# Tries to download prebuilt binaries from GitHub releases first (fast: ~10-15s)
+# Falls back to cargo install if prebuilt unavailable (slow: 5-10 min)
+# Only rebuilds if updates available
 _cargo_smart_update() {
   local cache_dir="$(_zcache_dir)"
   local manifest_file="$cache_dir/cargo-manifest.json"
   local needs_update=0
 
-  # Expected packages to keep updated
-  local -a expected_packages=(
-    "du-dust"
-    "procs"
-    "eza"
-    "git-delta"
-    "cargo-update"
-    "fnm"
+  # Package metadata: name, github_repo, release_asset_pattern, extract_binary_name
+  declare -A packages=(
+    [eza]="eza-community/eza|eza_x86_64-unknown-linux-musl.tar.gz|eza"
+    [procs]="dalance/procs|procs-*-x86_64-linux.zip|procs"
+    [git-delta]="dandavison/delta|delta-*-x86_64-unknown-linux-musl.tar.gz|delta"
+    [du-dust]="bootandy/dust|dust-*-x86_64-unknown-linux-musl.tar.gz|dust"
+    [fnm]="Schniz/fnm|fnm-linux.zip|fnm"
   )
 
   # Initialize manifest if missing
   if [[ ! -f "$manifest_file" ]]; then
     mkdir -p "$cache_dir"
-    # Build initial manifest of currently installed versions
     echo "{" >"$manifest_file"
     local first=1
-    for pkg in $expected_packages; do
-      # Extract version from binary (common patterns: --version, -V)
-      local version=$($($HOME/.cargo/bin/$pkg 2>/dev/null) --version 2>/dev/null || echo "unknown")
-      version=${version%% *}  # Take first word only
-
-      if (( ! first )); then echo "," >>"$manifest_file"; fi
+    for pkg in "${!packages[@]}"; do
+      local version=$($HOME/.cargo/bin/$pkg --version 2>/dev/null | awk '{print $NF}' || echo "unknown")
+      (( ! first )) && echo "," >>"$manifest_file"
       printf '  "%s": "%s"' "$pkg" "$version" >>"$manifest_file"
       first=0
     done
@@ -145,29 +188,68 @@ _cargo_smart_update() {
 
   # Check if any installed package is outdated
   if (( ! needs_update )); then
-    # Use cargo-update in check mode (no downloads, just check)
-    # If cargo-update outputs anything, updates are available
     local output
     output=$(cargo install-update -a --dry-run 2>&1 || echo "check_error")
 
-    # Analyze output: if "Updating" appears, updates are available
     if echo "$output" | grep -q "Updating"; then
       needs_update=1
     elif echo "$output" | grep -q "check_error"; then
-      # cargo-update check failed; rebuild conservatively to ensure packages are current
       echo "⚠ cargo-update check failed; rebuilding conservatively"
       cargo install-update -a
       return $?
     else
-      # No updates available
       echo "✓ Cargo packages up-to-date (checked $(date +%H:%M:%S))"
       return 0
     fi
   fi
 
   if (( needs_update )); then
-    echo "↻ Rebuilding cargo packages (5-10 min, first-time or updates detected)..."
-    cargo install-update -a
+    echo "↻ Updating cargo packages (trying prebuilt binaries first)..."
+
+    # Try downloading prebuilt binaries in parallel
+    local -a download_pids=()
+    local download_count=0
+    local failed_packages=()
+
+    for pkg in "${!packages[@]}"; do
+      local meta="${packages[$pkg]}"
+      local repo="${meta%%|*}" asset="${meta#*|}" asset="${asset%%|*}" binary="${meta##*|}"
+
+      # Attempt download in background
+      (
+        if [[ "$asset" == *.tar.gz ]]; then
+          curl -fsSL "https://github.com/${repo}/releases/latest/download/${asset}" | tar -xzf - -C "$HOME/.cargo/bin" 2>/dev/null && exit 0
+        elif [[ "$asset" == *.zip ]]; then
+          local temp_dir=$(mktemp -d)
+          trap "rm -rf '$temp_dir'" RETURN
+          if curl -fsSL "https://github.com/${repo}/releases/latest/download/${asset}" -o "$temp_dir/archive.zip" 2>/dev/null; then
+            unzip -q "$temp_dir/archive.zip" -d "$temp_dir" && \
+            find "$temp_dir" -name "$binary" -exec cp {} "$HOME/.cargo/bin/$binary" \; 2>/dev/null && \
+            chmod +x "$HOME/.cargo/bin/$binary" && exit 0
+          fi
+        fi
+        exit 1
+      ) &
+      download_pids+=($!)
+      (( download_count++ ))
+    done
+
+    # Wait for all downloads and check results
+    local succeeded=0
+    for pid in "${download_pids[@]}"; do
+      if wait "$pid" 2>/dev/null; then
+        (( succeeded++ ))
+      fi
+    done
+
+    # If some downloads failed, fall back to cargo install for failed packages
+    if (( succeeded < download_count )); then
+      echo "↻ Prebuilt binaries unavailable for some packages; rebuilding from source..."
+      cargo install-update -a
+    else
+      printf "✓ Updated %d packages from prebuilt binaries\n" "$download_count"
+    fi
+
     # Update manifest timestamp
     rm -f "$manifest_file"
   fi
