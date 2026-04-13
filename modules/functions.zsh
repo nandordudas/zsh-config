@@ -251,7 +251,7 @@ upgrade() {
     now=$EPOCHSECONDS
     for name in $names; do
       if [[ -n ${done_line[$name]} ]]; then
-        printf '%s' "${done_line[$name]}"
+        printf '%s\n' "${done_line[$name]}"
         continue
       fi
       s=$(<"$tmpdir/${name}.status" 2>/dev/null)
