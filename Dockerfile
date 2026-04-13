@@ -41,39 +41,52 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
       software-properties-common \
       ca-certificates gnupg
 
-# ─── 2. CLI tools from GitHub releases ────────────────────────────────────────
-# ~/.cargo/bin is used for fnm (tools.zsh expects it there); no Rust needed.
-RUN mkdir -p /home/dev/.cargo/bin
-ENV PATH="/home/dev/.cargo/bin:$PATH"
+# ─── 2. CLI tools — parallel downloads ────────────────────────────────────────
+RUN mkdir -p /home/dev/.cargo/bin /home/dev/.local/bin /home/dev/.fzf
+ENV PATH="/home/dev/.cargo/bin:/home/dev/.local/bin:$PATH"
 
-# eza (ls replacement)
-RUN curl -fsSL "https://github.com/eza-community/eza/releases/latest/download/eza_x86_64-unknown-linux-musl.tar.gz" | \
-    tar -xz -C /tmp && \
-    sudo install -m755 /tmp/eza /usr/local/bin/eza
-
-# git-delta (git pager)
-RUN curl -fsSL "https://github.com/dandavison/delta/releases/download/${DELTA_VER}/delta-${DELTA_VER}-x86_64-unknown-linux-musl.tar.gz" | \
-    tar -xz --strip-components=1 -C /tmp --wildcards '*/delta' && \
-    sudo install -m755 /tmp/delta /usr/local/bin/delta
-
-# dust (du replacement)
-RUN curl -fsSL "https://github.com/bootandy/dust/releases/download/${DUST_VER}/dust-${DUST_VER}-x86_64-unknown-linux-musl.tar.gz" | \
-    tar -xz --strip-components=1 -C /tmp --wildcards '*/dust' && \
-    sudo install -m755 /tmp/dust /usr/local/bin/dust
-
-# procs (ps replacement)
-RUN curl -fsSL "https://github.com/dalance/procs/releases/download/${PROCS_VER}/procs-${PROCS_VER}-x86_64-linux.zip" \
-      -o /tmp/procs.zip && \
-    unzip -q /tmp/procs.zip procs -d /tmp && \
-    sudo install -m755 /tmp/procs /usr/local/bin/procs && \
-    rm /tmp/procs.zip
-
-# fnm (Node version manager) — installed to ~/.cargo/bin to match tools.zsh
-RUN curl -fsSL "https://github.com/Schniz/fnm/releases/latest/download/fnm-linux.zip" \
-      -o /tmp/fnm.zip && \
-    unzip -q /tmp/fnm.zip -d /tmp/fnm-bin && \
-    install -m755 /tmp/fnm-bin/fnm /home/dev/.cargo/bin/fnm && \
-    rm -rf /tmp/fnm.zip /tmp/fnm-bin
+RUN set -e && \
+    \
+    ( curl -fsSL "https://github.com/eza-community/eza/releases/latest/download/eza_x86_64-unknown-linux-musl.tar.gz" | \
+      tar -xz -C /tmp && \
+      sudo install -m755 /tmp/eza /usr/local/bin/eza ) & \
+    \
+    ( curl -fsSL "https://github.com/dandavison/delta/releases/download/${DELTA_VER}/delta-${DELTA_VER}-x86_64-unknown-linux-musl.tar.gz" | \
+      tar -xz --strip-components=1 -C /tmp --wildcards '*/delta' && \
+      sudo install -m755 /tmp/delta /usr/local/bin/delta ) & \
+    \
+    ( curl -fsSL "https://github.com/bootandy/dust/releases/download/${DUST_VER}/dust-${DUST_VER}-x86_64-unknown-linux-musl.tar.gz" | \
+      tar -xz --strip-components=1 -C /tmp --wildcards '*/dust' && \
+      sudo install -m755 /tmp/dust /usr/local/bin/dust ) & \
+    \
+    ( curl -fsSL "https://github.com/dalance/procs/releases/download/${PROCS_VER}/procs-${PROCS_VER}-x86_64-linux.zip" \
+        -o /tmp/procs.zip && \
+      unzip -q /tmp/procs.zip procs -d /tmp && \
+      sudo install -m755 /tmp/procs /usr/local/bin/procs && \
+      rm /tmp/procs.zip ) & \
+    \
+    ( curl -fsSL "https://github.com/Schniz/fnm/releases/latest/download/fnm-linux.zip" \
+        -o /tmp/fnm.zip && \
+      unzip -q /tmp/fnm.zip -d /tmp/fnm-bin && \
+      install -m755 /tmp/fnm-bin/fnm /home/dev/.cargo/bin/fnm && \
+      rm -rf /tmp/fnm.zip /tmp/fnm-bin ) & \
+    \
+    ( curl -fsSL "https://github.com/starship/starship/releases/latest/download/starship-x86_64-unknown-linux-musl.tar.gz" | \
+      sudo tar -xz -C /usr/local/bin ) & \
+    \
+    ( curl -fsSL "https://github.com/direnv/direnv/releases/download/${DIRENV_VER}/direnv.linux-amd64" \
+        -o /home/dev/.local/bin/direnv && \
+      chmod +x /home/dev/.local/bin/direnv ) & \
+    \
+    ( git clone --quiet --depth 1 https://github.com/junegunn/fzf.git /home/dev/.fzf && \
+      /home/dev/.fzf/install --key-bindings --completion --no-update-rc ) & \
+    \
+    ( curl -fsSL "https://github.com/fastfetch-cli/fastfetch/releases/download/${FASTFETCH_VER}/fastfetch-linux-amd64.deb" \
+        -o /tmp/fastfetch.deb && \
+      sudo dpkg -i /tmp/fastfetch.deb && \
+      rm /tmp/fastfetch.deb ) & \
+    \
+    wait
 
 # ─── 3. Node.js via fnm ───────────────────────────────────────────────────────
 # eval "$(fnm env)" must run in the same shell as fnm commands that follow it.
@@ -94,26 +107,6 @@ ENV PATH="$GOPATH/bin:$GOROOT/bin:$PATH"
 # g install latest is unreliable in non-interactive Docker; download directly.
 RUN curl -fsSL "https://go.dev/dl/${GO_VER}.linux-amd64.tar.gz" | \
     tar -xz --strip-components=1 -C "$GOROOT"
-
-# ─── 5. Starship ──────────────────────────────────────────────────────────────
-RUN curl -fsSL "https://github.com/starship/starship/releases/latest/download/starship-x86_64-unknown-linux-musl.tar.gz" | \
-    sudo tar -xz -C /usr/local/bin
-
-# ─── 6. direnv ────────────────────────────────────────────────────────────────
-RUN mkdir -p /home/dev/.local/bin && \
-    curl -fsSL "https://github.com/direnv/direnv/releases/download/${DIRENV_VER}/direnv.linux-amd64" \
-      -o /home/dev/.local/bin/direnv && \
-    chmod +x /home/dev/.local/bin/direnv
-
-# ─── 7. fzf (from git — apt ships an older version) ──────────────────────────
-RUN git clone --quiet --depth 1 https://github.com/junegunn/fzf.git ~/.fzf && \
-    ~/.fzf/install --key-bindings --completion --no-update-rc
-
-# ─── 8. fastfetch ─────────────────────────────────────────────────────────────
-RUN curl -fsSL "https://github.com/fastfetch-cli/fastfetch/releases/download/${FASTFETCH_VER}/fastfetch-linux-amd64.deb" \
-      -o /tmp/fastfetch.deb && \
-    sudo dpkg -i /tmp/fastfetch.deb && \
-    rm /tmp/fastfetch.deb
 
 # ─── 9. GitHub CLI ────────────────────────────────────────────────────────────
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
