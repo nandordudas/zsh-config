@@ -64,8 +64,8 @@ export GOPATH="$HOME/go"
 # GIT & PERSONAL IDENTIFIERS
 # =============================================================================
 export GIT_CONFIG_GLOBAL="$HOME/.config/git/config"
-export GITHUB_USER="nandordudas"
-export BITBUCKET_USER="nandordudas"
+export GIT_HUB_USER="" # Set to your GitHub username for git config includes (see scripts/git-setup.sh)
+export BIT_BUCKET_USER="" # Set to your BitBucket username for git config includes (see scripts/git-setup.sh)
 
 # =============================================================================
 # WSL DETECTION

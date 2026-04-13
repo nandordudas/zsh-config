@@ -3,8 +3,8 @@
 # =============================================================================
 # NAVIGATION
 # =============================================================================
-alias gg="cd ~/Code/GitHub/${GITHUB_USER}"
-alias gb="cd ~/Code/BitBucket/${BITBUCKET_USER}"
+alias gg='[[ -n "$GIT_HUB_USER" ]] && cd ~/code/git_hub/"$GIT_HUB_USER" || echo "GIT_HUB_USER not set in .zprofile"'
+alias gb='[[ -n "$BIT_BUCKET_USER" ]] && cd ~/code/bit_bucket/"$BIT_BUCKET_USER" || echo "BIT_BUCKET_USER not set in .zprofile"'
 alias cr='code --reuse-window .'
 
 # =============================================================================
@@ -28,7 +28,6 @@ alias mv='mv -i'     # Confirm before overwrite
 # DIRECTORY SHORTCUTS
 # =============================================================================
 alias ..='cd ..'
-alias ~='cd ~'
 alias cdd='cd -'  # Back to previous directory
 
 # =============================================================================

@@ -1,4 +1,4 @@
-# zsh-config
+# zsh config
 
 > [!NOTE]
 > This is an **opinionated** personal zsh configuration. It reflects specific tool choices, aliases, and workflows that suit one developer's daily use. Fork and adapt it rather than using it as-is.
@@ -85,7 +85,7 @@ cargo install du-dust procs cargo-update eza git-delta fnm
 
 ```bash
 fnm install --lts && fnm default lts-latest && fnm use lts-latest
-npm install --global npm@latest pnpm @antfu/ni eslint taze npkill
+npm install --global npm@latest pnpm@latest @antfu/{ni,nip} eslint taze npkill
 ```
 
 ### 4. Go version manager (g)
@@ -146,10 +146,10 @@ Used as a credential helper for HTTPS git operations and for adding SSH keys to 
 (type -p wget >/dev/null || sudo apt install wget -y) \
   && sudo mkdir -p -m 755 /etc/apt/keyrings \
   && wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg \
-     | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
+     | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg >/dev/null \
   && sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
   && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
-     | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+     | sudo tee /etc/apt/sources.list.d/github-cli.list >/dev/null \
   && sudo apt update && sudo apt install gh -y
 gh auth login
 ```
@@ -250,8 +250,8 @@ The script is idempotent — safe to re-run after updates.
 ├── config                  # Main config (all settings, aliases, delta, signing)
 ├── ignore                  # Global gitignore (.DS_Store, node_modules, .env, etc.)
 ├── allowed_signers         # Local SSH signature verification (email + pubkey)
-├── github/.gitconfig       # Per-repo identity for ~/Code/GitHub/**
-└── bitbucket/.gitconfig    # Per-repo identity for ~/Code/BitBucket/**
+├── github/.gitconfig       # Per-repo identity for ~/code/git-hub/**
+└── bitbucket/.gitconfig    # Per-repo identity for ~/code/bit-bucket/**
 ```
 
 ### SSH commit signing

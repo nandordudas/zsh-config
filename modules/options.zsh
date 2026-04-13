@@ -31,6 +31,8 @@ setopt CDABLE_VARS       # Allow cd to expand named directories
 setopt EXTENDED_GLOB     # Enable ^pattern, (#i)pattern, etc.
 setopt NO_NOMATCH        # Pass unmatched globs to the command unchanged
 setopt GLOB_DOTS         # Include dotfiles in glob patterns
+# WARNING: GLOB_DOTS means `*` matches .gitignore, .env, etc.
+# Intentional — but be careful with `rm *`, `cp * dest/`, etc.
 
 # =============================================================================
 # JOB CONTROL

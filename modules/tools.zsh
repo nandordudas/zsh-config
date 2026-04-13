@@ -16,7 +16,7 @@ mkdir -p "$_ztool_cache"
 # =============================================================================
 () {
   local cache="$_ztool_cache/starship.zsh"
-  local bin="/usr/local/bin/starship"
+  local bin="${commands[starship]}"
   if [[ -x "$bin" ]]; then
     [[ ! -f "$cache" || "$bin" -nt "$cache" ]] && "$bin" init zsh > "$cache"
     source "$cache"
@@ -28,7 +28,7 @@ mkdir -p "$_ztool_cache"
 # =============================================================================
 () {
   local cache="$_ztool_cache/zoxide.zsh"
-  local bin="/usr/bin/zoxide"
+  local bin="${commands[zoxide]}"
   if [[ -x "$bin" ]]; then
     [[ ! -f "$cache" || "$bin" -nt "$cache" ]] && "$bin" init zsh > "$cache"
     source "$cache"

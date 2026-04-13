@@ -13,7 +13,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get update -qq && apt-get install -y --no-install-recommends sudo locales && \
     locale-gen en_US.UTF-8 && \
     useradd -m -s /bin/bash dev && \
-    echo "dev ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+    echo "dev ALL=(ALL) NOPASSWD:ALL" >>/etc/sudoers
 
 USER dev
 WORKDIR /home/dev
@@ -79,7 +79,7 @@ RUN curl -fsSL "https://github.com/Schniz/fnm/releases/latest/download/fnm-linux
 RUN fnm install --lts 2>&1 | tail -3 && \
     eval "$(fnm env --shell bash)" && \
     fnm default lts-latest && fnm use lts-latest && \
-    npm install --global npm@latest pnpm @antfu/ni eslint taze npkill \
+    npm install --global npm@latest pnpm@latest @antfu/{ni,nip} eslint taze npkill \
       --silent 2>&1 | tail -3
 
 # ─── 4. Go version manager (g) ────────────────────────────────────────────────
@@ -125,10 +125,10 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     sudo mkdir -p -m 755 /etc/apt/keyrings && \
     wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg \
-      | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null && \
+      | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg >/dev/null && \
     sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
-      | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null && \
+      | sudo tee /etc/apt/sources.list.d/github-cli.list >/dev/null && \
     sudo apt-get update -qq && sudo apt-get install -y gh
 
 # ─── Config setup ─────────────────────────────────────────────────────────────
