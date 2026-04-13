@@ -143,9 +143,8 @@ export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 export ZDOTDIR="$XDG_CONFIG_HOME/zsh"
 EOF
 
-RUN touch ~/.config/zsh/modules/local.zsh
-
-RUN mkdir -p ~/.config/tmux && \
+RUN touch ~/.config/zsh/modules/local.zsh && \
+    mkdir -p ~/.config/tmux && \
     ln -sf ~/.config/zsh/tmux/tmux.conf ~/.config/tmux/tmux.conf
 
 # ─── Run test suite ───────────────────────────────────────────────────────────
