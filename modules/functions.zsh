@@ -81,6 +81,72 @@ interactive_kill() {
 # SYSTEM UPGRADES & MAINTENANCE
 # =============================================================================
 
+# Smart cargo package updater — only rebuilds if updates available
+# Caches installed package manifest to avoid checking every upgrade cycle.
+# Expected packages (from README): du-dust, procs, cargo-update, eza, git-delta, fnm
+_cargo_smart_update() {
+  local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/zsh"
+  local manifest_file="$cache_dir/cargo-manifest.json"
+  local needs_update=0
+
+  # Expected packages to keep updated
+  local -a expected_packages=(
+    "du-dust"
+    "procs"
+    "eza"
+    "git-delta"
+    "cargo-update"
+    "fnm"
+  )
+
+  # Initialize manifest if missing
+  if [[ ! -f "$manifest_file" ]]; then
+    mkdir -p "$cache_dir"
+    # Build initial manifest of currently installed versions
+    echo "{" >"$manifest_file"
+    local first=1
+    for pkg in $expected_packages; do
+      # Extract version from binary (common patterns: --version, -V)
+      local version=$($($HOME/.cargo/bin/$pkg 2>/dev/null) --version 2>/dev/null || echo "unknown")
+      version=${version%% *}  # Take first word only
+
+      if (( ! first )); then echo "," >>"$manifest_file"; fi
+      printf '  "%s": "%s"' "$pkg" "$version" >>"$manifest_file"
+      first=0
+    done
+    echo "}" >>"$manifest_file"
+    needs_update=1
+  fi
+
+  # Check if any installed package is outdated
+  if (( ! needs_update )); then
+    # Use cargo-update in check mode (no downloads, just check)
+    # If cargo-update outputs anything, updates are available
+    local output
+    output=$(cargo install-update -a --dry-run 2>&1 || echo "check_error")
+
+    # Analyze output: if "Updating" appears, updates are available
+    if echo "$output" | grep -q "Updating"; then
+      needs_update=1
+    elif echo "$output" | grep -q "check_error"; then
+      # cargo-update failed, skip update to avoid build time
+      echo "⚠ cargo-update check failed; skipping rebuild"
+      return 0
+    else
+      # No updates available
+      echo "✓ Cargo packages up-to-date (checked $(date +%H:%M:%S))"
+      return 0
+    fi
+  fi
+
+  if (( needs_update )); then
+    echo "↻ Rebuilding cargo packages (5-10 min, first-time or updates detected)..."
+    cargo install-update -a
+    # Update manifest timestamp
+    rm -f "$manifest_file"
+  fi
+}
+
 # Comprehensive system upgrade function — parallel execution
 upgrade() {
   # Suppress [N] PID job-start and job-done notifications — they break the
@@ -163,7 +229,7 @@ upgrade() {
       _job_start rust
       ( set -e
         command -v rustup &>/dev/null && rustup update
-        command -v cargo  &>/dev/null && cargo install-update -a
+        command -v cargo  &>/dev/null && _cargo_smart_update
       ); _job_end rust $?
     } >"$tmpdir/rust.log" 2>&1 &
     pids+=($!)
