@@ -5,59 +5,47 @@
 # Regenerate the cache when the binary is newer than the cache file (-nt test).
 # This turns ~65-85ms of subprocess forks into ~1-2ms of file sourcing.
 #
-# Anonymous functions (() { ... }) scope local variables without polluting globals.
+# Helper function _ztool_init() centralizes cache logic and reduces duplication.
+# Special case: FZF requires complex PATH handling and stays in anonymous function.
 
 _ztool_cache="$XDG_CACHE_HOME/zsh"
 mkdir -p "$_ztool_cache"
+chmod 700 "$_ztool_cache" 2>/dev/null  # Prevent cache injection vulnerability
+
+# =============================================================================
+# HELPER: Initialize external tool with init script caching
+# Usage: _ztool_init "starship" "$(command -v starship)" "starship init zsh"
+# =============================================================================
+_ztool_init() {
+  local name="$1" bin="$2" init_cmd="$3"
+  [[ -x "$bin" ]] || return 0
+  local cache="$_ztool_cache/${name}.zsh"
+  if [[ ! -f "$cache" || "$bin" -nt "$cache" ]]; then
+    eval "$init_cmd" >"$cache" || return 1
+  fi
+  source "$cache"
+}
 
 # =============================================================================
 # STARSHIP PROMPT
 # Must initialize last among prompt-modifying tools.
 # =============================================================================
-() {
-  local cache="$_ztool_cache/starship.zsh"
-  local bin="${commands[starship]}"
-  if [[ -x "$bin" ]]; then
-    [[ ! -f "$cache" || "$bin" -nt "$cache" ]] && "$bin" init zsh >"$cache"
-    source "$cache"
-  fi
-}
+_ztool_init starship "$(command -v starship)" "starship init zsh"
 
 # =============================================================================
 # ZOXIDE (smart cd replacement — type z instead of cd)
 # =============================================================================
-() {
-  local cache="$_ztool_cache/zoxide.zsh"
-  local bin="${commands[zoxide]}"
-  if [[ -x "$bin" ]]; then
-    [[ ! -f "$cache" || "$bin" -nt "$cache" ]] && "$bin" init zsh >"$cache"
-    source "$cache"
-  fi
-}
+_ztool_init zoxide "$(command -v zoxide)" "zoxide init zsh"
 
 # =============================================================================
 # FNM (Node Version Manager)
 # =============================================================================
-() {
-  local cache="$_ztool_cache/fnm.zsh"
-  local bin="$HOME/.cargo/bin/fnm"
-  if [[ -x "$bin" ]]; then
-    [[ ! -f "$cache" || "$bin" -nt "$cache" ]] && "$bin" env --use-on-cd --shell zsh >"$cache"
-    source "$cache"
-  fi
-}
+_ztool_init fnm "$HOME/.cargo/bin/fnm" "fnm env --use-on-cd --shell zsh"
 
 # =============================================================================
 # DIRENV (project-specific environments)
 # =============================================================================
-() {
-  local cache="$_ztool_cache/direnv.zsh"
-  local bin="$HOME/.local/bin/direnv"
-  if [[ -x "$bin" ]]; then
-    [[ ! -f "$cache" || "$bin" -nt "$cache" ]] && "$bin" hook zsh >"$cache"
-    source "$cache"
-  fi
-}
+_ztool_init direnv "$HOME/.local/bin/direnv" "direnv hook zsh"
 
 # =============================================================================
 # FZF (Fuzzy Finder)
@@ -122,4 +110,5 @@ mkdir -p "$_ztool_cache"
 # =============================================================================
 # CLEANUP
 # =============================================================================
+unset -f _ztool_init
 unset _ztool_cache

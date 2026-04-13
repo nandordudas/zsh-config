@@ -6,16 +6,15 @@
 
 # Create directory and cd into it
 mkcd() {
-  [[ -n "$1" ]] || { echo "usage: mkcd <dir>"; return 1 }
-  mkdir -p "$1" && cd "$1"
+  [[ -n "$1" ]] || { printf "Usage: mkcd <dir>\n" >&2; return 1; }
+  mkdir -p "$1" || { printf "Error: Failed to create directory: %s\n" "$1" >&2; return 1; }
+  cd "$1" || return 1
 }
 
 # Extract archives (universal)
 extract() {
-  if [[ ! -f "$1" ]]; then
-    echo "File not found: $1"
-    return 1
-  fi
+  [[ $# -eq 1 ]] || { printf "Usage: extract <archive>\n" >&2; return 1; }
+  [[ -f "$1" ]] || { printf "Error: File not found: %s\n" "$1" >&2; return 1; }
 
   case "$1" in
     *.tar.bz2) tar xjf "$1" ;;
@@ -25,7 +24,7 @@ extract() {
     *.zip)     unzip "$1" ;;
     *.rar)     unrar x "$1" ;;
     *.7z)      7z x "$1" ;;
-    *)         echo "Unknown archive format: $1"; return 1 ;;
+    *)         printf "Error: Unsupported archive format: %s\n" "$1" >&2; printf "Supported: tar.{gz,bz2,xz}, zip, rar, 7z\n" >&2; return 1 ;;
   esac
 }
 
@@ -35,9 +34,10 @@ extract() {
 
 # Quick confirm for destructive operations
 confirm() {
+  [[ -n "$1" ]] || { printf "Usage: confirm <prompt>\n" >&2; return 1; }
   local response
-  printf "%s [y/N] " "$1"
-  read -r response
+  printf "%s [y/N] " "$1" >&2
+  read -r response || { printf "Cancelled\n" >&2; return 1; }
   [[ "$response" =~ ^[Yy]$ ]]
 }
 
@@ -45,7 +45,8 @@ confirm() {
 # Requires the 'git bootstrap' alias from scripts/git-setup.sh to be installed.
 bootstrap() {
   if ! git config --get alias.bootstrap &>/dev/null; then
-    printf "Error: 'git bootstrap' alias not found. Run scripts/git-setup.sh first.\n" >&2
+    printf "Error: 'git bootstrap' alias not found.\n" >&2
+    printf "Solution: Run ~/.config/zsh/scripts/git-setup.sh to set up git configuration.\n" >&2
     return 1
   fi
   local folder_name="${1:-$(tr -dc 'a-z0-9' </dev/urandom | head -c 13)}"
@@ -129,9 +130,10 @@ _cargo_smart_update() {
     if echo "$output" | grep -q "Updating"; then
       needs_update=1
     elif echo "$output" | grep -q "check_error"; then
-      # cargo-update failed, skip update to avoid build time
-      echo "⚠ cargo-update check failed; skipping rebuild"
-      return 0
+      # cargo-update check failed; rebuild conservatively to ensure packages are current
+      echo "⚠ cargo-update check failed; rebuilding conservatively"
+      cargo install-update -a
+      return $?
     else
       # No updates available
       echo "✓ Cargo packages up-to-date (checked $(date +%H:%M:%S))"
@@ -160,7 +162,11 @@ upgrade() {
 
   # Verify sudo access before backgrounding — apt job needs it.
   # Use -n (non-interactive) so it works without a TTY when NOPASSWD is set.
-  sudo -n true 2>/dev/null || sudo -v || { rm -rf "$tmpdir"; return 1; }
+  if ! sudo -n true 2>/dev/null; then
+    printf "Error: sudo access required for system upgrades\n" >&2
+    rm -rf "$tmpdir"
+    return 1
+  fi
 
   # Track which jobs were launched (in display order)
   local -a names=()
