@@ -92,8 +92,9 @@ upgrade() {
   local tmpdir
   tmpdir=$(mktemp -d)
 
-  # Cache sudo credentials before backgrounding — apt job needs them
-  sudo -v || { rm -rf "$tmpdir"; return 1; }
+  # Verify sudo access before backgrounding — apt job needs it.
+  # Use -n (non-interactive) so it works without a TTY when NOPASSWD is set.
+  sudo -n true 2>/dev/null || sudo -v || { rm -rf "$tmpdir"; return 1; }
 
   # Track which jobs were launched (in display order)
   local -a names=()

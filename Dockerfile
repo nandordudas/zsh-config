@@ -1,12 +1,12 @@
 # syntax=docker/dockerfile:1
 FROM ubuntu:24.04
 
-ARG DELTA_VER=0.19.2
-ARG DUST_VER=v1.2.4
-ARG PROCS_VER=v0.14.11
-ARG DIRENV_VER=v2.37.1
-ARG FASTFETCH_VER=2.61.0
-ARG GO_VER=go1.26.2
+ARG DELTA_VER=0.19.2      # bare, e.g. 0.19.2
+ARG DUST_VER=v1.2.4       # v-prefixed, e.g. v1.2.4
+ARG PROCS_VER=v0.14.11    # v-prefixed, e.g. v0.14.11
+ARG DIRENV_VER=v2.37.1    # v-prefixed, e.g. v2.37.1
+ARG FASTFETCH_VER=2.61.0  # bare, e.g. 2.61.0
+ARG GO_VER=go1.26.2       # go-prefixed, e.g. go1.26.2
 
 # Non-interactive apt throughout the build
 ENV DEBIAN_FRONTEND=noninteractive
