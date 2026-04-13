@@ -8,16 +8,16 @@ All aliases defined in `modules/aliases.zsh`, with example calls and output.
 
 | Alias | Expands to |
 |-------|-----------|
-| `gg` | `cd ~/code/git-hub/$GIT_HUB_USER` |
-| `gb` | `cd ~/code/bit-bucket/$BIT_BUCKET_USER` |
+| `gg` | `cd ~/code/git_hub/$GIT_HUB_USER` |
+| `gb` | `cd ~/code/bit_bucket/$BIT_BUCKET_USER` |
 | `cr` | `code --reuse-window .` |
 
 ```
 $ gg
-~/code/git-hub/$GIT_HUB_USER
+~/code/git_hub/$GIT_HUB_USER
 
 $ gb
-~/code/bit-bucket/$BIT_BUCKET_USER
+~/code/bit_bucket/$BIT_BUCKET_USER
 
 $ cr
 # opens current directory in the existing VS Code window
@@ -95,16 +95,16 @@ overwrite config.toml.bak? n
 
 ```
 $ pwd
-/home/user/code/git-hub/nandordudas/my-project/src
+/home/user/code/git_hub/nandordudas/my-project/src
 
 $ ..
-/home/user/code/git-hub/nandordudas/my-project
+/home/user/code/git_hub/nandordudas/my-project
 
 $ ~
 ~
 
 $ cdd
-/home/user/code/git-hub/nandordudas/my-project   # jumps back to previous dir
+/home/user/code/git_hub/nandordudas/my-project   # jumps back to previous dir
 ```
 
 ---

@@ -109,45 +109,42 @@ Aliased as `ik` in `aliases.zsh`.
 
 ## upgrade
 
-Comprehensive system upgrade. Runs in sequence:
+Comprehensive system upgrade. Runs all jobs in parallel:
 
-1. `apt update && apt-get upgrade`
-2. `zinit self-update && zinit update --all`
-3. `rustup update`
-4. `cargo install-update -a`
-5. `claude update`
-6. Go version check via `go.dev/VERSION` API — updates only if behind
-7. `fnm install --lts` + `npm install --global ...`
+- `apt update && apt-get upgrade --autoremove --purge`
+- `zinit self-update && zinit update --all` (if zinit is loaded)
+- `rustup update && cargo install-update -a` (if rustup/cargo present)
+- Go version check via `go.dev/VERSION` API — updates only if behind (if `g` is present)
+- `fnm install --lts` + `npm install --global ...` (if fnm present)
+- `claude update` (if claude present)
 
-Prints a version summary at the end.
+A live spinner shows each job's status. Failed job logs are printed after all
+jobs complete, followed by a version summary.
 
 ```
 $ upgrade
-🔄 Updating package lists...
-📦 Upgrading packages...
-🧹 Cleaning up...
-✅ System upgraded successfully
-🔌 Updating zsh plugins...
-🦀 Updating Rust...
-📦 Updating global Cargo packages...
-🤖 Updating Claude CLI...
-🐹 Checking Go versions...
-✅ Go is already up to date (1.23.4)
-🟩 Updating Node.js LTS...
-📦 Updating global npm packages...
+  ✓ [apt     ] done       8s
+  ✓ [zinit   ] done       2s
+  ✓ [rust    ] done      12s
+  ✓ [go      ] done       1s
+  ✓ [node    ] done       4s
+  ✓ [claude  ] done       2s
 
-📋 Installed versions:
-  OS:          Ubuntu 24.04.1 LTS
-  Kernel:      5.15.167.4-microsoft-standard-WSL2
-  Go:          go1.23.4
-  Rust:        1.82.0
-  Cargo:       1.82.0
-  Node:        v22.11.0
-  npm:         10.9.0
-  Claude:      1.0.7
-  Docker:      27.3.1
-  Git:         2.47.0
-🎉 All done!
+Finished in 12s
+
+  OS:          Ubuntu 24.04.4 LTS
+  Kernel:      6.6.87.2-microsoft-standard-WSL2
+  Go:          go1.26.2
+  Rust:        1.94.1
+  Cargo:       1.94.1
+  Node:        v24.14.1
+  npm:         11.12.1
+  pnpm:        10.33.0
+  Claude:      2.1.104 (Claude Code)
+  Docker:      29.4.0
+  Git:         2.43.0
+
+✓ All done!
 ```
 
 ---

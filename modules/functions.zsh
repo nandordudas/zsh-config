@@ -114,12 +114,12 @@ upgrade() {
   # Bookend helpers — called inside each { ... } & block to record
   # start time, then mark done/failed + end time after the body exits.
   # $tmpdir is in scope for all subshells forked from upgrade().
-  _job_start() { printf 'running' > "$tmpdir/$1.status"; printf '%s' $EPOCHSECONDS > "$tmpdir/$1.start" }
+  _job_start() { printf 'running' >"$tmpdir/$1.status"; printf '%s' $EPOCHSECONDS >"$tmpdir/$1.start" }
   _job_end()   {
     (( $2 == 0 )) \
-      && printf 'done'   > "$tmpdir/$1.status" \
-      || printf 'failed' > "$tmpdir/$1.status"
-    printf '%s' $EPOCHSECONDS > "$tmpdir/$1.end"
+      && printf 'done'   >"$tmpdir/$1.status" \
+      || printf 'failed' >"$tmpdir/$1.status"
+    printf '%s' $EPOCHSECONDS >"$tmpdir/$1.end"
   }
 
   # --- apt ---
@@ -130,7 +130,7 @@ upgrade() {
       sudo apt-get upgrade -y --autoremove --purge
       sudo apt-get autoclean
     ); _job_end apt $?
-  } > "$tmpdir/apt.log" 2>&1 &
+  } >"$tmpdir/apt.log" 2>&1 &
   pids+=($!)
   names+=(apt)
 
@@ -140,17 +140,18 @@ upgrade() {
       _job_start zinit
       ( set -e
         local zinit_dir="${ZINIT[HOME_DIR]:-${HOME}/.local/share/zinit/zinit.git}"
-        git -C "$zinit_dir" fetch origin --quiet 2>/dev/null
+        git -C "$zinit_dir" fetch origin --quiet 2>/dev/null || true
         local behind
-        behind=$(git -C "$zinit_dir" rev-list HEAD..FETCH_HEAD --count 2>/dev/null)
-        (( behind > 0 )) && zinit self-update --quiet
+        behind=$(git -C "$zinit_dir" rev-list HEAD..FETCH_HEAD --count 2>/dev/null || echo 0)
+        behind=${behind:-0}
+        (( behind > 0 )) && zinit self-update --quiet || true
         local stamp="${HOME}/.cache/zinit-plugins-updated"
         if [[ ! -f "$stamp" ]] || (( EPOCHSECONDS - $(<"$stamp") > 86400 )); then
-          zinit update --all --quiet
-          printf '%s' $EPOCHSECONDS > "$stamp"
+          zinit update --all --quiet || true
+          printf '%s' $EPOCHSECONDS >"$stamp"
         fi
       ); _job_end zinit $?
-    } > "$tmpdir/zinit.log" 2>&1 &
+    } >"$tmpdir/zinit.log" 2>&1 &
     pids+=($!)
     names+=(zinit)
   fi
@@ -163,7 +164,7 @@ upgrade() {
         command -v rustup &>/dev/null && rustup update
         command -v cargo  &>/dev/null && cargo install-update -a
       ); _job_end rust $?
-    } > "$tmpdir/rust.log" 2>&1 &
+    } >"$tmpdir/rust.log" 2>&1 &
     pids+=($!)
     names+=(rust)
   fi
@@ -180,7 +181,7 @@ upgrade() {
           "$HOME/go/bin/g" install latest && "$HOME/go/bin/g" use latest
         fi
       ); _job_end go $?
-    } > "$tmpdir/go.log" 2>&1 &
+    } >"$tmpdir/go.log" 2>&1 &
     pids+=($!)
     names+=(go)
   fi
@@ -200,7 +201,7 @@ upgrade() {
           npm install --global npm@latest pnpm@latest @antfu/ni eslint taze npkill
         fi
       ); _job_end node $?
-    } > "$tmpdir/node.log" 2>&1 &
+    } >"$tmpdir/node.log" 2>&1 &
     pids+=($!)
     names+=(node)
   fi
@@ -217,7 +218,7 @@ upgrade() {
           claude update
         fi
       ); _job_end claude $?
-    } > "$tmpdir/claude.log" 2>&1 &
+    } >"$tmpdir/claude.log" 2>&1 &
     pids+=($!)
     names+=(claude)
   fi
@@ -259,13 +260,13 @@ upgrade() {
       if [[ "$s" == 'done' ]]; then
         end_t=$(<"$tmpdir/${name}.end" 2>/dev/null)
         elapsed=$(( ${end_t:-$now} - start_t ))
-        done_line[$name]=$(printf "\033[2K\r  ${c_green}✓${c_reset} [%-8s] done     ${c_dim}%3ds${c_reset}\n" "$name" "$elapsed")
-        printf '%s' "${done_line[$name]}"
+        done_line[$name]=$(printf "\033[2K\r  ${c_green}✓${c_reset} [%-8s] done     ${c_dim}%3ds${c_reset}" "$name" "$elapsed")
+        printf '%s\n' "${done_line[$name]}"
       elif [[ "$s" == 'failed' ]]; then
         end_t=$(<"$tmpdir/${name}.end" 2>/dev/null)
         elapsed=$(( ${end_t:-$now} - start_t ))
-        done_line[$name]=$(printf "\033[2K\r  ${c_red}✗${c_reset} [%-8s] FAILED   ${c_dim}%3ds${c_reset}\n" "$name" "$elapsed")
-        printf '%s' "${done_line[$name]}"
+        done_line[$name]=$(printf "\033[2K\r  ${c_red}✗${c_reset} [%-8s] FAILED   ${c_dim}%3ds${c_reset}" "$name" "$elapsed")
+        printf '%s\n' "${done_line[$name]}"
       else
         elapsed=$(( now - start_t ))
         printf "\033[2K\r  ${c_yellow}%s${c_reset} [%-8s] running  ${c_dim}%3ds${c_reset}\n" \
@@ -394,7 +395,7 @@ zsh-cache-clear() {
 #
 #   2. Create allowed_signers (used by `git verify-commit` locally):
 #      echo "your@email.com $(cat ~/.ssh/id_ed25519.pub)" \
-#        > ~/.config/git/allowed_signers
+#        >~/.config/git/allowed_signers
 #
 #   3. Register key on GitHub (requires admin:public_key + admin:ssh_signing_key scopes):
 #      gh auth refresh -s admin:public_key,admin:ssh_signing_key

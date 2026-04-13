@@ -284,9 +284,9 @@ cat > "$GIT_DIR/config" << 'CONFIG_EOF'
 # per host without any manual switching — git selects the right one based on
 # where the repo lives. Add more blocks here for other hosts (e.g. GitLab,
 # work Bitbucket) following the same pattern.
-[includeIf "gitdir:~/code/git-hub/**/.git"]
+[includeIf "gitdir:~/code/git_hub/**/.git"]
 	path = ~/.config/git/github/.gitconfig
-[includeIf "gitdir:~/code/bit-bucket/**/.git"]
+[includeIf "gitdir:~/code/bit_bucket/**/.git"]
 	path = ~/.config/git/bitbucket/.gitconfig
 [alias]
 	# Basic Operations

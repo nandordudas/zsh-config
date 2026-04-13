@@ -56,20 +56,20 @@ $ ..
 ..     (same as cd ..)
 
 # AUTO_PUSHD — navigate back through history with cd -N
-$ cd ~/code/git-hub/nandordudas
+$ cd ~/code/git_hub/nandordudas
 $ cd my-project
 $ cd src
 $ cd -1         # back to my-project
-$ cd -2         # back to ~/code/git-hub/nandordudas
+$ cd -2         # back to ~/code/git_hub/nandordudas
 $ dirs -v       # show the full directory stack
-0  ~/code/git-hub/nandordudas/my-project/src
-1  ~/code/git-hub/nandordudas/my-project
-2  ~/code/git-hub/nandordudas
+0  ~/code/git_hub/nandordudas/my-project/src
+1  ~/code/git_hub/nandordudas/my-project
+2  ~/code/git_hub/nandordudas
 
 # CDABLE_VARS
-$ export MYPROJECT=~/code/git-hub/nandordudas/my-project
+$ export MYPROJECT=~/code/git_hub/nandordudas/my-project
 $ cd MYPROJECT   (no $ needed)
-~/code/git-hub/nandordudas/my-project
+~/code/git_hub/nandordudas/my-project
 ```
 
 ---

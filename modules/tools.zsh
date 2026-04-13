@@ -18,7 +18,7 @@ mkdir -p "$_ztool_cache"
   local cache="$_ztool_cache/starship.zsh"
   local bin="${commands[starship]}"
   if [[ -x "$bin" ]]; then
-    [[ ! -f "$cache" || "$bin" -nt "$cache" ]] && "$bin" init zsh > "$cache"
+    [[ ! -f "$cache" || "$bin" -nt "$cache" ]] && "$bin" init zsh >"$cache"
     source "$cache"
   fi
 }
@@ -30,7 +30,7 @@ mkdir -p "$_ztool_cache"
   local cache="$_ztool_cache/zoxide.zsh"
   local bin="${commands[zoxide]}"
   if [[ -x "$bin" ]]; then
-    [[ ! -f "$cache" || "$bin" -nt "$cache" ]] && "$bin" init zsh > "$cache"
+    [[ ! -f "$cache" || "$bin" -nt "$cache" ]] && "$bin" init zsh >"$cache"
     source "$cache"
   fi
 }
@@ -42,7 +42,7 @@ mkdir -p "$_ztool_cache"
   local cache="$_ztool_cache/fnm.zsh"
   local bin="$HOME/.cargo/bin/fnm"
   if [[ -x "$bin" ]]; then
-    [[ ! -f "$cache" || "$bin" -nt "$cache" ]] && "$bin" env --use-on-cd --shell zsh > "$cache"
+    [[ ! -f "$cache" || "$bin" -nt "$cache" ]] && "$bin" env --use-on-cd --shell zsh >"$cache"
     source "$cache"
   fi
 }
@@ -54,7 +54,7 @@ mkdir -p "$_ztool_cache"
   local cache="$_ztool_cache/direnv.zsh"
   local bin="$HOME/.local/bin/direnv"
   if [[ -x "$bin" ]]; then
-    [[ ! -f "$cache" || "$bin" -nt "$cache" ]] && "$bin" hook zsh > "$cache"
+    [[ ! -f "$cache" || "$bin" -nt "$cache" ]] && "$bin" hook zsh >"$cache"
     source "$cache"
   fi
 }

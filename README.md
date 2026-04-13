@@ -250,8 +250,8 @@ The script is idempotent — safe to re-run after updates.
 ├── config                  # Main config (all settings, aliases, delta, signing)
 ├── ignore                  # Global gitignore (.DS_Store, node_modules, .env, etc.)
 ├── allowed_signers         # Local SSH signature verification (email + pubkey)
-├── github/.gitconfig       # Per-repo identity for ~/code/git-hub/**
-└── bitbucket/.gitconfig    # Per-repo identity for ~/code/bit-bucket/**
+├── github/.gitconfig       # Per-repo identity for ~/code/git_hub/**
+└── bitbucket/.gitconfig    # Per-repo identity for ~/code/bit_bucket/**
 ```
 
 ### SSH commit signing
