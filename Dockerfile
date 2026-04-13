@@ -28,7 +28,7 @@ WORKDIR /home/dev
 # ─── 1. System packages ────────────────────────────────────────────────────────
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    sudo apt-get update -qq && sudo apt-get upgrade -y && \
+    sudo apt-get update -qq && \
     sudo apt-get install -y --no-install-recommends \
       zsh tmux \
       bat fd-find ripgrep \
