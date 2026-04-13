@@ -1,6 +1,30 @@
 # Custom functions for common tasks and workflows
 
 # =============================================================================
+# ENVIRONMENT HELPERS
+# =============================================================================
+
+# Centralized XDG cache directory with fallback
+_zcache_dir() {
+  echo "${XDG_CACHE_HOME:-$HOME/.cache}/zsh"
+}
+
+# Centralized XDG data directory with fallback
+_zdata_dir() {
+  echo "${XDG_DATA_HOME:-$HOME/.local/share}/zsh"
+}
+
+# =============================================================================
+# COLOR CODES (for consistent output styling)
+# =============================================================================
+
+readonly _COLOR_RESET=$'\033[0m'
+readonly _COLOR_GREEN=$'\033[32m'
+readonly _COLOR_RED=$'\033[31m'
+readonly _COLOR_YELLOW=$'\033[33m'
+readonly _COLOR_DIM=$'\033[2m'
+
+# =============================================================================
 # DIRECTORY & FILE OPERATIONS
 # =============================================================================
 
@@ -86,7 +110,7 @@ interactive_kill() {
 # Caches installed package manifest to avoid checking every upgrade cycle.
 # Expected packages (from README): du-dust, procs, cargo-update, eza, git-delta, fnm
 _cargo_smart_update() {
-  local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/zsh"
+  local cache_dir="$(_zcache_dir)"
   local manifest_file="$cache_dir/cargo-manifest.json"
   local needs_update=0
 
@@ -302,15 +326,9 @@ upgrade() {
   local spin_i=1
   local n=${#names[@]}
 
-  local c_reset='\033[0m'
-  local c_green='\033[32m'
-  local c_red='\033[31m'
-  local c_yellow='\033[33m'
-  local c_dim='\033[2m'
-
   # Print initial block
   for name in $names; do
-    printf "  ${c_yellow}${spinner[1]}${c_reset} [%-8s] starting...\n" "$name"
+    printf "  ${_COLOR_YELLOW}${spinner[1]}${_COLOR_RESET} [%-8s] starting...\n" "$name"
   done
 
   # Cache rendered lines for completed jobs — skips re-reading their files each tick.
@@ -333,16 +351,16 @@ upgrade() {
       if [[ "$s" == 'done' ]]; then
         end_t=$(<"$tmpdir/${name}.end" 2>/dev/null)
         elapsed=$(( ${end_t:-$now} - start_t ))
-        done_line[$name]=$(printf "\033[2K\r  ${c_green}✓${c_reset} [%-8s] done     ${c_dim}%3ds${c_reset}" "$name" "$elapsed")
+        done_line[$name]=$(printf "\033[2K\r  ${_COLOR_GREEN}✓${_COLOR_RESET} [%-8s] done     ${_COLOR_DIM}%3ds${_COLOR_RESET}" "$name" "$elapsed")
         printf '%s\n' "${done_line[$name]}"
       elif [[ "$s" == 'failed' ]]; then
         end_t=$(<"$tmpdir/${name}.end" 2>/dev/null)
         elapsed=$(( ${end_t:-$now} - start_t ))
-        done_line[$name]=$(printf "\033[2K\r  ${c_red}✗${c_reset} [%-8s] FAILED   ${c_dim}%3ds${c_reset}" "$name" "$elapsed")
+        done_line[$name]=$(printf "\033[2K\r  ${_COLOR_RED}✗${_COLOR_RESET} [%-8s] FAILED   ${_COLOR_DIM}%3ds${_COLOR_RESET}" "$name" "$elapsed")
         printf '%s\n' "${done_line[$name]}"
       else
         elapsed=$(( now - start_t ))
-        printf "\033[2K\r  ${c_yellow}%s${c_reset} [%-8s] running  ${c_dim}%3ds${c_reset}\n" \
+        printf "\033[2K\r  ${_COLOR_YELLOW}%s${_COLOR_RESET} [%-8s] running  ${_COLOR_DIM}%3ds${_COLOR_RESET}\n" \
           "${spinner[$spin_i]}" "$name" "$elapsed"
         all_done=0
       fi
@@ -365,7 +383,7 @@ upgrade() {
     [[ $(<"$tmpdir/${name}.status") == 'failed' ]] || continue
     has_failure=1
     log=$(<"$tmpdir/${name}.log")
-    printf "${c_red}=== %s FAILED ===${c_reset}\n%s\n\n" "$name" "$log"
+    printf "${_COLOR_RED}=== %s FAILED ===${_COLOR_RESET}\n%s\n\n" "$name" "$log"
   done
   for name in $names; do
     [[ $(<"$tmpdir/${name}.status") == 'failed' ]] && continue
@@ -392,10 +410,10 @@ upgrade() {
   rm -rf "$tmpdir"
 
   if (( has_failure )); then
-    printf "${c_red}✗ Some jobs failed — check logs above.${c_reset}\n"
+    printf "${_COLOR_RED}✗ Some jobs failed — check logs above.${_COLOR_RESET}\n"
     return 1
   fi
-  printf "${c_green}✓ All done!${c_reset}\n"
+  printf "${_COLOR_GREEN}✓ All done!${_COLOR_RESET}\n"
 }
 
 # =============================================================================
@@ -441,7 +459,7 @@ tmpcd() {
 # Force regeneration of all eval caches on next shell start.
 # Useful when auto-invalidation via mtime doesn't trigger (e.g., manual edits).
 zsh-cache-clear() {
-  local cache_dir="$XDG_CACHE_HOME/zsh"
+  local cache_dir="$(_zcache_dir)"
   local removed=0
   for f in starship.zsh zoxide.zsh fnm.zsh direnv.zsh; do
     if [[ -f "$cache_dir/$f" ]]; then
