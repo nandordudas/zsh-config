@@ -176,7 +176,7 @@ _cargo_smart_update() {
     mkdir -p "$cache_dir"
     echo "{" >"$manifest_file"
     local first=1
-    for pkg in "${!packages[@]}"; do
+    for pkg in "${(k)packages[@]}"; do
       local version=$($HOME/.cargo/bin/$pkg --version 2>/dev/null | awk '{print $NF}' || echo "unknown")
       (( ! first )) && echo "," >>"$manifest_file"
       printf '  "%s": "%s"' "$pkg" "$version" >>"$manifest_file"
@@ -211,7 +211,7 @@ _cargo_smart_update() {
     local download_count=0
     local failed_packages=()
 
-    for pkg in "${!packages[@]}"; do
+    for pkg in "${(k)packages[@]}"; do
       local meta="${packages[$pkg]}"
       local repo="${meta%%|*}" asset="${meta#*|}" asset="${asset%%|*}" binary="${meta##*|}"
 
