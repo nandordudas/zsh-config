@@ -379,14 +379,15 @@ Checks: bash/zsh syntax, required files, no personal data leaks,
 Test the complete install on a clean Ubuntu 24.04 environment:
 
 ```bash
-# From the repo root
-docker build -t zsh-config-test .
+# Recommended: use the Makefile (reads versions from versions.env)
+make docker-run
 
-# Drop into an interactive shell to explore the result
+# Or manually (from the repo root)
+docker build -f .docker/Dockerfile -t zsh-config-test .
 docker run -it --rm zsh-config-test
 ```
 
-The Dockerfile runs all prerequisite installs in order, copies the config,
+The Dockerfile (`.docker/Dockerfile`) runs all prerequisite installs in order, copies the config,
 and executes `test.sh` as part of the build — a failed test aborts the build.
 
 > **Note:** `gh auth login` and `chsh` are skipped in the container (they require

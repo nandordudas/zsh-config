@@ -12,6 +12,7 @@ docker-build:
 		--build-arg DIRENV_VER=$(DIRENV_VER) \
 		--build-arg FASTFETCH_VER=$(FASTFETCH_VER) \
 		--build-arg GO_VER=$(GO_VER) \
+		-f .docker/Dockerfile \
 		-t zsh-config-test .
 
 # Run the Docker image interactively
