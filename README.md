@@ -250,8 +250,8 @@ The script is idempotent — safe to re-run after updates.
 ├── config                  # Main config (all settings, aliases, delta, signing)
 ├── ignore                  # Global gitignore (.DS_Store, node_modules, .env, etc.)
 ├── allowed_signers         # Local SSH signature verification (email + pubkey)
-├── github/.gitconfig       # Per-repo identity for ~/code/git_hub/**
-└── bitbucket/.gitconfig    # Per-repo identity for ~/code/bit_bucket/**
+├── github/.gitconfig       # Per-repo identity for ~/code/github/**
+└── bitbucket/.gitconfig    # Per-repo identity for ~/code/bitbucket/**
 ```
 
 ### SSH commit signing
@@ -300,6 +300,24 @@ The `.zprofile` sets `GIT_CONFIG_GLOBAL` so git uses the XDG path:
 ```bash
 export GIT_CONFIG_GLOBAL="$HOME/.config/git/config"
 ```
+
+---
+
+## Machine-local configuration
+
+Settings that vary per machine (usernames, API keys, tool preferences) belong in `modules/local.zsh`, which is **gitignored** and sourced automatically by `.zshrc`.
+
+**Example: GitHub and BitBucket usernames**
+
+Add to `~/.config/zsh/modules/local.zsh`:
+
+```bash
+# GitHub and BitBucket usernames (for git config includes)
+export GITHUB_USER="nandordudas"
+export BITBUCKET_USER="nandordudas"
+```
+
+This keeps `.zprofile` clean and shareable while allowing per-machine customization.
 
 ---
 

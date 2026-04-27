@@ -64,9 +64,6 @@ export GOPATH="$HOME/go"
 # GIT & PERSONAL IDENTIFIERS
 # =============================================================================
 export GIT_CONFIG_GLOBAL="$HOME/.config/git/config"
-export GIT_HUB_USER="" # Set to your GitHub username for git config includes (see scripts/git-setup.sh)
-export BIT_BUCKET_USER="" # Set to your BitBucket username for git config includes (see scripts/git-setup.sh)
-
 # =============================================================================
 # WSL DETECTION
 # Runs once at login; all child shells inherit IS_WSL from the environment.
