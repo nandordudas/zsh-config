@@ -113,7 +113,10 @@ Comprehensive system upgrade. Runs all jobs in parallel:
 
 - `apt update && apt-get upgrade --autoremove --purge`
 - `zinit self-update && zinit update --all` (if zinit is loaded)
-- `rustup update && cargo install-update -a` (if rustup/cargo present)
+- **Rust**: `rustup update` + smart cargo updater (if rustup/cargo present)
+  - Checks for updates with dry-run first (skips if nothing to update)
+  - **Hybrid prebuilt binary strategy**: Downloads prebuilt binaries from GitHub releases first (30-60s)
+  - Falls back to source rebuild only if prebuilts unavailable
 - Go version check via `go.dev/VERSION` API — updates only if behind (if `g` is present)
 - `fnm install --lts` + `npm install --global ...` (if fnm present)
 - `claude update` (if claude present)

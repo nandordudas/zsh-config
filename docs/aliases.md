@@ -8,16 +8,16 @@ All aliases defined in `modules/aliases.zsh`, with example calls and output.
 
 | Alias | Expands to |
 |-------|-----------|
-| `gg` | `cd ~/code/git_hub/$GIT_HUB_USER` |
-| `gb` | `cd ~/code/bit_bucket/$BIT_BUCKET_USER` |
+| `gg` | `cd ~/code/github/$GITHUB_USER` (requires `GITHUB_USER` in `modules/local.zsh`) |
+| `gb` | `cd ~/code/bitbucket/$BITBUCKET_USER` (requires `BITBUCKET_USER` in `modules/local.zsh`) |
 | `cr` | `code --reuse-window .` |
 
 ```
 $ gg
-~/code/git_hub/$GIT_HUB_USER
+~/code/github/nandordudas
 
 $ gb
-~/code/bit_bucket/$BIT_BUCKET_USER
+~/code/bitbucket/nandordudas
 
 $ cr
 # opens current directory in the existing VS Code window
@@ -111,28 +111,29 @@ $ cdd
 
 ## Docker Compose
 
-| Alias | Expands to |
-|-------|-----------|
-| `dc` | `docker compose` |
-| `dc-up` | `UID=$(id -u) GID=$(id -g) docker compose up` |
-| `dc-down` | `docker compose down` |
-| `dc-exec` | `docker compose exec` |
-| `dc-logs` | `docker compose logs -f` |
+Most `docker compose` aliases come from the `OMZP::docker-compose` plugin (enabled in Zinit):
+`dco`, `dcdn`, `dce`, `dclf`, etc.
+
+Custom aliases:
+
+| Alias | Expands to | Purpose |
+|-------|-----------|---------|
+| `dc-up` | `UID=$(id -u) GID=$(id -g) docker compose up` | Start services with host UID/GID for proper file permissions |
 
 ```
-$ dc ps
-NAME       IMAGE     COMMAND   SERVICE   CREATED   STATUS    PORTS
-api        node:20   ...       api       2m ago    Up 2m     3000/tcp
-db         postgres  ...       db        2m ago    Up 2m     5432/tcp
-
 $ dc-up
 # starts all services with current user's UID/GID so file permissions
 # inside containers match the host (avoids root-owned output files)
 
-$ dc-exec api sh
+$ dco ps   # via plugin — docker compose ps
+NAME       IMAGE     COMMAND   SERVICE   CREATED   STATUS    PORTS
+api        node:20   ...       api       2m ago    Up 2m     3000/tcp
+db         postgres  ...       db        2m ago    Up 2m     5432/tcp
+
+$ dce api sh   # via plugin — docker compose exec
 # opens a shell inside the running api container
 
-$ dc-logs
+$ dclf   # via plugin — docker compose logs -f
 api  | Listening on port 3000
 db   | database system is ready to accept connections
 ```
@@ -141,13 +142,15 @@ db   | database system is ready to accept connections
 
 ## Docker CLI
 
-| Alias | Expands to |
-|-------|-----------|
-| `dps` | `docker ps` |
-| `dpsa` | `docker ps -a` |
-| `dimg` | `docker images` |
-| `drm` | `docker rm $(docker ps -aq)` |
-| `drmi` | `docker rmi $(docker images -qf dangling=true)` |
+Most aliases come from the `OMZP::docker` plugin (enabled in Zinit):
+`dps`, `dpsa`, `dils`, `dpo`, `dxc`, etc.
+
+Custom aliases for special operations:
+
+| Alias | Expands to | Purpose |
+|-------|-----------|---------|
+| `drm` | `docker rm $(docker ps -aq)` | Remove **all** stopped containers |
+| `drmi` | `docker rmi $(docker images -qf dangling=true)` | Remove **dangling** images only |
 
 ```
 $ dps
