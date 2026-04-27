@@ -6,6 +6,9 @@
 #         --build-arg GO_VER=go1.27.0 .
 FROM ubuntu:24.04
 
+# Use bash for all RUN commands (script uses bash array syntax)
+SHELL ["/bin/bash", "-c"]
+
 ARG DELTA_VER=0.19.2      # bare, e.g. 0.19.2
 ARG DUST_VER=v1.2.4       # v-prefixed, e.g. v1.2.4
 ARG PROCS_VER=v0.14.11    # v-prefixed, e.g. v0.14.11
