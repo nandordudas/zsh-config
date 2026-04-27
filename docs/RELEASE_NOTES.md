@@ -60,7 +60,7 @@ $ upgrade
 
 This is a **100% backward-compatible** release. Your existing setup will keep working without any changes.
 
-**But if you want to modernize**, see [MIGRATION_v1.1.0.md](MIGRATION_v1.1.0.md) for a quick optional update.
+**But if you want to modernize**, see [MIGRATION_v1.1.0.md](./MIGRATION_v1.1.0.md) for a quick optional update.
 
 ---
 
@@ -158,7 +158,7 @@ Claude will:
 
 - 📖 **Full changelog**: `git log v1.0.0..v1.1.0 --oneline`
 - 🔗 **GitHub release**: https://github.com/nandordudas/zsh-config/releases/tag/v1.1.0
-- 📚 **Migration guide**: [MIGRATION_v1.1.0.md](MIGRATION_v1.1.0.md)
+- 📚 **Migration guide**: [MIGRATION_v1.1.0.md](./MIGRATION_v1.1.0.md)
 - 🤖 **Claude Code**: Run `claude` from the repo root for AI-powered help
 
 ---

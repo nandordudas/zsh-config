@@ -1,7 +1,7 @@
 # zsh config
 
 > [!WARNING]
-> **Updated to v1.1.0!** If you're updating from before this release, see [MIGRATION_v1.1.0.md](MIGRATION_v1.1.0.md) for a quick guide. Good news: no breaking changes, but you'll get 3-5x faster upgrades! 🚀
+> **Updated to v1.1.0!** If you're updating from before this release, see [MIGRATION_v1.1.0.md](docs/MIGRATION_v1.1.0.md) for a quick guide. Good news: no breaking changes, but you'll get 3-5x faster upgrades! 🚀
 
 > [!NOTE]
 > This is an **opinionated** personal zsh configuration. It reflects specific tool choices, aliases, and workflows that suit one developer's daily use. Fork and adapt it rather than using it as-is.
@@ -379,7 +379,7 @@ Checks: bash/zsh syntax, required files, no personal data leaks,
 Test the complete install on a clean Ubuntu 24.04 environment:
 
 ```bash
-# Recommended: use the Makefile (reads versions from versions.env)
+# Recommended: use the Makefile (reads versions from .docker/versions.env)
 make docker-run
 
 # Or manually (from the repo root)
