@@ -1,4 +1,9 @@
 # syntax=docker/dockerfile:1
+# Build args: defaults from versions.env (update there for easier maintenance)
+# Usage: docker build -t zsh-config-test .
+#   or: docker build -t zsh-config-test \
+#         --build-arg DELTA_VER=0.20.0 \
+#         --build-arg GO_VER=go1.27.0 .
 FROM ubuntu:24.04
 
 ARG DELTA_VER=0.19.2      # bare, e.g. 0.19.2

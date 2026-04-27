@@ -457,7 +457,7 @@ upgrade() {
 
   local total_elapsed
   total_elapsed=$(( EPOCHSECONDS - total_start ))
-  printf "\n${c_dim}Finished in %ds${c_reset}\n\n" "$total_elapsed"
+  printf "\n${_COLOR_DIM}Finished in %ds${_COLOR_RESET}\n\n" "$total_elapsed"
 
   # --- Print logs: failed jobs first (prominent), then successful ---
   local log has_failure=0

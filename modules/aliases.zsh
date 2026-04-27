@@ -3,8 +3,8 @@
 # =============================================================================
 # NAVIGATION
 # =============================================================================
-alias gg='[[ -n "$GIT_HUB_USER" ]] && cd ~/code/git_hub/"$GIT_HUB_USER" || echo "GIT_HUB_USER not set in .zprofile"'
-alias gb='[[ -n "$BIT_BUCKET_USER" ]] && cd ~/code/bit_bucket/"$BIT_BUCKET_USER" || echo "BIT_BUCKET_USER not set in .zprofile"'
+alias gg='[[ -n "$GITHUB_USER" ]] && cd ~/code/github/"$GITHUB_USER" || echo "GITHUB_USER not set in modules/local.zsh"'
+alias gb='[[ -n "$BITBUCKET_USER" ]] && cd ~/code/bitbucket/"$BITBUCKET_USER" || echo "BITBUCKET_USER not set in modules/local.zsh"'
 alias cr='code --reuse-window .'
 
 # =============================================================================
