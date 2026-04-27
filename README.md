@@ -1,11 +1,16 @@
 # zsh config
 
+> [!WARNING]
+> **Updated to v1.1.0!** If you're updating from before this release, see [MIGRATION_v1.1.0.md](MIGRATION_v1.1.0.md) for a quick guide. Good news: no breaking changes, but you'll get 3-5x faster upgrades! 🚀
+
 > [!NOTE]
 > This is an **opinionated** personal zsh configuration. It reflects specific tool choices, aliases, and workflows that suit one developer's daily use. Fork and adapt it rather than using it as-is.
 
 Fast, modular zsh configuration using [Zinit](https://github.com/zdharma-continuum/zinit) turbo mode and cached eval outputs.
 
 **Target startup time:** < 100ms (`time zsh -i -c exit`)
+
+**Latest release:** [v1.1.0](https://github.com/nandordudas/zsh-config/releases/tag/v1.1.0) — Hybrid prebuilt binaries, smart cargo updates, documentation improvements
 
 ## Structure
 
