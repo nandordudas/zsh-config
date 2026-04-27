@@ -29,6 +29,16 @@ Fast, modular zsh configuration using [Zinit](https://github.com/zdharma-continu
 
 ---
 
+## Quick Start (experienced users only)
+
+If you have Rust, Node.js, Go, Starship, fzf, direnv, and GitHub CLI installed:
+
+```bash
+npx tiged nandordudas/zsh-config ~/.config/zsh --disable-cache
+# Then follow Installation steps 2-5 only
+
+---
+
 ## Prerequisites
 
 Install all tools before cloning. Steps must be followed in this order — each section depends on the previous.
@@ -176,7 +186,7 @@ curl -fsSL https://claude.ai/install.sh | bash
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/nandordudas/zsh-config.git ~/.config/zsh
+npx tiged nandordudas/zsh-config ~/.config/zsh --disable-cache
 ```
 
 > If `~/.config/zsh` already exists, back it up first:
@@ -227,9 +237,9 @@ cache and are fast.
 
 ---
 
-## Git configuration
+## Git configuration (optional)
 
-This repo includes a factory script that applies the full git setup to a new machine. It covers all settings, aliases, delta pager config, per-host identity (GitHub/Bitbucket), and SSH commit signing.
+For full SSH commit signing and per-host git identities, run the factory script below. Skip this section if you want a minimal setup.
 
 ### Apply to a new machine
 
@@ -328,10 +338,10 @@ This keeps `.zprofile` clean and shareable while allowing per-machine customizat
 
 ```bash
 # Startup time
-time zsh -i -c exit
+time zsh -i -c exit    # Expected: ~50-100ms (user time)
 
 # Check HISTFILE is correct
-echo $HISTFILE   # → ~/.local/share/zsh/history
+echo $HISTFILE         # Expected: ~/.local/share/zsh/history
 
 # Check fzf version (requires >= 0.49.0 for forgit)
 fzf --version    # → 0.68.x from ~/.fzf/bin
