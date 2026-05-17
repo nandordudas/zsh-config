@@ -276,6 +276,7 @@ upgrade() {
   tmpdir=$(mktemp -d)
   trap '
     for _pid in $pids; do kill -- -$_pid 2>/dev/null; done
+    wait 2>/dev/null  # Reap all jobs silently
     rm -rf "$tmpdir"
     printf "\n[upgrade] cancelled\n"
     trap - INT TERM
@@ -409,7 +410,9 @@ upgrade() {
     (( spin_i = spin_i % ${#spinner} + 1 ))
   done
 
+  # Reap all background jobs (suppress job control output)
   for pid in $pids; do wait "$pid" 2>/dev/null; done
+  wait 2>/dev/null  # Final catch-all for any remaining jobs
   local total_elapsed=$(( EPOCHSECONDS - total_start ))
   printf "\n${_COLOR_DIM}Finished in %ds${_COLOR_RESET}\n\n" "$total_elapsed"
 
