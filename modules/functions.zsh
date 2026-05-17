@@ -579,15 +579,7 @@ zsh-health() {
 # =============================================================================
 # GIT HELPERS
 # =============================================================================
-
-# FZF git checkout helper (quick alternative to forgit)
-# Strips remotes/<remote>/ prefix so remote branches create local tracking branches
-# instead of checking out in detached HEAD mode.
-gcb() {
-  local branch
-  branch=$(git branch --all | fzf | sed 's|^[* ]*||; s|remotes/[^/]*/||')
-  [[ -n "$branch" ]] && git checkout "$branch"
-}
+# Note: git checkout helper provided by forgit plugin (gcb alias)
 
 # =============================================================================
 # UTILITIES

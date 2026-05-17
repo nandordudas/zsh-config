@@ -356,13 +356,27 @@ exec zsh -l          # Restart shell (regenerates caches)
 
 ### Interact with git
 
+**forgit aliases** (interactive git operations with fzf):
 ```bash
-glo                  # Git log picker (interactive, with fzf)
-gfs                  # Git file search
-gbb                  # Git branch picker
+glo                  # Git log picker (interactive)
+gd                   # Git diff with files (interactive)
+gcb                  # Git checkout branch (interactive)
+ga                   # Git add with file picker (interactive)
+grh                  # Git reset HEAD (interactive)
+gss                  # Git stash show (interactive)
+gcp                  # Git cherry-pick from branch (interactive)
 ```
 
-For more git aliases, see `modules/aliases.zsh` or run `git alias`.
+**Standard git aliases**:
+```bash
+gs                   # git status
+gco                  # git checkout
+gcm                  # git commit -m
+gaa                  # git add -A
+gst                  # git stash
+```
+
+For complete list, see `modules/aliases.zsh` or run `git alias`.
 
 ### Use fzf
 
@@ -388,6 +402,11 @@ node --version              # Expected: v20+ (auto-installed)
 fzf --version               # Expected: 0.68+
 ls ~/.cache/zsh/            # Expected: starship.zsh, zoxide.zsh, fnm.zsh, direnv.zsh
 upgrade --dry-run           # See what would update
+
+# Test forgit (interactive git with fzf)
+cd ~/.config/zsh
+glo                         # Git log picker
+gcb                         # Git checkout branch picker
 ```
 
 All checks should pass. If not, see "[Troubleshooting](#troubleshooting)".

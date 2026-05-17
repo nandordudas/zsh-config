@@ -66,8 +66,8 @@ zinit wait lucid for \
   Aloxaf/fzf-tab \
   hlissner/zsh-autopair
 
-# Group 3: Git tooling (1 second delay — only needed when user types git commands)
-zinit wait"1" lucid for \
+# Group 3: Git tooling (load immediately — used frequently at prompt)
+zinit lucid for \
   wfxr/forgit
 
 # Group 4: Completions for language toolchains and Docker
