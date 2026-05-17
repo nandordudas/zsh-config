@@ -258,13 +258,19 @@ _cargo_smart_update() {
 }
 
 # Comprehensive system upgrade — parallel execution with selective tool support
-# Usage: upgrade [--only tool1,tool2,...]
+# Usage: upgrade [--only tool1,tool2,...] [--dry-run]
 upgrade() {
   setopt LOCAL_OPTIONS
   unsetopt MONITOR NOTIFY
 
-  local only_tools
-  [[ "$1" == "--only" ]] && only_tools="$2" && shift 2
+  local only_tools dry_run
+  while [[ -n "$1" ]]; do
+    case "$1" in
+      --only)   only_tools="$2"; shift 2 ;;
+      --dry-run) dry_run=1; shift ;;
+      *)        printf "Usage: upgrade [--only tool1,tool2,...] [--dry-run]\n" >&2; return 1 ;;
+    esac
+  done
 
   local tmpdir
   tmpdir=$(mktemp -d)
@@ -339,7 +345,12 @@ upgrade() {
     [[ -n "$latest" && "$current" != "$latest" ]] && claude update
   }
 
-  # Launch jobs
+  # Launch jobs (or show dry-run)
+  if (( dry_run )); then
+    printf "Dry-run mode — no changes will be made.\n\n"
+    [[ -n "$only_tools" ]] && printf "Selected tools: %s\n\n" "$only_tools"
+  fi
+
   _launch_job apt _upgrade_apt
   _launch_job zinit _upgrade_zinit
   _launch_job rust _upgrade_rust
@@ -348,6 +359,16 @@ upgrade() {
   _launch_job claude _upgrade_claude
 
   [[ ${#names[@]} -eq 0 ]] && { printf "No tools to upgrade\n" >&2; rm -rf "$tmpdir"; return 0; }
+
+  if (( dry_run )); then
+    printf "Jobs that would run:\n"
+    for name in $names; do
+      printf "  • %s\n" "$name"
+    done
+    printf "\nDry-run complete — no changes made.\n"
+    rm -rf "$tmpdir"
+    return 0
+  fi
 
   # Spinner display loop
   local -a spinner=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
@@ -433,6 +454,104 @@ upgrade() {
     return 1
   fi
   printf "${_COLOR_GREEN}✓ All done!${_COLOR_RESET}\n"
+}
+
+# =============================================================================
+# SYSTEM HEALTH CHECK
+# =============================================================================
+
+# Check zsh config and tool availability
+zsh-health() {
+  local issues=0
+
+  printf "${_COLOR_GREEN}=== ZSH Configuration Health ===${_COLOR_RESET}\n\n"
+
+  # Check core tools
+  printf "Core Tools:\n"
+  local -a tools=(
+    'git:git --version'
+    'zsh:zsh --version'
+    'fzf:fzf --version'
+    'eza:eza --version'
+    'bat:batcat --version'
+    'fd:fdfind --version'
+  )
+  for spec in "${tools[@]}"; do
+    local name="${spec%%:*}" cmd="${spec##*:}"
+    if output=$($cmd 2>&1); then
+      printf "  ${_COLOR_GREEN}✓${_COLOR_RESET} %-8s %s\n" "$name" "${output%% *}"
+    else
+      printf "  ${_COLOR_RED}✗${_COLOR_RESET} %-8s NOT FOUND\n" "$name"
+      (( issues++ ))
+    fi
+  done
+  printf "\n"
+
+  # Check language tools
+  printf "Language Tools:\n"
+  local -a langs=(
+    'Go:go version'
+    'Rust:rustc --version'
+    'Node:node --version'
+    'Python:python3 --version'
+  )
+  for spec in "${langs[@]}"; do
+    local name="${spec%%:*}" cmd="${spec##*:}"
+    if output=$($cmd 2>&1); then
+      printf "  ${_COLOR_GREEN}✓${_COLOR_RESET} %-10s %s\n" "$name" "$output"
+    else
+      printf "  ${_COLOR_YELLOW}⊙${_COLOR_RESET} %-10s not installed\n" "$name"
+    fi
+  done
+  printf "\n"
+
+  # Check PATH
+  printf "PATH Configuration:\n"
+  local path_count=$(echo $PATH | tr ':' '\n' | wc -l)
+  printf "  • %d directories in PATH\n" "$path_count"
+
+  local key_dirs=(
+    "$HOME/.cargo/bin:Rust/Cargo"
+    "$HOME/.local/bin:Local tools"
+    "$HOME/go/bin:Go tools"
+    "/usr/local/bin:System tools"
+  )
+  for spec in "${key_dirs[@]}"; do
+    local dir="${spec%%:*}" label="${spec##*:}"
+    if [[ ":$PATH:" =~ ":$dir:" ]]; then
+      printf "  ${_COLOR_GREEN}✓${_COLOR_RESET} %s (%s)\n" "$dir" "$label"
+    else
+      printf "  ${_COLOR_YELLOW}⊙${_COLOR_RESET} %s (%s) missing from PATH\n" "$dir" "$label"
+    fi
+  done
+  printf "\n"
+
+  # Check zsh config
+  printf "ZSH Configuration:\n"
+  [[ -d "$ZDOTDIR" ]] && printf "  ${_COLOR_GREEN}✓${_COLOR_RESET} ZDOTDIR = %s\n" "$ZDOTDIR" || printf "  ${_COLOR_RED}✗${_COLOR_RESET} ZDOTDIR not set\n"
+
+  if (( ${+functions[zinit]} )); then
+    printf "  ${_COLOR_GREEN}✓${_COLOR_RESET} Zinit plugins loaded\n"
+  else
+    printf "  ${_COLOR_YELLOW}⊙${_COLOR_RESET} Zinit not initialized\n"
+    (( issues++ ))
+  fi
+
+  if (( ${+functions[zoxide]} )); then
+    printf "  ${_COLOR_GREEN}✓${_COLOR_RESET} Zoxide (smart cd) available\n"
+  else
+    printf "  ${_COLOR_YELLOW}⊙${_COLOR_RESET} Zoxide not loaded\n"
+  fi
+
+  printf "\n"
+
+  if (( issues == 0 )); then
+    printf "${_COLOR_GREEN}✓ All critical tools present${_COLOR_RESET}\n"
+    return 0
+  else
+    printf "${_COLOR_YELLOW}⊙ %d issue(s) detected — see above${_COLOR_RESET}\n" "$issues"
+    return 1
+  fi
 }
 
 # =============================================================================
