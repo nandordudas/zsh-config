@@ -8,7 +8,7 @@
 
 > [!TIP]
 > **Use Claude Code for setup:**  
-> 1. Clone: `npx tiged nandordudas/zsh-config ~/.config/zsh --disable-cache`  
+> 1. Clone: `git clone https://github.com/nandordudas/zsh-config ~/.config/zsh`  
 > 2. Open `~/.config/zsh` in [Claude Code](https://claude.ai/code)  
 > 3. Ask Claude: *"Help me finish setting up this zsh config. What prerequisites do I need for my OS, and what installation steps should I follow?"*
 > 
@@ -37,7 +37,10 @@ For experienced users with Rust, Go, and Node already installed:
 
 ```bash
 # 1. Clone the config
-npx tiged nandordudas/zsh-config ~/.config/zsh --disable-cache
+git clone https://github.com/nandordudas/zsh-config ~/.config/zsh
+
+# (Optional: use npx tiged if you prefer)
+# npx tiged nandordudas/zsh-config ~/.config/zsh --disable-cache
 
 # 2. Create ~/.zshenv (required)
 cat > ~/.zshenv << 'EOF'
@@ -255,7 +258,8 @@ curl -sfL https://direnv.net/install.sh | bash
 # sudo apt update && sudo apt install -y gh
 
 # 8. Clone config (same as development setup)
-npx tiged nandordudas/zsh-config ~/.config/zsh --disable-cache
+git clone https://github.com/nandordudas/zsh-config ~/.config/zsh
+# (Optional: npx tiged nandordudas/zsh-config ~/.config/zsh --disable-cache)
 
 # 9. Create ~/.zshenv
 cat > ~/.zshenv << 'EOF'
@@ -318,12 +322,17 @@ zsh-health
 ### Step 1: Clone the config
 
 ```bash
-npx tiged nandordudas/zsh-config ~/.config/zsh --disable-cache
+git clone https://github.com/nandordudas/zsh-config ~/.config/zsh
 ```
 
 Or if `~/.config/zsh` exists:
 ```bash
 mv ~/.config/zsh ~/.config/zsh.bak  # backup first
+git clone https://github.com/nandordudas/zsh-config ~/.config/zsh
+```
+
+**Optional alternative:** Use `npx tiged` if you prefer (requires Node.js):
+```bash
 npx tiged nandordudas/zsh-config ~/.config/zsh --disable-cache
 ```
 
@@ -566,7 +575,7 @@ cp -r ~/.config/zsh ~/.config/zsh.custom-backup
 
 # Reclone and overwrite
 rm -rf ~/.config/zsh
-npx tiged nandordudas/zsh-config ~/.config/zsh --disable-cache
+git clone https://github.com/nandordudas/zsh-config ~/.config/zsh
 
 # Or update to latest from git
 cd ~/.config/zsh && git pull origin main
