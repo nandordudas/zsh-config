@@ -221,47 +221,31 @@ See [Starship docs](https://starship.rs/guide/#🚀-installation) for distributi
 
 ## Server-Only Setup (Production)
 
-For production servers where you want the same shell config but **without development tools** and without Claude:
+Minimal zsh config for production servers (no dev tools, smaller footprint):
+
+### Installation
 
 ```bash
-# 1. Core system packages only (no development tools)
+# 1. System packages
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y zsh git tmux ripgrep fd-find bat zoxide exiftool
+sudo apt install -y zsh git tmux ripgrep fd-find bat zoxide
 
-# 2. Change shell to zsh
+# 2. Change shell
 chsh -s $(command -v zsh)
 
-# 3. Rust + cargo (minimal — only git-delta for diffs)
+# 3. Rust + git-delta only
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 source "$HOME/.cargo/env"
 cargo install git-delta
 
-# 4. fzf only (for interactive scripts/terminal)
+# 4. fzf
 [[ -d ~/.fzf ]] || git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
 ~/.fzf/install --key-bindings --completion --no-update-rc
 
-# 5. Minimal prompt (no Starship overhead)
-# Use built-in zsh prompt or PROMPT='%n@%m:%~%# ' in .zshrc
-
-# 6. direnv (if using per-directory env vars)
-curl -sfL https://direnv.net/install.sh | bash
-
-# 7. GitHub CLI — OPTIONAL (only if server manages GitHub repos)
-# Skip this unless you need: automated releases, issue creation, PR management, or GitHub Actions
-# Most servers just pull code and don't need gh
-# sudo mkdir -p -m 755 /etc/apt/keyrings
-# wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg | \
-#   sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg >/dev/null
-# sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
-# echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | \
-#   sudo tee /etc/apt/sources.list.d/github-cli.list >/dev/null
-# sudo apt update && sudo apt install -y gh
-
-# 8. Clone config (same as development setup)
+# 5. Clone config
 git clone https://github.com/nandordudas/zsh-config ~/.config/zsh
-# (Optional: npx tiged nandordudas/zsh-config ~/.config/zsh --disable-cache)
 
-# 9. Create ~/.zshenv
+# 6. Create ~/.zshenv
 cat > ~/.zshenv << 'EOF'
 export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
@@ -270,50 +254,106 @@ export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 export ZDOTDIR="$XDG_CONFIG_HOME/zsh"
 EOF
 
-# 10. Setup machine-local config
-touch ~/.config/zsh/modules/local.zsh
+# 7. Disable Starship & Zinit in local.zsh
+cat > ~/.config/zsh/modules/local.zsh << 'EOF'
+# Simple prompt (no Starship overhead on servers)
+export PROMPT='%n@%m:%~# '
 
-# 11. Link tmux config
-mkdir -p ~/.config/tmux
-ln -sf ~/.config/zsh/tmux/tmux.conf ~/.config/tmux/tmux.conf
+# Skip Zinit plugin manager
+# Why: Plugins are for interactive development (git info, syntax highlighting, completions)
+# Servers don't need these. Raw shell is faster.
+export ZINIT_SKIP=1
 
-# 12. Verify
+# Skip Starship prompt generator
+# Why: Starship re-evaluates git status, directory, etc. on every prompt
+# On servers (headless/non-interactive), this is wasted CPU. Simple prompt is sufficient.
+export DISABLE_STARSHIP=1
+EOF
+
+# 8. Link tmux config (optional)
+mkdir -p ~/.config/tmux && ln -sf ~/.config/zsh/tmux/tmux.conf ~/.config/tmux/tmux.conf
+
+# 9. Verify
 zsh-health
 ```
 
-**What's excluded from server setup:**
-| Excluded | Reason |
-|----------|--------|
-| **Node.js (fnm/npm/pnpm)** | No frontend dev or build tools |
-| **Go version manager (g)** | Not needed unless building Go services |
-| **Starship** | Prompt overhead; use simple built-in prompt |
-| **fastfetch** | System info tool; not needed on headless servers |
-| **npkill/taze/eslint** | Development tools only |
-| **Claude** | Not for production (API keys on servers = risk) |
+### Why Disable Starship & Zinit?
 
-**What's kept:**
+**Starship (prompt)**
+- Re-evaluates git status, directory metadata on every prompt
+- Designed for interactive development (show branch, dirty state, env info)
+- On servers: wasted CPU, adds 100-200ms per prompt in non-interactive shells
+- **Solution:** Use simple built-in prompt: `PROMPT='%n@%m:%~# '`
+
+**Zinit (plugin manager)**
+- Loads 50+ plugins: syntax highlighting, git integration, smart completions, etc.
+- Designed for interactive development workflows
+- On servers: most plugins are useless, add startup time
+- **Solution:** Skip loading; use raw zsh with only core functions
+
+### What's Included
+
 | Tool | Why |
 |------|-----|
-| **zsh + config** | Better shell scripting, familiar environment |
-| **git** | Version control, pull/push code |
-| **tmux** | Session management for long-running tasks |
-| **ripgrep/fd** | Fast searching for logs and scripts |
-| **bat** | Syntax-highlighted cat for logs |
-| **zoxide** | Directory jumps (handy for ops) |
-| **fzf** | Interactive scripts and history search |
-| **git-delta** | Better diffs for git blame/log |
-| **direnv** | Per-directory env vars (secrets management) |
+| **zsh** | Better scripting than bash, familiar workflow |
+| **git** | Version control, CI/CD integration |
+| **tmux** | Session persistence for long-running tasks |
+| **ripgrep/fd/bat** | Fast log searching, better tools |
+| **zoxide** | Smart directory navigation |
+| **fzf** | Interactive scripts, Ctrl+R history search |
+| **git-delta** | Better git diffs |
 
-**Optional (add only if needed):**
-| Tool | When |
-|------|------|
-| **gh** (GitHub CLI) | Server creates issues, PRs, releases, or runs GitHub Actions. Skip if server just pulls code. |
+### What's NOT Included
 
-**Server tips:**
-- Skip interactive setup: set `GIT_NAME` and `GIT_EMAIL` env vars before running `git-setup.sh`
-- Disable Starship in `modules/zinit.zsh` (comment out the Starship section)
-- Use built-in prompt: `PROMPT='%n@%m:%~# '` in `modules/local.zsh`
-- Test cron/systemd tasks in isolated environment first
+- **Node.js, Go version managers** — Only if you build/run these services
+- **Starship, Fastfetch** — Development tools; unnecessary on headless servers
+- **Claude, npm dev tools** — Security/relevance risk on production
+
+### Available Functions (Server-Safe)
+
+✓ **Always work:** `mkcd`, `extract`, `confirm`, `bootstrap`, `ports`, `show_path`  
+⚠ **Interactive only:** `upgrade`, `interactive_kill`, `freespace` (need terminal/fzf)
+
+### Quick Tests
+
+```bash
+zsh-health                    # Verify installation
+time zsh -i -c exit           # Startup time (expect <200ms)
+git status && git pull        # Test git
+ports                         # List listening ports
+bat /var/log/syslog          # Test syntax highlighting
+```
+
+### Optional: Git Setup (SSH Signing)
+
+```bash
+export GIT_NAME="Admin" GIT_EMAIL="admin@example.com"
+~/.config/zsh/scripts/git-setup.sh --name "$GIT_NAME" --email "$GIT_EMAIL"
+```
+
+Skip if server only pulls code or uses system git config.
+
+### Troubleshooting
+
+**Tools not found:**
+```bash
+command -v git tmux fzf bat  # Check PATH
+exec zsh -l                  # Restart shell
+```
+
+**Functions fail in cron/systemd:**  
+Expected for fzf-based functions (`upgrade`, `interactive_kill`). Use direct commands instead:
+```bash
+# Instead of: upgrade
+sudo apt-get update && sudo apt-get upgrade -y
+```
+
+**Slow startup:**
+Verify Starship/Zinit are disabled:
+```bash
+echo $DISABLE_STARSHIP  # Should be 1
+echo $ZINIT_SKIP       # Should be 1
+```
 
 ---
 
