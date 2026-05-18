@@ -14,6 +14,44 @@ _zdata_dir() {
   echo "${XDG_DATA_HOME:-$HOME/.local/share}/zsh"
 }
 
+# Get interactive mode state file
+_zinteractive_state_file() {
+  echo "${XDG_STATE_HOME:-$HOME/.local/state}/zsh/interactive-mode"
+}
+
+# =============================================================================
+# INTERACTIVE MODE TOGGLE
+# =============================================================================
+
+# Toggle Starship + Zinit on/off for interactive vs. headless use
+# Usage: toggle_interactive [on|off]
+toggle_interactive() {
+  local state="${1:-}"
+  local state_file
+  state_file=$(_zinteractive_state_file)
+
+  if [[ -z "$state" ]]; then
+    local current=$(<"$state_file" 2>/dev/null || echo "on")
+    printf "Interactive mode is currently: %s\n" "$current"
+    printf "Usage: toggle_interactive [on|off]\n" >&2
+    return 0
+  fi
+
+  case "$state" in
+    on|off)
+      mkdir -p "$(dirname "$state_file")"
+      printf "%s" "$state" >"$state_file"
+      printf "Interactive mode: %s\nReloading shell...\n" "$state"
+      sleep 0.5
+      exec zsh
+      ;;
+    *)
+      printf "Usage: toggle_interactive [on|off]\n" >&2
+      return 1
+      ;;
+  esac
+}
+
 # =============================================================================
 # COLOR CODES (for consistent output styling)
 # =============================================================================

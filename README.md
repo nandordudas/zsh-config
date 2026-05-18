@@ -254,21 +254,8 @@ export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 export ZDOTDIR="$XDG_CONFIG_HOME/zsh"
 EOF
 
-# 7. Disable Starship & Zinit in local.zsh
-cat > ~/.config/zsh/modules/local.zsh << 'EOF'
-# Simple prompt (no Starship overhead on servers)
-export PROMPT='%n@%m:%~# '
-
-# Skip Zinit plugin manager
-# Why: Plugins are for interactive development (git info, syntax highlighting, completions)
-# Servers don't need these. Raw shell is faster.
-export ZINIT_SKIP=1
-
-# Skip Starship prompt generator
-# Why: Starship re-evaluates git status, directory, etc. on every prompt
-# On servers (headless/non-interactive), this is wasted CPU. Simple prompt is sufficient.
-export DISABLE_STARSHIP=1
-EOF
+# 7. Create empty local.zsh (optional customizations)
+touch ~/.config/zsh/modules/local.zsh
 
 # 8. Link tmux config (optional)
 mkdir -p ~/.config/tmux && ln -sf ~/.config/zsh/tmux/tmux.conf ~/.config/tmux/tmux.conf
@@ -277,19 +264,22 @@ mkdir -p ~/.config/tmux && ln -sf ~/.config/zsh/tmux/tmux.conf ~/.config/tmux/tm
 zsh-health
 ```
 
-### Why Disable Starship & Zinit?
+### Interactive Mode Toggle
 
-**Starship (prompt)**
-- Re-evaluates git status, directory metadata on every prompt
-- Designed for interactive development (show branch, dirty state, env info)
-- On servers: wasted CPU, adds 100-200ms per prompt in non-interactive shells
-- **Solution:** Use simple built-in prompt: `PROMPT='%n@%m:%~# '`
+Starship and Zinit can be toggled for headless vs. interactive use:
 
-**Zinit (plugin manager)**
-- Loads 50+ plugins: syntax highlighting, git integration, smart completions, etc.
-- Designed for interactive development workflows
-- On servers: most plugins are useless, add startup time
-- **Solution:** Skip loading; use raw zsh with only core functions
+**`toggle_interactive on`** — Enable Starship + Zinit (for interactive SSH sessions)  
+**`toggle_interactive off`** — Disable both (for headless tasks, cron, scripts)
+
+```bash
+# On server, you can switch modes anytime:
+toggle_interactive off   # Fast shell for automation
+toggle_interactive on    # Full features for interactive work
+```
+
+**Why toggle?**
+- **Starship:** Re-evaluates git status on every prompt (~100-200ms overhead). Useful interactively; wasteful in automation.
+- **Zinit:** Loads 50+ plugins (syntax highlighting, git info, completions). Great for development; unnecessary for scripts.
 
 ### What's Included
 
@@ -311,17 +301,22 @@ zsh-health
 
 ### Available Functions (Server-Safe)
 
-✓ **Always work:** `mkcd`, `extract`, `confirm`, `bootstrap`, `ports`, `show_path`  
+✓ **Always work:** `mkcd`, `extract`, `confirm`, `bootstrap`, `ports`, `show_path`, **`toggle_interactive`**  
 ⚠ **Interactive only:** `upgrade`, `interactive_kill`, `freespace` (need terminal/fzf)
 
 ### Quick Tests
 
 ```bash
 zsh-health                    # Verify installation
-time zsh -i -c exit           # Startup time (expect <200ms)
+time zsh -i -c exit           # Startup time (expect <200ms with interactive mode)
 git status && git pull        # Test git
 ports                         # List listening ports
 bat /var/log/syslog          # Test syntax highlighting
+
+# Toggle interactive mode
+toggle_interactive off        # Disable Starship + Zinit (fast for automation)
+time zsh -i -c exit           # Should be faster now (~50-100ms)
+toggle_interactive on         # Re-enable for interactive work
 ```
 
 ### Optional: Git Setup (SSH Signing)

@@ -27,10 +27,17 @@ _ztool_init() {
 }
 
 # =============================================================================
-# STARSHIP PROMPT
+# STARSHIP PROMPT (conditional on interactive mode)
 # Must initialize last among prompt-modifying tools.
 # =============================================================================
-_ztool_init starship "$(command -v starship)" "starship init zsh"
+# Check if interactive mode is enabled (default: on)
+_zinteractive_mode_file="${XDG_STATE_HOME:-$HOME/.local/state}/zsh/interactive-mode"
+_zinteractive_mode=$(<"$_zinteractive_mode_file" 2>/dev/null || echo "on")
+
+if [[ "$_zinteractive_mode" == "on" ]]; then
+  _ztool_init starship "$(command -v starship)" "starship init zsh"
+fi
+unset _zinteractive_mode _zinteractive_mode_file
 
 # =============================================================================
 # ZOXIDE (smart cd replacement — type z instead of cd)
