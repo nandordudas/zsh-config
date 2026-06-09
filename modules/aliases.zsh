@@ -1,6 +1,6 @@
 # All aliases organized by category.
 # Aliases for optional tools are guarded with $+commands so a missing tool
-# never shadows the real command (important across macOS/Linux/WSL).
+# never shadows the real command.
 
 # =============================================================================
 # NAVIGATION
@@ -64,19 +64,12 @@ alias gunwip='git log -n 1 --format=%s | grep -q "^wip" && git reset HEAD~1'
 
 # =============================================================================
 # TOOLS & UTILITIES (command replacements and shortcuts)
-# ZSH_BAT_CMD / ZSH_FD_CMD are resolved in modules/platform.zsh
-# (bat/fd everywhere except Debian/Ubuntu where they are batcat/fdfind).
 # =============================================================================
 export BAT_THEME="${BAT_THEME:-TwoDark}"
-[[ "$ZSH_BAT_CMD" == "batcat" ]] && alias bat='batcat'
-[[ "$ZSH_FD_CMD" == "fdfind" ]] && alias fd='fdfind'
 
 (( $+commands[duf] ))   && alias df='duf'
 (( $+commands[dust] ))  && alias du='dust'
 (( $+commands[procs] )) && alias pss='procs'
-
-# `g` Go version manager (only when installed via its default location)
-[[ -x "$HOME/go/bin/g" ]] && alias g="$HOME/go/bin/g"
 
 alias ik='interactive_kill'
 alias qfind='find . -name'
@@ -86,31 +79,11 @@ alias reload='exec zsh'
 alias json='python3 -m json.tool'
 
 # =============================================================================
-# SYSTEM
+# SYSTEM (macOS)
+# open / pbcopy / pbpaste are native on macOS.
 # =============================================================================
 alias psa='ps aux'
-(( IS_LINUX )) && alias free='free -h'   # `free` does not exist on macOS
-
-# =============================================================================
-# PLATFORM-SPECIFIC ALIASES
-# macOS ships open/pbcopy/pbpaste natively; WSL maps them to Windows tools.
-# =============================================================================
-if (( IS_WSL )); then
-  alias open='explorer.exe'
-  alias pbcopy='clip.exe'
-  # Use sed instead of tr for more reliable carriage return removal
-  alias pbpaste='powershell.exe Get-Clipboard | sed "s/\r$//"'
-  alias uuid="cat /proc/sys/kernel/random/uuid | tr -d '\n' | clip.exe"
-elif (( IS_MACOS )); then
-  alias uuid="uuidgen | tr '[:upper:]' '[:lower:]' | tr -d '\n' | pbcopy"
-elif (( IS_LINUX )); then
-  (( $+commands[xdg-open] )) && alias open='xdg-open'
-  if (( $+commands[wl-copy] )); then
-    alias pbcopy='wl-copy' pbpaste='wl-paste'
-  elif (( $+commands[xclip] )); then
-    alias pbcopy='xclip -selection clipboard' pbpaste='xclip -selection clipboard -o'
-  fi
-fi
+alias uuid="uuidgen | tr '[:upper:]' '[:lower:]' | tr -d '\n' | pbcopy"
 
 # =============================================================================
 # DEVELOPMENT TOOLS

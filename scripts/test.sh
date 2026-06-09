@@ -61,7 +61,6 @@ required_files=(
   .zprofile
   .gitignore
   install.sh
-  modules/platform.zsh
   modules/options.zsh
   modules/zinit.zsh
   modules/completions.zsh
@@ -169,19 +168,16 @@ if [[ -f "$GIT_DIR/config" ]]; then
     fail "name/email missing or wrong in config"
   fi
 
-  # git-setup.sh adjusts fsmonitor per platform: true on macOS, false elsewhere
-  if [[ "$(uname -s)" == "Darwin" ]]; then
-    if grep -q "fsmonitor = true" "$GIT_DIR/config"; then
-      ok "fsmonitor = true (macOS native FS monitoring)"
-    else
-      fail "fsmonitor not enabled on macOS"
-    fi
+  if grep -q "fsmonitor = true" "$GIT_DIR/config"; then
+    ok "fsmonitor = true (macOS native FS monitoring)"
   else
-    if grep -q "fsmonitor = false" "$GIT_DIR/config"; then
-      ok "fsmonitor = false (Linux/WSL safe)"
-    else
-      fail "fsmonitor not set to false"
-    fi
+    fail "fsmonitor not enabled"
+  fi
+
+  if grep -q "longpaths" "$GIT_DIR/config"; then
+    fail "NTFS-only longpaths setting present in config"
+  else
+    ok "No NTFS-only settings in config"
   fi
 
   if grep -q "__GIT_NAME__\|__GIT_EMAIL__" "$GIT_DIR/config"; then

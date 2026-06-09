@@ -139,7 +139,7 @@ $ cargo build &   (runs at nice 14 instead of nice 9)
 |--------|--------|
 | `INTERACTIVE_COMMENTS` | `#` starts a comment in interactive mode |
 | `RC_QUOTES` | `''` inside single-quoted strings embeds a literal `'` |
-| `COMBINING_CHARS` | Unicode combining characters displayed correctly (needed for WSL) |
+| `COMBINING_CHARS` | Unicode combining characters displayed correctly |
 
 ```
 # INTERACTIVE_COMMENTS — annotate commands without executing the comment

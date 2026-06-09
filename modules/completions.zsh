@@ -54,15 +54,14 @@ zstyle ':fzf-tab:complete:cd:*' fzf-preview \
   'eza -1 --icons --color=always $realpath 2>/dev/null || ls $realpath'
 
 # ls/la/ll preview: directory listing or file content
-# $ZSH_BAT_CMD (exported by platform.zsh) is bat or batcat depending on OS
 zstyle ':fzf-tab:complete:(ls|la|ll|lt):*' fzf-preview \
   'if [[ -d $realpath ]]; then
      eza -1 --icons --color=always $realpath 2>/dev/null || ls $realpath
    else
-     $ZSH_BAT_CMD --color=always --style=numbers --line-range=:50 $realpath 2>/dev/null || cat $realpath
+     bat --color=always --style=numbers --line-range=:50 $realpath 2>/dev/null || cat $realpath
    fi'
 
-# kill preview: show process command (ps -p/-o command= is POSIX — works on macOS and Linux)
+# kill preview: show process command
 zstyle ':fzf-tab:complete:kill:argument-rest' fzf-preview \
   '[[ $group == "[process ID]" ]] && ps -p $word -o command='
 

@@ -120,11 +120,9 @@ upgrade --dry-run --only claude  # Preview specific tools
 ```
 
 **What it upgrades (parallel jobs):**
-- **System packages** — auto-detected: `brew update && brew upgrade` on macOS,
-  `apt-get upgrade --autoremove --purge` on Debian/Ubuntu (sudo asked up front)
+- **Homebrew**: `brew update && brew upgrade && brew cleanup` (covers Go too)
 - `zinit self-update && zinit update --all` (if zinit loaded)
 - **Rust**: `rustup update` + `cargo install-update -a` (if cargo-update installed)
-- **Go**: checks `go.dev/VERSION` API, updates only if behind (if `g` present)
 - **Node**: `fnm install --lts` + global npm packages (if fnm present)
 - **Claude**: checks npm registry for updates (if claude present)
 
@@ -134,17 +132,16 @@ after all jobs complete, followed by version summary.
 **Example:**
 ```
 $ upgrade
-  ✓ [apt     ] done       6s
+  ✓ [brew    ] done      12s
   ✓ [zinit   ] done       0s
   ✓ [rust    ] done       2s
-  ✓ [go      ] done       1s
   ✓ [node    ] done       2s
   ✓ [claude  ] done       1s
 
-Finished in 6s
+Finished in 12s
 
-  OS:          Ubuntu 24.04.4 LTS
-  Kernel:      6.6.114.1-microsoft-standard-WSL2
+  OS:          macOS 26.1 (arm64)
+  Kernel:      25.1.0
   Go:          go1.26.3
   Rust:        rustc 1.95.0
   Cargo:       1.95.0
@@ -177,29 +174,32 @@ $ zsh-health
 
 === ZSH Configuration Health ===
 
+Platform:
+  ✓ macOS 26.1 (arm64)
+
 Core Tools:
   ✓ git      git version 2.43.0
-  ✓ zsh      zsh 5.9 (x86_64-ubuntu-linux-gnu)
+  ✓ zsh      zsh 5.9 (arm64-apple-darwin25.0)
   ✓ fzf      0.68.0 (b908f7a0)
   ✓ eza      eza - A modern, maintained replacement for ls
   ✓ bat      bat 0.24.0
-  ✓ fd       fdfind 9.0.0
+  ✓ fd       fd 9.0.0
 
 Language Tools:
-  ✓ Go         go version go1.26.3 linux/amd64
+  ✓ Go         go version go1.26.3 darwin/arm64
   ✓ Rust       rustc 1.95.0 (59807616e 2026-04-14)
   ✓ Node       v24.15.0
   ✓ Python     Python 3.12.3
 
 PATH Configuration:
-  • 42 directories in PATH
-  ✓ /home/user/.cargo/bin (Rust/Cargo)
-  ✓ /home/user/.local/bin (Local tools)
-  ✓ /home/user/go/bin (Go tools)
-  ✓ /usr/local/bin (System tools)
+  • 18 directories in PATH
+  ✓ /Users/user/.local/bin (Local tools)
+  ✓ /opt/homebrew/bin (Homebrew)
+  ✓ /Users/user/.cargo/bin (Rust/Cargo)
+  ✓ /Users/user/go/bin (Go tools)
 
 ZSH Configuration:
-  ✓ ZDOTDIR = /home/user/.config/zsh
+  ✓ ZDOTDIR = /Users/user/.config/zsh
   ✓ Zinit plugins loaded
   ✓ Zoxide (smart cd) available
 
@@ -207,8 +207,8 @@ ZSH Configuration:
 ```
 
 **Checks performed:**
-- Platform: macOS / WSL2 / Linux detection, Homebrew location on Apple Silicon
-- Core tools: git, zsh, fzf, eza, bat, fd (resolves `batcat`/`fdfind` on Debian)
+- Platform: macOS version + Homebrew location on Apple Silicon
+- Core tools: git, zsh, fzf, eza, bat, fd
 - Languages: Go, Rust, Node, Python
 - PATH: key directories present (.local, Homebrew, .cargo, go)
 - Shell: ZDOTDIR set, Zinit loaded, Zoxide available
@@ -242,15 +242,14 @@ Switched to a new branch 'feat/new-api'
 
 ## ports
 
-Show all TCP sockets currently in LISTEN state. Uses `ss` on Linux and
-falls back to `lsof` on macOS (which has no `ss`).
+Show all TCP sockets currently in LISTEN state (via `lsof`).
 
 ```
 $ ports
-Netid  State   Local Address:Port   Process
-tcp    LISTEN  0.0.0.0:5432         postgres
-tcp    LISTEN  0.0.0.0:3000         node
-tcp    LISTEN  127.0.0.1:6379       redis-server
+COMMAND   PID  USER  FD  TYPE  DEVICE  SIZE/OFF  NODE  NAME
+postgres  312  user  7u  IPv4  0x...   0t0       TCP   *:5432 (LISTEN)
+node      845  user 23u  IPv4  0x...   0t0       TCP   *:3000 (LISTEN)
+redis-se  990  user  6u  IPv4  0x...   0t0       TCP   127.0.0.1:6379 (LISTEN)
 ```
 
 ---
@@ -334,7 +333,7 @@ $ toggle_interactive        # show current state
 
 Smart disk cleanup with confirmation prompts. Targets `node_modules` and
 `vendor` directories under `~/code`; with `--aggressive` also cleans system
-caches (npm, pip, go, cargo, and brew on macOS / apt on Linux).
+caches (npm, pip, go, cargo, brew).
 
 ```
 $ freespace --dry-run              # preview, no changes

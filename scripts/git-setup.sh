@@ -146,15 +146,10 @@ EOF
 # =============================================================================
 cat > "$GIT_DIR/config" << 'CONFIG_EOF'
 # ═══════════════════════════════════════════════════════════════════════════════
-# GIT CONFIGURATION
+# GIT CONFIGURATION — macOS
 # ═══════════════════════════════════════════════════════════════════════════════
-# Base values below are safe defaults for Linux/WSL2. git-setup.sh adjusts
-# them automatically when run on macOS:
-#
-#   - core.fsmonitor → true   (native FSEvents monitoring on APFS)
-#   - core.longpaths → unset  (NTFS-only setting)
-#   - fetch.parallel / index.threads → CPU core count (Apple Silicon)
-#
+# fetch.parallel and index.threads are set to the machine's CPU core count
+# by git-setup.sh after this template is written.
 # ═══════════════════════════════════════════════════════════════════════════════
 
 [advice]
@@ -163,14 +158,11 @@ cat > "$GIT_DIR/config" << 'CONFIG_EOF'
 	abbrev = 12
 	autocrlf = input
 	checkStat = minimal
-	# macOS: Use `code --wait` or fallback to `nano` if VSCode not available
 	editor = code --wait
 	excludesFile = ~/.config/git/ignore
 	filemode = true
-	# WSL: disabled due to performance issues with NTFS. macOS: can enable with `true` for native filesystem monitoring
-	fsmonitor = false
-	# WSL-only: handles long paths on NTFS. macOS: remove or set to false (not applicable on APFS/HFS+)
-	longpaths = true
+	# Native FSEvents monitoring on APFS — big speedup for `git status` in large repos
+	fsmonitor = true
 	pager = delta
 	preloadindex = true
 	quotePath = false
@@ -192,11 +184,9 @@ cat > "$GIT_DIR/config" << 'CONFIG_EOF'
 	showSignature = false
 [maintenance]
 	auto = true
-	# WSL: autodetach helps avoid background process overhead. macOS: can set to true for same benefit
 	autodetach = true
 	strategy = incremental
 [maintenance "runMaintenance"]
-	# macOS M5: schedule = daily is optimal. Can adjust to hourly on faster machines with auto=true
 	schedule = daily
 [pull]
 	rebase = merges
@@ -231,7 +221,7 @@ cat > "$GIT_DIR/config" << 'CONFIG_EOF'
 [difftool]
 	prompt = false
 [fetch]
-	# WSL: 4 is safe. macOS M5: increase to 8-10 for better parallelization (M5 has 8-10 cores)
+	# Overwritten with the CPU core count by git-setup.sh
 	parallel = 4
 	prune = true
 	pruneTags = true
@@ -251,7 +241,7 @@ cat > "$GIT_DIR/config" << 'CONFIG_EOF'
 [revert]
 	reference = true
 [index]
-	# WSL: 4 is balanced. macOS M5: increase to 8-10 for better index performance on multi-core ARM
+	# Overwritten with the CPU core count by git-setup.sh
 	threads = 4
 [status]
 	aheadBehind = true
@@ -272,7 +262,6 @@ cat > "$GIT_DIR/config" << 'CONFIG_EOF'
 	autoSetupRemote = true
 	default = simple
 	followTags = true
-	# Both WSL and macOS M5: SSH signing. macOS may prefer `gpgSign = true` for all commits if using GPG suite
 	gpgSign = if-asked
 	useForceIfIncludes = true
 [sequence]
@@ -305,7 +294,6 @@ cat > "$GIT_DIR/config" << 'CONFIG_EOF'
 	plus-emph-style = syntax bold "#005500"
 	plus-style = syntax "#012800"
 	side-by-side = false
-	# WSL: TwoDark works well with most terminal themes. macOS: try Dracula, Nord, or Monokai Soda for Terminal.app
 	syntax-theme = TwoDark
 	true-color = always
 	whitespace-error-style = 22 reverse
@@ -458,25 +446,19 @@ sed -i.bak \
 rm -f "$GIT_DIR/config.bak"
 
 # =============================================================================
-# PLATFORM ADJUSTMENTS
-# Base config targets Linux/WSL; on macOS enable native filesystem monitoring,
-# drop the NTFS-only longpaths setting, and use all CPU cores.
+# CPU PARALLELISM
+# Use all cores for fetch and index operations (M-series chips have 8-10).
 # =============================================================================
-if [[ "$(uname -s)" == "Darwin" ]]; then
-  CORES=$(sysctl -n hw.ncpu 2>/dev/null || echo 8)
-  git config --file "$GIT_DIR/config" core.fsmonitor true
-  git config --file "$GIT_DIR/config" --unset core.longpaths 2>/dev/null || true
-  git config --file "$GIT_DIR/config" fetch.parallel "$CORES"
-  git config --file "$GIT_DIR/config" index.threads "$CORES"
-  printf "Applied macOS optimizations (fsmonitor=true, %s threads)\n" "$CORES"
-fi
+CORES=$(sysctl -n hw.ncpu 2>/dev/null || getconf _NPROCESSORS_ONLN 2>/dev/null || echo 8)
+git config --file "$GIT_DIR/config" fetch.parallel "$CORES"
+git config --file "$GIT_DIR/config" index.threads "$CORES"
+printf "Set fetch/index parallelism to %s cores\n" "$CORES"
 
 # =============================================================================
 # GITHUB CREDENTIAL HELPER (gh CLI)
 # Write directly to $GIT_DIR/config instead of --global, because GIT_CONFIG_GLOBAL
 # may not be set yet when this script runs (it is set by .zprofile at login time).
 # Using --global here would write to ~/.gitconfig and conflict with the XDG config.
-# Note: Both WSL and macOS M5 use identical gh CLI credential setup. No adjustments needed.
 # =============================================================================
 GH_BIN=$(command -v gh 2>/dev/null || true)
 if [[ -n "$GH_BIN" ]]; then

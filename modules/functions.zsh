@@ -153,7 +153,6 @@ interactive_kill() {
 # =============================================================================
 
 # Comprehensive system upgrade — parallel execution with selective tool support
-# Package manager is auto-detected: brew (macOS/Linuxbrew) or apt (Debian/Ubuntu).
 # Usage: upgrade [--only tool1,tool2,...] [--dry-run]
 upgrade() {
   setopt LOCAL_OPTIONS
@@ -180,22 +179,6 @@ upgrade() {
     trap - INT TERM
   ' INT TERM
 
-  # Detect system package manager: brew preferred, apt fallback
-  local pkg_manager=""
-  if (( $+commands[brew] )); then
-    pkg_manager=brew
-  elif (( $+commands[apt-get] )); then
-    pkg_manager=apt
-    # apt is the only job that needs root; ask up front so jobs don't stall
-    if [[ -z "$only_tools" || "$only_tools" =~ (^|,)apt(,|$) ]]; then
-      if ! sudo -v 2>/dev/null; then
-        printf "Error: sudo access required for apt upgrades (use --only to skip apt)\n" >&2
-        rm -rf "$tmpdir"
-        return 1
-      fi
-    fi
-  fi
-
   local -a names=() pids=()
   local total_start=$EPOCHSECONDS
 
@@ -213,11 +196,6 @@ upgrade() {
   }
 
   # Per-tool upgrade functions
-  _upgrade_apt() {
-    sudo apt-get update -qq
-    sudo apt-get upgrade -y --autoremove --purge
-    sudo apt-get autoclean
-  }
   _upgrade_brew() {
     brew update --quiet
     brew upgrade
@@ -249,15 +227,6 @@ upgrade() {
       cargo install-update -a || echo "cargo package update failed"
     fi
   }
-  _upgrade_go() {
-    [[ -x "$HOME/go/bin/g" ]] || return 0
-    export GOPATH="${GOPATH:-$HOME/go}"
-    export GOROOT="${GOROOT:-$HOME/.go}"
-    export PATH="$GOPATH/bin:$GOROOT/bin:$PATH"
-    local local_go=$(go version 2>/dev/null | awk '{print $3}' | sed 's/go//') || return 0
-    local remote_go=$(curl -sf 'https://go.dev/VERSION?m=text' 2>/dev/null | head -1 | sed 's/go//') || return 0
-    [[ -n "$remote_go" && "$local_go" != "$remote_go" ]] && "$HOME/go/bin/g" install latest && "$HOME/go/bin/g" use latest || true
-  }
   _upgrade_node() {
     command -v fnm &>/dev/null || return 0
     local lts=$(fnm list-remote --lts 2>/dev/null | tail -1 | awk '{print $1}') || return 0
@@ -278,11 +247,10 @@ upgrade() {
     [[ -n "$only_tools" ]] && printf "Selected tools: %s\n\n" "$only_tools"
   fi
 
-  [[ "$pkg_manager" == "apt" ]]  && _launch_job apt _upgrade_apt
-  [[ "$pkg_manager" == "brew" ]] && _launch_job brew _upgrade_brew
+  # Go is upgraded by brew (installed via `brew install go`)
+  (( $+commands[brew] )) && _launch_job brew _upgrade_brew
   _launch_job zinit _upgrade_zinit
   _launch_job rust _upgrade_rust
-  _launch_job go _upgrade_go
   _launch_job node _upgrade_node
   _launch_job claude _upgrade_claude
 
@@ -366,11 +334,7 @@ upgrade() {
     local label=$1; shift
     printf '  %-12s %s\n' "$label" "$("$@" 2>/dev/null || echo 'not found')"
   }
-  if (( IS_MACOS )); then
-    _ver 'OS:'   sh -c 'echo "$(sw_vers -productName) $(sw_vers -productVersion) ($(uname -m))"'
-  else
-    _ver 'OS:'   sh -c 'lsb_release -ds 2>/dev/null || grep PRETTY_NAME /etc/os-release | cut -d\" -f2'
-  fi
+  _ver 'OS:'     sh -c 'echo "$(sw_vers -productName 2>/dev/null) $(sw_vers -productVersion 2>/dev/null) ($(uname -m))"'
   _ver 'Kernel:' uname -r
   _ver 'Go:'     sh -c 'go version 2>/dev/null | awk "{print \$3}"'
   _ver 'Rust:'   sh -c 'rustc --version 2>/dev/null | awk "{print \$2}"'
@@ -384,7 +348,7 @@ upgrade() {
   printf '\n'
 
   trap - INT TERM
-  unfunction _job_start _job_end _launch_job _upgrade_{apt,brew,zinit,rust,go,node,claude} _ver 2>/dev/null
+  unfunction _job_start _job_end _launch_job _upgrade_{brew,zinit,rust,node,claude} _ver 2>/dev/null
   rm -rf "$tmpdir"
 
   if (( has_failure )); then
@@ -414,30 +378,21 @@ zsh-health() {
 
   # Platform
   printf "Platform:\n"
-  if (( IS_MACOS )); then
-    printf "  ${_COLOR_GREEN}✓${_COLOR_RESET} macOS %s (%s)\n" "$(sw_vers -productVersion 2>/dev/null)" "$(uname -m)"
-    if [[ "$(uname -m)" == "arm64" && ! -x /opt/homebrew/bin/brew ]]; then
-      printf "  ${_COLOR_YELLOW}⊙${_COLOR_RESET} Homebrew not found at /opt/homebrew (run install.sh)\n"
-      (( issues++ ))
-    fi
-  elif (( IS_WSL )); then
-    printf "  ${_COLOR_GREEN}✓${_COLOR_RESET} WSL2 (%s)\n" "$(uname -r)"
-  else
-    printf "  ${_COLOR_GREEN}✓${_COLOR_RESET} Linux (%s)\n" "$(uname -r)"
+  printf "  ${_COLOR_GREEN}✓${_COLOR_RESET} macOS %s (%s)\n" "$(sw_vers -productVersion 2>/dev/null)" "$(uname -m)"
+  if [[ "$(uname -m)" == "arm64" && ! -x /opt/homebrew/bin/brew ]]; then
+    printf "  ${_COLOR_YELLOW}⊙${_COLOR_RESET} Homebrew not found at /opt/homebrew (run install.sh)\n"
+    (( issues++ ))
   fi
   printf "\n"
 
   # Check core tools
   printf "Core Tools:\n"
-  local -a core_tools=(git zsh fzf eza "$ZSH_BAT_CMD" "$ZSH_FD_CMD")
-  local -a core_labels=(git zsh fzf eza bat fd)
-  local i tool label
-  for (( i = 1; i <= ${#core_tools[@]}; i++ )); do
-    tool="${core_tools[$i]}" label="${core_labels[$i]}"
-    if [[ "$tool" != "cat" && "$tool" != "find" ]] && command -v "$tool" &>/dev/null; then
-      printf "  ${_COLOR_GREEN}✓${_COLOR_RESET} %-8s %s\n" "$label" "$("$tool" --version 2>&1 | head -1)"
+  local tool
+  for tool in git zsh fzf eza bat fd; do
+    if command -v "$tool" &>/dev/null; then
+      printf "  ${_COLOR_GREEN}✓${_COLOR_RESET} %-8s %s\n" "$tool" "$("$tool" --version 2>&1 | head -1)"
     else
-      printf "  ${_COLOR_RED}✗${_COLOR_RESET} %-8s NOT FOUND\n" "$label"; (( issues++ ))
+      printf "  ${_COLOR_RED}✗${_COLOR_RESET} %-8s NOT FOUND\n" "$tool"; (( issues++ ))
     fi
   done
   printf "\n"
@@ -473,8 +428,8 @@ zsh-health() {
 
   local -a key_dirs=(
     "$HOME/.local/bin:Local tools"
+    "${HOMEBREW_PREFIX:-/opt/homebrew}/bin:Homebrew"
   )
-  (( IS_MACOS )) && key_dirs+=("${HOMEBREW_PREFIX:-/opt/homebrew}/bin:Homebrew")
   [[ -d "$HOME/.cargo/bin" ]] && key_dirs+=("$HOME/.cargo/bin:Rust/Cargo")
   [[ -d "$HOME/go/bin" ]]     && key_dirs+=("$HOME/go/bin:Go tools")
 
@@ -521,13 +476,9 @@ zsh-health() {
 # UTILITIES
 # =============================================================================
 
-# Show listening TCP ports (ss on Linux, lsof on macOS)
+# Show listening TCP ports
 ports() {
-  if (( $+commands[ss] )); then
-    ss -tlnp | awk 'NR==1 || /LISTEN/'
-  else
-    lsof -iTCP -sTCP:LISTEN -n -P
-  fi
+  lsof -iTCP -sTCP:LISTEN -n -P
 }
 
 # Display PATH entries one per line, numbered
@@ -601,7 +552,7 @@ zsh-cache-clear() {
 # Smart disk cleanup: targets project dirs (node_modules, vendor) and system caches
 # Usage: freespace [--dry-run] [--aggressive]
 #   --dry-run     Show what would be deleted without deleting
-#   --aggressive  Also clean system caches (apt/brew, npm, pip, go, cargo)
+#   --aggressive  Also clean system caches (brew, npm, pip, go, cargo)
 freespace() {
   local dry_run=0 aggressive=0
   while [[ -n "$1" ]]; do
@@ -681,10 +632,6 @@ freespace() {
     if (( $+commands[brew] )); then
       printf "  ${_COLOR_YELLOW}→${_COLOR_RESET} homebrew cache (brew cleanup)\n"
       actions+=(brew_cache)
-    elif (( $+commands[apt-get] )); then
-      cache_size=$(/usr/bin/du -sk /var/cache/apt 2>/dev/null | awk '{print $1}'); cache_size=${cache_size:-0}
-      (( cache_size > 0 )) && printf "  ${_COLOR_YELLOW}→${_COLOR_RESET} apt cache (%s MB, requires sudo)\n" "$(( cache_size / 1024 ))"
-      actions+=(apt_cache); (( removed_kb += cache_size ))
     fi
 
     printf "\n"
@@ -718,7 +665,6 @@ freespace() {
       go_cache)     go clean -cache 2>/dev/null; rm -rf "$HOME/.cache/go-build" 2>/dev/null ;;
       cargo_cache)  rm -rf "$HOME/.cargo/registry/cache" 2>/dev/null ;;
       brew_cache)   brew cleanup --prune=all 2>/dev/null ;;
-      apt_cache)    sudo apt-get autoclean 2>/dev/null ;;
     esac
     return 0
   }

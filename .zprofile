@@ -1,25 +1,7 @@
 # ~/.config/zsh/.zprofile
-# Sourced once for login shells (every new VS Code terminal in WSL, ssh
-# sessions, every Terminal.app/iTerm2 tab on macOS).
-# Sets up PATH, persistent env vars, and creates required directories.
-
-# =============================================================================
-# OS DETECTION
-# Runs once at login; all child shells inherit the flags from the environment.
-# =============================================================================
-case "$OSTYPE" in
-  darwin*) export IS_MACOS=1 IS_LINUX=0 ;;
-  linux*)  export IS_MACOS=0 IS_LINUX=1 ;;
-  *)       export IS_MACOS=0 IS_LINUX=0 ;;
-esac
-
-if [[ -z "$IS_WSL" ]]; then
-  if (( IS_LINUX )) && [[ -r /proc/version ]] && grep -qi microsoft /proc/version 2>/dev/null; then
-    export IS_WSL=1
-  else
-    export IS_WSL=0
-  fi
-fi
+# Sourced once for login shells (every Terminal.app/iTerm2 tab, VS Code
+# terminal, ssh session). Sets up PATH, persistent env vars, and creates
+# required directories. This config targets macOS.
 
 # =============================================================================
 # ONE-TIME DIRECTORY SETUP
@@ -31,12 +13,12 @@ fi
 [[ -d "$XDG_STATE_HOME/zsh" ]]            || mkdir -p "$XDG_STATE_HOME/zsh"
 
 # =============================================================================
-# HOMEBREW (macOS and Linuxbrew)
+# HOMEBREW
 # Must come before the PATH block so brew-installed tools are found.
-# /opt/homebrew = Apple Silicon, /usr/local = Intel macs, /home/linuxbrew = Linux
+# /opt/homebrew = Apple Silicon, /usr/local = Intel macs
 # =============================================================================
 if [[ -z "$HOMEBREW_PREFIX" ]]; then
-  for _brew in /opt/homebrew/bin/brew /usr/local/bin/brew /home/linuxbrew/.linuxbrew/bin/brew; do
+  for _brew in /opt/homebrew/bin/brew /usr/local/bin/brew; do
     if [[ -x "$_brew" ]]; then
       eval "$("$_brew" shellenv)"
       break
@@ -86,25 +68,18 @@ _check_zsh_config_updates
 
 # =============================================================================
 # PATH (deduplicated via typeset -U)
-# Ordered: user-local → language runtimes → system
-# Homebrew paths (if any) were already prepended by brew shellenv above and
-# are preserved through $path at the end.
+# Ordered: user-local → language runtimes → homebrew/system
+# Homebrew paths were already prepended by brew shellenv above and are
+# preserved through $path.
 # =============================================================================
 typeset -U PATH path
 
 path=(
-  "$HOME/.local/bin"           # direnv, delta, user-installed tools
-  "$HOME/.fzf/bin"             # fzf (git-cloned install)
-  "$HOME/.cargo/bin"           # fnm, cargo-installed tools
-  "$HOME/go/bin"               # go-installed binaries (g, etc.)
-  "$HOME/.go/bin"              # go toolchain itself (g version manager)
+  "$HOME/.local/bin"           # user-installed tools
+  "$HOME/.cargo/bin"           # cargo-installed tools
+  "$HOME/go/bin"               # go-installed binaries
   "$XDG_CONFIG_HOME/zsh/bin"   # personal scripts
-  $path                        # homebrew + system dirs (/usr/local/bin, /usr/bin, …)
-  /usr/local/bin
-  /usr/bin
-  /bin
-  /usr/sbin
-  /sbin
+  $path                        # homebrew + system dirs (/opt/homebrew/bin, /usr/bin, …)
 )
 
 export PATH
@@ -140,10 +115,8 @@ export LESSHISTFILE="$XDG_CACHE_HOME/lesshst"
 
 # =============================================================================
 # GO
-# Only point GOROOT at ~/.go when the `g` version manager layout exists.
-# (Homebrew/system Go installs manage GOROOT themselves.)
+# Homebrew Go manages GOROOT itself; only GOPATH is needed.
 # =============================================================================
-[[ -d "$HOME/.go" ]] && export GOROOT="$HOME/.go"
 export GOPATH="${GOPATH:-$HOME/go}"
 
 # =============================================================================

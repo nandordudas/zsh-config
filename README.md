@@ -1,8 +1,8 @@
 # 🚀 zsh-config
 
-> A fast, modular zsh configuration for productive terminal workflows — on macOS (Apple Silicon & Intel), Ubuntu/Debian, and WSL2.
+> A fast, modular zsh configuration for productive terminal workflows on macOS.
 
-**Target startup time:** < 100ms
+**Target startup time:** < 100ms | **Platform:** macOS (Apple Silicon & Intel)
 
 ---
 
@@ -12,7 +12,7 @@
 # 1. Clone
 git clone https://github.com/nandordudas/zsh-config ~/.config/zsh
 
-# 2. Run the installer (detects your OS, installs everything)
+# 2. Run the installer (bootstraps Homebrew + all tools)
 ~/.config/zsh/install.sh
 
 # 3. Open a new terminal and verify
@@ -21,29 +21,29 @@ zsh-health
 
 That's it. The installer:
 
-- **macOS** — installs Homebrew (if missing) and all tools as native bottles (arm64 on Apple Silicon)
-- **Ubuntu/Debian/WSL2** — installs via apt + rustup/cargo for tools not packaged
-- Writes `~/.zshenv`, creates `modules/local.zsh`, links the tmux config, and offers to make zsh your default shell
+- Installs **Homebrew** if missing (`/opt/homebrew` on Apple Silicon — all bottles native arm64)
+- Installs every tool the config uses (`git tmux fzf bat fd ripgrep eza zoxide starship direnv gh git-delta dust duf procs` + dev toolchains)
+- Writes `~/.zshenv`, creates `modules/local.zsh`, links the tmux config
 - Is **idempotent** — safe to re-run anytime; existing files are backed up, never silently overwritten
 
 ### Installer options
 
 | Flag | Effect |
 |------|--------|
-| `--minimal` | Core tools only — skip Rust/Go/Node toolchains (good for servers) |
+| `--minimal` | Core tools only — skip Rust/Go/Node toolchains |
 | `--config-only` | Only set up config files, install no packages |
-| `--yes` / `-y` | Skip confirmation prompts (CI / automation) |
+| `--yes` / `-y` | Skip confirmation prompts |
 | `--git-name "X" --git-email "Y"` | Also configure git identity + SSH commit signing |
 | `--help` | Show all options |
 
 ```bash
 # Examples
-~/.config/zsh/install.sh --minimal -y                                  # server
-~/.config/zsh/install.sh --git-name "Jane Doe" --git-email "j@d.dev"   # full + git
+~/.config/zsh/install.sh -y
+~/.config/zsh/install.sh --git-name "Jane Doe" --git-email "j@d.dev"
 ```
 
 > [!TIP]
-> **New MacBook?** Run the installer first thing — it bootstraps Homebrew and the entire toolchain in one go. macOS already ships zsh as the default shell, so after `install.sh` finishes, just open a new terminal.
+> **New MacBook?** Run the installer first thing — it bootstraps Homebrew and the entire toolchain in one go. macOS already ships zsh as the default shell, so when it finishes, just open a new terminal.
 
 ---
 
@@ -63,26 +63,6 @@ A **fully-featured zsh configuration** built with:
 
 ---
 
-## Platform Support
-
-| Platform | Status | Package source |
-|----------|--------|----------------|
-| macOS (Apple Silicon) | ✅ first-class | Homebrew (`/opt/homebrew`) |
-| macOS (Intel) | ✅ | Homebrew (`/usr/local`) |
-| Ubuntu 22.04+ / Debian 12+ | ✅ | apt + cargo |
-| WSL2 (Ubuntu) | ✅ | apt + cargo, Windows clipboard integration |
-| Other Linux (Fedora, Arch, …) | ⚙️ manual | install tools yourself, then `install.sh --config-only` |
-
-Platform differences are handled automatically at runtime by `modules/platform.zsh`:
-
-- `bat`/`fd` vs Debian's `batcat`/`fdfind` — resolved once, used everywhere (aliases, fzf previews, health check)
-- Clipboard: native `pbcopy`/`pbpaste` on macOS, `clip.exe` on WSL, `wl-copy`/`xclip` on Linux
-- `ports` uses `ss` on Linux, `lsof` on macOS
-- `upgrade` uses `brew` on macOS, `apt` on Debian — never assumes either
-- Homebrew is added to `PATH` automatically on login (Apple Silicon and Intel paths)
-
----
-
 ## Features
 
 | Feature | Benefit |
@@ -90,11 +70,12 @@ Platform differences are handled automatically at runtime by `modules/platform.z
 | **Fast startup** | Zinit turbo mode + cached tool initialization (~50-100ms) |
 | **Smart plugin loading** | Plugins load on-demand, not at startup |
 | **Git integration** | SSH commit signing, per-host identities, delta diffs, 80+ git aliases |
-| **Tool auto-updates** | `upgrade` updates brew/apt, rust, node, go, zinit and claude in parallel |
+| **macOS-tuned git** | FSEvents `fsmonitor`, fetch/index parallelism = CPU cores |
+| **Tool auto-updates** | `upgrade` updates brew, rust, node, zinit and claude in parallel |
 | **Fuzzy finder** | fzf for file/history search, fzf-tab completion menus, forgit |
-| **Diagnostics** | `zsh-health` checks platform, tools, PATH, and config |
+| **Diagnostics** | `zsh-health` checks tools, PATH, and config |
 | **XDG compliant** | All config in `~/.config`, cache in `~/.cache` |
-| **Server mode** | `toggle_interactive off` disables Starship + plugins for headless use |
+| **Headless mode** | `toggle_interactive off` disables Starship + plugins for scripts |
 
 ---
 
@@ -103,7 +84,7 @@ Platform differences are handled automatically at runtime by `modules/platform.z
 If you'd rather not run the installer, here's what it does:
 
 <details>
-<summary><strong>macOS (Homebrew)</strong></summary>
+<summary><strong>Step-by-step manual setup</strong></summary>
 
 ```bash
 # 1. Homebrew
@@ -119,51 +100,10 @@ fnm install --lts && fnm default lts-latest
 # 4. Rust (optional, for cargo development)
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
-# 5. Clone config + create ~/.zshenv (see "Config files" below)
-```
-
-</details>
-
-<details>
-<summary><strong>Ubuntu / Debian / WSL2</strong></summary>
-
-```bash
-# 1. System packages
-sudo apt update
-sudo apt install -y zsh git tmux curl wget unzip bat fd-find ripgrep zoxide \
-                    duf p7zip-full
-
-# 2. Rust + cargo tools
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-source "$HOME/.cargo/env"
-cargo install eza git-delta du-dust procs fnm cargo-update
-
-# 3. Node.js via fnm
-fnm install --lts && fnm default lts-latest
-
-# 4. Go version manager
-curl -sSL https://raw.githubusercontent.com/stefanmaric/g/master/bin/install | \
-  GOPATH="$HOME/go" GOROOT="$HOME/.go" bash
-
-# 5. Starship, direnv, fzf
-curl -sS https://starship.rs/install.sh | sh
-curl -sfL https://direnv.net/install.sh | bash
-git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
-~/.fzf/install --key-bindings --completion --no-update-rc
-
-# 6. GitHub CLI — see https://github.com/cli/cli/blob/trunk/docs/install_linux.md
-```
-
-</details>
-
-<details>
-<summary><strong>Config files (all platforms)</strong></summary>
-
-```bash
-# 1. Clone the config
+# 5. Clone the config
 git clone https://github.com/nandordudas/zsh-config ~/.config/zsh
 
-# 2. Create ~/.zshenv (required — points zsh at the config)
+# 6. Create ~/.zshenv (required — points zsh at the config)
 cat > ~/.zshenv << 'EOF'
 export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
@@ -172,17 +112,14 @@ export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 export ZDOTDIR="$XDG_CONFIG_HOME/zsh"
 EOF
 
-# 3. Machine-local config (gitignored, safe for secrets)
+# 7. Machine-local config (gitignored, safe for secrets)
 touch ~/.config/zsh/modules/local.zsh
 
-# 4. Link tmux config
+# 8. Link tmux config
 mkdir -p ~/.config/tmux
 ln -sf ~/.config/zsh/tmux/tmux.conf ~/.config/tmux/tmux.conf
 
-# 5. Make zsh the default shell (Linux/WSL; macOS already defaults to zsh)
-chsh -s "$(command -v zsh)"
-
-# 6. Open a new terminal — Zinit installs plugins on first start (~1-2 min)
+# 9. Open a new terminal — Zinit installs plugins on first start (~1-2 min)
 zsh-health
 ```
 
@@ -223,7 +160,7 @@ Full reference: [docs/aliases.md](docs/aliases.md), [docs/keybindings.md](docs/k
 ### Update everything
 
 ```bash
-upgrade              # brew/apt, zinit, rust, node, go, claude — in parallel
+upgrade              # brew, zinit, rust, node, claude — in parallel
 upgrade --dry-run    # see what would run
 upgrade --only node  # update only Node.js
 ```
@@ -265,18 +202,12 @@ git alias              # list all 80+ git aliases
 - `Ctrl+T` → fuzzy file finder (with bat preview)
 - `Alt+C` → fuzzy directory jump
 
----
-
-## Server / Headless Use
-
-Use `--minimal` at install time, and toggle off interactive features at runtime:
+### Headless / automation mode
 
 ```bash
-toggle_interactive off   # disables Starship + Zinit (fast shell for automation)
+toggle_interactive off   # disables Starship + Zinit (fast bare shell)
 toggle_interactive on    # back to full features
 ```
-
-Server-safe functions: `mkcd`, `extract`, `confirm`, `ports`, `show_path`, `tmpcd`, `toggle_interactive`. Functions needing a terminal/fzf (`upgrade`, `interactive_kill`, `freespace`) work over SSH but not in cron.
 
 ---
 
@@ -297,9 +228,8 @@ A daily login check tells you when the repo has new upstream commits.
 ```bash
 # Validate the repo without touching your dotfiles
 bash ~/.config/zsh/scripts/test.sh
-
-# Full install test in a clean Ubuntu 24.04 container
-make docker-run
+# or
+make test
 ```
 
 ---
@@ -311,7 +241,7 @@ make docker-run
 The config didn't load. Check:
 
 ```bash
-echo $ZDOTDIR          # expected: /Users/you/.config/zsh (or /home/you/…)
+echo $ZDOTDIR          # expected: /Users/you/.config/zsh
 cat ~/.zshenv          # must export ZDOTDIR
 source ~/.zshenv && exec zsh
 ```
@@ -324,7 +254,7 @@ show_path              # inspect PATH entries
 zsh-health             # shows which expected dirs are missing from PATH
 ```
 
-On Apple Silicon: Homebrew must be at `/opt/homebrew` — `zsh-health` flags this.
+On Apple Silicon, Homebrew must be at `/opt/homebrew` — `zsh-health` flags this.
 
 ### Slow shell startup
 
@@ -352,7 +282,7 @@ git config user.name   # check per-repo override
 ~/.config/zsh/scripts/git-setup.sh --name "Your Name" --email "your@email.com"
 ```
 
-Creates `~/.config/git/config`, generates `~/.ssh/id_ed25519` if needed, configures SSH signing (no GPG), and applies platform-specific tuning automatically (FSEvents monitoring + full-core parallelism on macOS, NTFS long paths on WSL).
+Creates `~/.config/git/config`, generates `~/.ssh/id_ed25519` if needed, configures SSH signing (no GPG), enables FSEvents `fsmonitor`, and sets fetch/index parallelism to your CPU core count.
 
 Then register the key on GitHub:
 
@@ -369,10 +299,9 @@ Verify: `git commit --allow-empty -m "test" && git log --show-signature -1`
 ## Uninstall
 
 ```bash
-chsh -s /bin/bash                       # or your original shell (skip on macOS)
 mv ~/.config/zsh ~/.config/zsh.bak      # keep a backup
 rm ~/.zshenv ~/.config/tmux/tmux.conf
-# open a new terminal
+# open a new terminal — back to stock macOS zsh
 ```
 
 To disable plugins temporarily without uninstalling: `toggle_interactive off`.
@@ -384,16 +313,15 @@ To disable plugins temporarily without uninstalling: `toggle_interactive off`.
 ```
 ~/.zshenv                     # in $HOME, created by install.sh — sets ZDOTDIR
 ~/.config/zsh/
-├── install.sh                # one-command installer (macOS / Ubuntu / WSL)
-├── .zprofile                 # login shells: PATH, Homebrew, env vars
+├── install.sh                # one-command installer (Homebrew-based)
+├── .zprofile                 # login shells: Homebrew, PATH, env vars
 ├── .zshrc                    # main orchestrator — sources modules in order
 ├── modules/
-│   ├── platform.zsh          # OS detection, portable command names (bat/fd)
 │   ├── options.zsh           # shell options (setopt)
 │   ├── zinit.zsh             # plugin manager + all plugins
 │   ├── completions.zsh       # completion rules + fzf-tab previews
 │   ├── keybindings.zsh       # key mappings
-│   ├── aliases.zsh           # command aliases (platform-aware)
+│   ├── aliases.zsh           # command aliases
 │   ├── functions.zsh         # upgrade, zsh-health, freespace, …
 │   ├── tools.zsh             # cached tool init (starship, zoxide, fnm, …)
 │   └── local.zsh             # machine-local overrides (gitignored)
@@ -409,7 +337,10 @@ To disable plugins temporarily without uninstalling: `toggle_interactive off`.
 ## FAQ
 
 **Q: Does this work on Apple Silicon (M-series) Macs?**
-A: Yes, first-class. The installer uses Homebrew at `/opt/homebrew` with native arm64 bottles, and `git-setup.sh` tunes git for the core count. No Rosetta needed.
+A: Yes, first-class. Homebrew at `/opt/homebrew` with native arm64 bottles; git tuned for the core count. No Rosetta needed.
+
+**Q: Does this work on Linux or WSL?**
+A: No — this config targets macOS only. Fork an older revision (pre-macOS-only) if you need Linux/WSL support.
 
 **Q: Can I fork this and customize it?**
 A: Yes — that's the recommendation. Put machine-specific bits in `modules/local.zsh`, structural changes in your fork.

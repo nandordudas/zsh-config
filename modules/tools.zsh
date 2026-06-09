@@ -80,26 +80,10 @@ unset _direnv_bin
 
 # =============================================================================
 # FZF (Fuzzy Finder)
-# Prefers ~/.fzf/bin/fzf (git install, newer) over system fzf (apt, older).
-# Adds ~/.fzf/bin to PATH here as a fallback for non-login shells where
-# .zprofile was not sourced.
+# Installed via brew; fzf >= 0.48 ships zsh integration behind --zsh.
 # =============================================================================
 () {
-  local fzf_dir="$HOME/.fzf"
-  local fzf_bin="$fzf_dir/bin/fzf"
-
-  # Ensure ~/.fzf/bin is in PATH even in non-login interactive shells
-  if [[ -x "$fzf_bin" && ":$PATH:" != *":$fzf_dir/bin:"* ]]; then
-    path=("$fzf_dir/bin" $path)
-  fi
-
-  # Fall back to system fzf if git-clone install is absent
-  if [[ ! -x "$fzf_bin" ]]; then
-    fzf_bin="$(command -v fzf 2>/dev/null)"
-    fzf_dir=""
-  fi
-
-  [[ -x "$fzf_bin" ]] || return
+  (( $+commands[fzf] )) || return 0
 
   # FZF behavior
   export FZF_DEFAULT_OPTS='
@@ -111,18 +95,17 @@ unset _direnv_bin
     --bind alt-k:preview-up
   '
 
-  # fd/bat command names resolved in modules/platform.zsh (fdfind/batcat on Debian)
-  if [[ "$ZSH_FD_CMD" != "find" ]]; then
-    export FZF_DEFAULT_COMMAND="$ZSH_FD_CMD --type f --hidden --follow --exclude .git 2>/dev/null"
+  if (( $+commands[fd] )); then
+    export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git 2>/dev/null'
     export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
-    export FZF_ALT_C_COMMAND="$ZSH_FD_CMD --type d --hidden --follow --exclude .git 2>/dev/null"
+    export FZF_ALT_C_COMMAND='fd --type d --hidden --follow --exclude .git 2>/dev/null'
   fi
 
   # Ctrl+T preview: file content via bat
-  export FZF_CTRL_T_OPTS="
-    --preview \"$ZSH_BAT_CMD --color=always --style=numbers --line-range=:100 {} 2>/dev/null || cat {}\"
+  export FZF_CTRL_T_OPTS='
+    --preview "bat --color=always --style=numbers --line-range=:100 {} 2>/dev/null || cat {}"
     --preview-window right:55%:wrap
-  "
+  '
 
   # Alt+C preview: directory listing via eza
   export FZF_ALT_C_OPTS='
@@ -130,14 +113,8 @@ unset _direnv_bin
     --preview-window right:55%:wrap
   '
 
-  # Source fzf shell integration (key bindings + tab completion)
-  if [[ -n "$fzf_dir" && -f "$fzf_dir/shell/key-bindings.zsh" ]]; then
-    source "$fzf_dir/shell/key-bindings.zsh"
-    [[ -f "$fzf_dir/shell/completion.zsh" ]] && source "$fzf_dir/shell/completion.zsh"
-  elif "$fzf_bin" --zsh &>/dev/null; then
-    # fzf >= 0.48 supports --zsh flag
-    source <("$fzf_bin" --zsh)
-  fi
+  # Key bindings + tab completion
+  source <(fzf --zsh)
 }
 
 # =============================================================================

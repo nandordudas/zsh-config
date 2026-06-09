@@ -242,12 +242,9 @@ missing tool never shadows the real command.
 
 | Alias | Expands to |
 |-------|-----------|
-| `bat` | `batcat` (Debian/Ubuntu only — elsewhere `bat` is the real name) |
-| `fd` | `fdfind` (Debian/Ubuntu only — elsewhere `fd` is the real name) |
 | `df` | `duf` (if installed) |
 | `du` | `dust` (if installed) |
 | `pss` | `procs` (if installed) |
-| `g` | `~/go/bin/g` (Go version manager, if installed) |
 | `ik` | `interactive_kill` |
 | `qfind` | `find . -name` |
 | `rand` | `openssl rand -base64 32` |
@@ -259,13 +256,6 @@ The bat theme is set via `BAT_THEME` (default `TwoDark`) — override it in
 `modules/local.zsh`.
 
 ```
-$ bat src/main.rs
-# syntax-highlighted file, theme follows OS light/dark mode
-
-$ fd '\.go$'
-./cmd/main.go
-./internal/parser/parser.go
-
 $ df
 # duf: colourised disk usage with mount points in a table
 
@@ -274,11 +264,6 @@ $ du src/
 
 $ pss
 # procs: colourised, searchable process list
-
-$ g list
-  1.21.0
-  1.22.0
-* 1.23.0   (installed, active)
 
 $ qfind "*.toml"
 ./Cargo.toml
@@ -305,10 +290,12 @@ $ reload
 
 ## System
 
+`open`, `pbcopy`, and `pbpaste` are native on macOS — no aliases needed.
+
 | Alias | Expands to |
 |-------|-----------|
 | `psa` | `ps aux` |
-| `free` | `free -h` (Linux only — macOS has no `free`; use Activity Monitor or `vm_stat`) |
+| `uuid` | `uuidgen` (lowercased) copied to clipboard |
 
 ```
 $ psa | head -3
@@ -316,51 +303,9 @@ USER   PID  %CPU %MEM  COMMAND
 user  1234   0.1  0.5  zsh
 user  5678   2.3  1.2  node
 
-$ free
-               total   used   free   shared  buff/cache  available
-Mem:            15Gi   4.2Gi  8.1Gi    512Mi        2.8Gi      10Gi
-Swap:          4.0Gi     0B   4.0Gi
-```
-
----
-
-## Platform-Specific
-
-**macOS** ships `open`, `pbcopy`, and `pbpaste` natively — only `uuid` is added:
-
-| Alias | Expands to |
-|-------|-----------|
-| `uuid` | `uuidgen` (lowercased) copied to clipboard |
-
-**WSL** (`IS_WSL=1`) maps the macOS names to Windows tools:
-
-| Alias | Expands to |
-|-------|-----------|
-| `open` | `explorer.exe` |
-| `pbcopy` | `clip.exe` |
-| `pbpaste` | `powershell.exe Get-Clipboard \| sed 's/\r$//'` |
-| `uuid` | generate UUID and copy to Windows clipboard |
-
-**Native Linux** gets `open` → `xdg-open` and `pbcopy`/`pbpaste` via
-`wl-copy`/`wl-paste` (Wayland) or `xclip` (X11), when installed.
-
-```
-$ open .
-# opens the current directory in Windows Explorer
-
-$ echo "hello" | pbcopy
-# copies "hello" to the Windows clipboard
-
-$ pbpaste
-hello
-# raw text output, safe to pipe to other commands
-
-$ pbpaste | wc -c
-6
-
 $ uuid
-# generates a UUID, strips the newline, sends to clipboard
-# nothing is printed — the value is ready to Ctrl+V in any Windows app
+# generates a lowercase UUID and copies it to the clipboard
+# nothing is printed — the value is ready to Cmd+V anywhere
 ```
 
 ---

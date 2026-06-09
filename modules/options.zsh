@@ -46,4 +46,4 @@ setopt BG_NICE           # Run background jobs at lower priority
 # =============================================================================
 setopt INTERACTIVE_COMMENTS  # Allow # comments in interactive mode
 setopt RC_QUOTES             # Allow '' inside single-quoted strings to embed '
-setopt COMBINING_CHARS       # Correctly handle combining Unicode characters (WSL)
+setopt COMBINING_CHARS       # Correctly handle combining Unicode characters
