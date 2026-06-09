@@ -261,12 +261,12 @@ ordering after adding new entries.
 
 ```
 $ show_path
-     1	/home/user/.local/bin
-     2	/home/user/.fzf/bin
-     3	/home/user/.cargo/bin
-     4	/home/user/go/bin
-     5	/home/user/.go/bin
-     6	/home/user/.config/zsh/bin
+     1	/Users/user/.local/bin
+     2	/Users/user/.cargo/bin
+     3	/Users/user/go/bin
+     4	/Users/user/.config/zsh/bin
+     5	/opt/homebrew/bin
+     6	/opt/homebrew/sbin
      7	/usr/local/bin
      8	/usr/bin
      9	/bin
@@ -297,7 +297,7 @@ $ pwd
 ## zsh-cache-clear
 
 Remove cached eval outputs for the five external tools (starship, zoxide,
-fnm, direnv). Forces them to regenerate on the next shell start.
+fnm, direnv, fzf). Forces them to regenerate on the next shell start.
 
 Useful when auto-invalidation via `mtime` doesn't trigger — for example after
 a manual config edit that doesn't touch the binary.

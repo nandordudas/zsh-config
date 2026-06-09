@@ -1,0 +1,7 @@
+# Brewfile.dev — development toolchains (skipped with install.sh --minimal)
+# Install with: brew bundle --file=~/.config/zsh/Brewfile.dev
+
+brew "fnm"        # Node.js version manager (nvm alias)
+brew "go"
+brew "rustup"     # Rust toolchain manager (run `rustup-init` once)
+brew "fastfetch"  # system info

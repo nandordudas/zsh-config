@@ -161,12 +161,15 @@ it's only needed when working with git.
 | Command | Action |
 |---------|--------|
 | `glo` | interactive git log |
-| `gd` | interactive diff viewer |
 | `gadd` | interactive `git add` (stage individual hunks) |
 | `grst` | interactive `git reset HEAD` |
 | `gcf` | interactive `git checkout` file |
 | `gss` | interactive `git stash show` |
 | `gclean` | interactive `git clean` |
+
+> Note: forgit also ships a `gd` (interactive diff), but this config's quick
+> alias `gd` = `git diff` (defined in `aliases.zsh`, loaded later) shadows it.
+> Use `git forgit diff` for the interactive version, or remove the quick alias.
 
 ```
 $ gadd

@@ -61,6 +61,8 @@ required_files=(
   .zprofile
   .gitignore
   install.sh
+  Brewfile
+  Brewfile.dev
   modules/options.zsh
   modules/zinit.zsh
   modules/completions.zsh
@@ -168,19 +170,27 @@ if [[ -f "$GIT_DIR/config" ]]; then
     fail "name/email missing or wrong in config"
   fi
 
-  if grep -q "fsmonitor = true" "$GIT_DIR/config"; then
-    ok "fsmonitor = true (macOS native FS monitoring)"
+  # Query the parsed config, not the file text — robust against formatting
+  if [[ "$(git config --file "$GIT_DIR/config" --get core.fsmonitor)" == "true" ]]; then
+    ok "core.fsmonitor = true (macOS native FS monitoring)"
   else
-    fail "fsmonitor not enabled"
+    fail "core.fsmonitor not enabled"
   fi
 
-  if grep -q "longpaths" "$GIT_DIR/config"; then
-    fail "NTFS-only longpaths setting present in config"
+  if git config --file "$GIT_DIR/config" --get core.longpaths &>/dev/null; then
+    fail "NTFS-only core.longpaths present in config"
   else
     ok "No NTFS-only settings in config"
   fi
 
-  if grep -q "__GIT_NAME__\|__GIT_EMAIL__" "$GIT_DIR/config"; then
+  cores_val="$(git config --file "$GIT_DIR/config" --get fetch.parallel || echo "")"
+  if [[ "$cores_val" =~ ^[0-9]+$ ]] && (( cores_val >= 1 )); then
+    ok "fetch.parallel = $cores_val (numeric, placeholder replaced)"
+  else
+    fail "fetch.parallel not a valid number: '$cores_val'"
+  fi
+
+  if grep -q "__GIT_NAME__\|__GIT_EMAIL__\|__CORES__" "$GIT_DIR/config"; then
     fail "Unreplaced placeholders left in config"
   else
     ok "No unreplaced placeholders in config"

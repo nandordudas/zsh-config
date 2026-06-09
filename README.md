@@ -22,7 +22,7 @@ zsh-health
 That's it. The installer:
 
 - Installs **Homebrew** if missing (`/opt/homebrew` on Apple Silicon — all bottles native arm64)
-- Installs every tool the config uses (`git tmux fzf bat fd ripgrep eza zoxide starship direnv gh git-delta dust duf procs` + dev toolchains)
+- Installs every tool the config uses via **`brew bundle`** — the package list is declared in [`Brewfile`](Brewfile) (core) and [`Brewfile.dev`](Brewfile.dev) (Node/Go/Rust toolchains)
 - Writes `~/.zshenv`, creates `modules/local.zsh`, links the tmux config
 - Is **idempotent** — safe to re-run anytime; existing files are backed up, never silently overwritten
 
@@ -90,20 +90,18 @@ If you'd rather not run the installer, here's what it does:
 # 1. Homebrew
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-# 2. All tools (native arm64 bottles on Apple Silicon)
-brew install git tmux fzf bat fd ripgrep eza zoxide starship direnv gh \
-             git-delta dust duf procs sevenzip fnm go fastfetch
-
-# 3. Node.js via fnm
-fnm install --lts && fnm default lts-latest
-
-# 4. Rust (optional, for cargo development)
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-
-# 5. Clone the config
+# 2. Clone the config (the Brewfiles live in the repo)
 git clone https://github.com/nandordudas/zsh-config ~/.config/zsh
 
-# 6. Create ~/.zshenv (required — points zsh at the config)
+# 3. All tools (native arm64 bottles on Apple Silicon)
+brew bundle --file=~/.config/zsh/Brewfile       # core tools
+brew bundle --file=~/.config/zsh/Brewfile.dev   # Node/Go/Rust toolchains
+
+# 4. Node.js via fnm, Rust via rustup
+fnm install --lts && fnm default lts-latest
+rustup-init -y --no-modify-path
+
+# 5. Create ~/.zshenv (required — points zsh at the config)
 cat > ~/.zshenv << 'EOF'
 export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
@@ -112,14 +110,14 @@ export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 export ZDOTDIR="$XDG_CONFIG_HOME/zsh"
 EOF
 
-# 7. Machine-local config (gitignored, safe for secrets)
+# 6. Machine-local config (gitignored, safe for secrets)
 touch ~/.config/zsh/modules/local.zsh
 
-# 8. Link tmux config
+# 7. Link tmux config
 mkdir -p ~/.config/tmux
 ln -sf ~/.config/zsh/tmux/tmux.conf ~/.config/tmux/tmux.conf
 
-# 9. Open a new terminal — Zinit installs plugins on first start (~1-2 min)
+# 8. Open a new terminal — Zinit installs plugins on first start (~1-2 min)
 zsh-health
 ```
 
@@ -174,7 +172,7 @@ zsh-health           # platform, tools, PATH, config — with fix hints
 ### Clear caches
 
 ```bash
-zsh-cache-clear      # removes eval caches (starship, zoxide, fnm, direnv)
+zsh-cache-clear      # removes eval caches (starship, zoxide, fnm, direnv, fzf)
 exec zsh             # restart shell (regenerates caches)
 ```
 
@@ -314,6 +312,8 @@ To disable plugins temporarily without uninstalling: `toggle_interactive off`.
 ~/.zshenv                     # in $HOME, created by install.sh — sets ZDOTDIR
 ~/.config/zsh/
 ├── install.sh                # one-command installer (Homebrew-based)
+├── Brewfile                  # core packages (brew bundle)
+├── Brewfile.dev              # dev toolchains: fnm, go, rustup, fastfetch
 ├── .zprofile                 # login shells: Homebrew, PATH, env vars
 ├── .zshrc                    # main orchestrator — sources modules in order
 ├── modules/

@@ -20,8 +20,14 @@ _ztool_init() {
   local name="$1" bin="$2" init_cmd="$3"
   [[ -x "$bin" ]] || return 0
   local cache="$_ztool_cache/${name}.zsh"
-  if [[ ! -f "$cache" || "$bin" -nt "$cache" ]]; then
-    eval "$init_cmd" >"$cache" || return 1
+  if [[ ! -s "$cache" || "$bin" -nt "$cache" ]]; then
+    # Write to a temp file first so a failed init never leaves a truncated
+    # cache behind (which would be silently sourced on every future start).
+    if ! eval "$init_cmd" >"$cache.tmp" 2>/dev/null; then
+      rm -f "$cache.tmp"
+      return 1
+    fi
+    mv -f "$cache.tmp" "$cache"
   fi
   source "$cache"
 }
@@ -46,19 +52,14 @@ _ztool_init zoxide "$(command -v zoxide)" "zoxide init zsh"
 
 # =============================================================================
 # FNM (Node Version Manager)
+# Node itself is installed by install.sh (`fnm install --lts`); the shell
+# only wires up the environment here — no subprocess checks on startup.
 # =============================================================================
-_fnm_bin="$(command -v fnm 2>/dev/null || echo "$HOME/.cargo/bin/fnm")"
-
-# Ensure FNM has a default Node version installed before init
-if [[ -x "$_fnm_bin" ]]; then
-  if [[ -z "$($_fnm_bin list 2>/dev/null | grep default)" ]]; then
-    $_fnm_bin install --lts &>/dev/null || true
-  fi
-fi
-
+_fnm_bin="$(command -v fnm 2>/dev/null)"
 _ztool_init fnm "$_fnm_bin" "fnm env --use-on-cd --shell zsh"
 
-# FNM's multishell mode may not work in subshells; fallback: add default version to PATH
+# FNM's multishell mode may not work in subshells; fallback: add default version to PATH.
+# Only costs subprocesses when node is actually missing from PATH.
 if ! command -v node &>/dev/null && [[ -x "$_fnm_bin" ]]; then
   _fnm_default=$($_fnm_bin list 2>/dev/null | grep default | awk '{print $2}')
   _fnm_default_bin="${FNM_DIR:-$HOME/.local/share/fnm}/node-versions/${_fnm_default}/installation/bin"
@@ -81,6 +82,7 @@ unset _direnv_bin
 # =============================================================================
 # FZF (Fuzzy Finder)
 # Installed via brew; fzf >= 0.48 ships zsh integration behind --zsh.
+# Init output is cached like the other tools (~10-15ms saved per shell).
 # =============================================================================
 () {
   (( $+commands[fzf] )) || return 0
@@ -113,8 +115,8 @@ unset _direnv_bin
     --preview-window right:55%:wrap
   '
 
-  # Key bindings + tab completion
-  source <(fzf --zsh)
+  # Key bindings + tab completion (cached)
+  _ztool_init fzf "${commands[fzf]}" "fzf --zsh"
 }
 
 # =============================================================================

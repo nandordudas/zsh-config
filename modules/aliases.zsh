@@ -43,7 +43,7 @@ alias cdd='cd -'  # Back to previous directory
 # These are custom extensions that don't conflict with the plugin aliases.
 # =============================================================================
 alias dc-up='UID=$(id -u) GID=$(id -g) docker compose up'  # injects host UID/GID
-alias drm='docker rm $(docker ps -aq)'  # removes all STOPPED containers (running ones are skipped)
+alias drm='docker rm $(docker ps -aq)'  # removes all stopped containers (errors on running ones — they are kept)
 alias drmi='docker rmi $(docker images -qf dangling=true)'  # dangling images only
 
 # =============================================================================

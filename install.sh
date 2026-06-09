@@ -29,7 +29,28 @@ warn()  { printf "%s⊙%s %s\n" "$YELLOW" "$RESET" "$1"; }
 error() { printf "%s✗%s %s\n" "$RED" "$RESET" "$1" >&2; }
 step()  { printf "\n%s━━ %s ━━%s\n" "$BOLD" "$1" "$RESET"; }
 
-usage() { sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() {
+  cat << 'EOF'
+install.sh — one-command setup for zsh-config on macOS.
+
+Supports Apple Silicon (M-series) and Intel Macs via Homebrew.
+Packages are declared in Brewfile (core) and Brewfile.dev (toolchains).
+
+Usage:
+  git clone https://github.com/nandordudas/zsh-config ~/.config/zsh
+  ~/.config/zsh/install.sh                  # full install
+
+Options:
+  --minimal           Core tools only (skip Brewfile.dev: Rust/Go/Node)
+  --config-only       Only set up config files, install no packages
+  --yes, -y           Don't ask for confirmation
+  --git-name  NAME    Also run scripts/git-setup.sh with this name
+  --git-email EMAIL   ... and this email (both required to run git-setup)
+  --help, -h          Show this help
+
+Idempotent: safe to re-run. Existing ~/.zshenv is backed up before overwrite.
+EOF
+}
 
 # -----------------------------------------------------------------------------
 # Arguments
@@ -97,44 +118,38 @@ if ! confirm "Proceed with installation?"; then
 fi
 
 # -----------------------------------------------------------------------------
-# Package installation (Homebrew)
+# Package installation (Homebrew + Brewfile)
 # -----------------------------------------------------------------------------
+# Put brew in PATH for this script, wherever it lives
+brew_env() {
+  local b
+  for b in /opt/homebrew/bin/brew /usr/local/bin/brew; do
+    [[ -x "$b" ]] && eval "$("$b" shellenv)" && return 0
+  done
+  return 1
+}
+
 if (( ! CONFIG_ONLY )); then
   step "Homebrew"
-  if ! command -v brew &>/dev/null; then
-    if [[ -x /opt/homebrew/bin/brew ]]; then
-      eval "$(/opt/homebrew/bin/brew shellenv)"
-    elif [[ -x /usr/local/bin/brew ]]; then
-      eval "$(/usr/local/bin/brew shellenv)"
-    else
-      info "Installing Homebrew (you may be prompted for your password)..."
-      /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-      if [[ -x /opt/homebrew/bin/brew ]]; then
-        eval "$(/opt/homebrew/bin/brew shellenv)"
-      else
-        eval "$(/usr/local/bin/brew shellenv)"
-      fi
-    fi
+  if ! command -v brew &>/dev/null && ! brew_env; then
+    info "Installing Homebrew (you may be prompted for your password)..."
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    brew_env || { error "Homebrew installation failed"; exit 1; }
   fi
   info "Homebrew: $(brew --version | head -1)"
 
-  step "Core packages (brew)"
-  # Everything this config uses comes straight from brew —
-  # all bottles are native arm64 on Apple Silicon.
-  core=(
-    git tmux fzf bat fd ripgrep eza zoxide starship direnv gh
-    git-delta dust duf procs sevenzip
-  )
-  brew install "${core[@]}"
+  step "Core packages (Brewfile)"
+  # Declarative package list — see Brewfile for the annotated set.
+  # All bottles are native arm64 on Apple Silicon.
+  brew bundle --file="$SCRIPT_DIR/Brewfile"
 
   if (( ! MINIMAL )); then
-    step "Dev toolchains (brew)"
-    dev=(fnm go fastfetch)
-    brew install "${dev[@]}"
+    step "Dev toolchains (Brewfile.dev)"
+    brew bundle --file="$SCRIPT_DIR/Brewfile.dev"
 
-    if ! command -v rustup &>/dev/null && [[ ! -f "$HOME/.cargo/env" ]]; then
-      info "Installing Rust via rustup..."
-      curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
+    if ! command -v rustc &>/dev/null && command -v rustup-init &>/dev/null; then
+      info "Initializing Rust toolchain..."
+      rustup-init -y --no-modify-path || warn "rustup-init failed — run it manually later"
     fi
 
     info "Installing Node.js LTS via fnm..."

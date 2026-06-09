@@ -29,7 +29,9 @@ fi
 
 # =============================================================================
 # ZSH CONFIG UPDATE CHECK
-# Once a day, fetch the repo's upstream and report if new commits are available.
+# Once a day: compare against the already-fetched upstream (instant, no
+# network), then refresh the remote refs in a detached background job.
+# Login is never blocked by the network; a new update shows up one check late.
 # =============================================================================
 _check_zsh_config_updates() {
   zmodload zsh/datetime 2>/dev/null || return 0
@@ -50,10 +52,7 @@ _check_zsh_config_updates() {
   # Update cache timestamp
   printf '%s' "$EPOCHSECONDS" >"$cache_file"
 
-  # Fetch upstream quietly (only on the daily check, so login stays fast)
-  git -C "$zsh_dir" fetch --quiet 2>/dev/null || return 0
-
-  # Count commits upstream has that we don't
+  # Compare against refs from the last background fetch (no network)
   local behind
   behind=$(git -C "$zsh_dir" rev-list --count HEAD..@{u} 2>/dev/null)
 
@@ -62,6 +61,9 @@ _check_zsh_config_updates() {
     printf '%s\n' "├─ Run: git -C \$ZDOTDIR pull && exec zsh"
     printf '%s\n' "╰─────────────────────────────────────────"
   fi
+
+  # Refresh remote refs for the next check — detached, silent, never prompts
+  ( GIT_TERMINAL_PROMPT=0 git -C "$zsh_dir" fetch --quiet >/dev/null 2>&1 & ) 2>/dev/null
 }
 
 _check_zsh_config_updates

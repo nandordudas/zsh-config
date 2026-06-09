@@ -80,9 +80,13 @@ mkcd() {
 }
 
 # Extract archives (universal)
+# .7z/.rar use 7zz (brew sevenzip); falls back to 7z/unrar if installed instead.
 extract() {
   [[ $# -eq 1 ]] || { printf "Usage: extract <archive>\n" >&2; return 1; }
   [[ -f "$1" ]] || { printf "Error: File not found: %s\n" "$1" >&2; return 1; }
+
+  local sevenzip
+  sevenzip="${commands[7zz]:-${commands[7z]}}"
 
   case "$1" in
     *.tar.bz2) tar xjf "$1" ;;
@@ -90,8 +94,22 @@ extract() {
     *.tar.xz)  tar xJf "$1" ;;
     *.tar)     tar xf "$1" ;;
     *.zip)     unzip "$1" ;;
-    *.rar)     unrar x "$1" ;;
-    *.7z)      7z x "$1" ;;
+    *.rar)
+      if (( $+commands[unrar] )); then
+        unrar x "$1"
+      elif [[ -n "$sevenzip" ]]; then
+        "$sevenzip" x "$1"
+      else
+        printf "Error: need 7zz (brew install sevenzip) or unrar for .rar\n" >&2; return 1
+      fi
+      ;;
+    *.7z)
+      if [[ -n "$sevenzip" ]]; then
+        "$sevenzip" x "$1"
+      else
+        printf "Error: need 7zz (brew install sevenzip) for .7z\n" >&2; return 1
+      fi
+      ;;
     *)         printf "Error: Unsupported archive format: %s\n" "$1" >&2; printf "Supported: tar.{gz,bz2,xz}, zip, rar, 7z\n" >&2; return 1 ;;
   esac
 }
@@ -397,28 +415,19 @@ zsh-health() {
   done
   printf "\n"
 
-  # Check language tools
+  # Check language tools (label:binary:version-command)
   printf "Language Tools:\n"
-  if command -v go &>/dev/null; then
-    printf "  ${_COLOR_GREEN}✓${_COLOR_RESET} %-10s %s\n" "Go" "$(go version 2>&1)"
-  else
-    printf "  ${_COLOR_YELLOW}⊙${_COLOR_RESET} %-10s not installed\n" "Go"
-  fi
-  if command -v rustc &>/dev/null; then
-    printf "  ${_COLOR_GREEN}✓${_COLOR_RESET} %-10s %s\n" "Rust" "$(rustc --version 2>&1)"
-  else
-    printf "  ${_COLOR_YELLOW}⊙${_COLOR_RESET} %-10s not installed\n" "Rust"
-  fi
-  if command -v node &>/dev/null; then
-    printf "  ${_COLOR_GREEN}✓${_COLOR_RESET} %-10s %s\n" "Node" "$(node --version 2>&1)"
-  else
-    printf "  ${_COLOR_YELLOW}⊙${_COLOR_RESET} %-10s not installed\n" "Node"
-  fi
-  if command -v python3 &>/dev/null; then
-    printf "  ${_COLOR_GREEN}✓${_COLOR_RESET} %-10s %s\n" "Python" "$(python3 --version 2>&1)"
-  else
-    printf "  ${_COLOR_YELLOW}⊙${_COLOR_RESET} %-10s not installed\n" "Python"
-  fi
+  local spec_lang label_lang bin_lang
+  for spec_lang in "Go:go:go version" "Rust:rustc:rustc --version" \
+                   "Node:node:node --version" "Python:python3:python3 --version"; do
+    label_lang="${spec_lang%%:*}"
+    bin_lang="${${spec_lang#*:}%%:*}"
+    if command -v "$bin_lang" &>/dev/null; then
+      printf "  ${_COLOR_GREEN}✓${_COLOR_RESET} %-10s %s\n" "$label_lang" "$(${(z)spec_lang##*:} 2>&1 | head -1)"
+    else
+      printf "  ${_COLOR_YELLOW}⊙${_COLOR_RESET} %-10s not installed\n" "$label_lang"
+    fi
+  done
   printf "\n"
 
   # Check PATH
@@ -504,7 +513,7 @@ tmpcd() {
 zsh-cache-clear() {
   local cache_dir="$(_zcache_dir)"
   local removed=0
-  for f in starship.zsh zoxide.zsh fnm.zsh direnv.zsh; do
+  for f in starship.zsh zoxide.zsh fnm.zsh direnv.zsh fzf.zsh; do
     if [[ -f "$cache_dir/$f" ]]; then
       rm "$cache_dir/$f"
       (( removed++ ))
@@ -575,7 +584,7 @@ freespace() {
   # Node modules
   local nm_count=$(command find "$HOME/code" -maxdepth 4 -type d -name node_modules 2>/dev/null | wc -l | tr -d ' ')
   if (( nm_count > 0 )); then
-    local nm_size=$(command find "$HOME/code" -maxdepth 4 -type d -name node_modules -exec du -sk {} + 2>/dev/null | awk '{s+=$1} END {print s}')
+    local nm_size=$(command find "$HOME/code" -maxdepth 4 -type d -name node_modules -exec du -sk {} + 2>/dev/null | awk '{s+=$1} END {print s+0}')
     printf "  ${_COLOR_YELLOW}→${_COLOR_RESET} node_modules (%d dirs, %s MB)\n" "$nm_count" "$(( nm_size / 1024 ))"
     actions+=(node_modules)
     (( removed_kb += nm_size ))
@@ -584,7 +593,7 @@ freespace() {
   # Vendor directories
   local vendor_count=$(command find "$HOME/code" -maxdepth 4 -type d -name vendor 2>/dev/null | wc -l | tr -d ' ')
   if (( vendor_count > 0 )); then
-    local vendor_size=$(command find "$HOME/code" -maxdepth 4 -type d -name vendor -exec du -sk {} + 2>/dev/null | awk '{s+=$1} END {print s}')
+    local vendor_size=$(command find "$HOME/code" -maxdepth 4 -type d -name vendor -exec du -sk {} + 2>/dev/null | awk '{s+=$1} END {print s+0}')
     printf "  ${_COLOR_YELLOW}→${_COLOR_RESET} vendor (%d dirs, %s MB)\n" "$vendor_count" "$(( vendor_size / 1024 ))"
     actions+=(vendor)
     (( removed_kb += vendor_size ))
@@ -593,41 +602,28 @@ freespace() {
   printf "\n"
 
   # === System cache cleanup (if --aggressive) ===
+  # Table: action-keyword:label:directory — sizes computed in one loop
   if (( aggressive )); then
     printf "System caches (--aggressive):\n"
 
-    local cache_size
-    if [[ -d "$HOME/.npm" ]]; then
-      cache_size=$(/usr/bin/du -sk "$HOME/.npm" 2>/dev/null | awk '{print $1}'); cache_size=${cache_size:-0}
+    local -a cache_specs=(
+      "npm_cache:npm cache:$HOME/.npm"
+      "pip_cache:pip cache:$HOME/.cache/pip"
+      "go_cache:go build cache:$HOME/.cache/go-build"
+      "cargo_cache:cargo registry cache:$HOME/.cargo/registry/cache"
+    )
+    local spec action_kw cache_label cache_dir cache_size
+    for spec in "${cache_specs[@]}"; do
+      action_kw="${spec%%:*}"
+      cache_label="${${spec#*:}%%:*}"
+      cache_dir="${spec##*:}"
+      [[ -d "$cache_dir" ]] || continue
+      cache_size=$(/usr/bin/du -sk "$cache_dir" 2>/dev/null | awk '{print $1}'); cache_size=${cache_size:-0}
       if (( cache_size > 0 )); then
-        printf "  ${_COLOR_YELLOW}→${_COLOR_RESET} npm cache (%s MB)\n" "$(( cache_size / 1024 ))"
-        actions+=(npm_cache); (( removed_kb += cache_size ))
+        printf "  ${_COLOR_YELLOW}→${_COLOR_RESET} %s (%s MB)\n" "$cache_label" "$(( cache_size / 1024 ))"
+        actions+=("$action_kw"); (( removed_kb += cache_size ))
       fi
-    fi
-
-    if [[ -d "$HOME/.cache/pip" ]]; then
-      cache_size=$(/usr/bin/du -sk "$HOME/.cache/pip" 2>/dev/null | awk '{print $1}'); cache_size=${cache_size:-0}
-      if (( cache_size > 0 )); then
-        printf "  ${_COLOR_YELLOW}→${_COLOR_RESET} pip cache (%s MB)\n" "$(( cache_size / 1024 ))"
-        actions+=(pip_cache); (( removed_kb += cache_size ))
-      fi
-    fi
-
-    if [[ -d "$HOME/.cache/go-build" ]]; then
-      cache_size=$(/usr/bin/du -sk "$HOME/.cache/go-build" 2>/dev/null | awk '{print $1}'); cache_size=${cache_size:-0}
-      if (( cache_size > 0 )); then
-        printf "  ${_COLOR_YELLOW}→${_COLOR_RESET} go build cache (%s MB)\n" "$(( cache_size / 1024 ))"
-        actions+=(go_cache); (( removed_kb += cache_size ))
-      fi
-    fi
-
-    if [[ -d "$HOME/.cargo/registry/cache" ]]; then
-      cache_size=$(/usr/bin/du -sk "$HOME/.cargo/registry/cache" 2>/dev/null | awk '{print $1}'); cache_size=${cache_size:-0}
-      if (( cache_size > 0 )); then
-        printf "  ${_COLOR_YELLOW}→${_COLOR_RESET} cargo registry cache (%s MB)\n" "$(( cache_size / 1024 ))"
-        actions+=(cargo_cache); (( removed_kb += cache_size ))
-      fi
-    fi
+    done
 
     if (( $+commands[brew] )); then
       printf "  ${_COLOR_YELLOW}→${_COLOR_RESET} homebrew cache (brew cleanup)\n"
