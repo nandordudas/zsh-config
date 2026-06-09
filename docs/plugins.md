@@ -118,7 +118,7 @@ $ kill <Tab>
 
 # ls with file preview
 $ ls <Tab>
-# fzf popup: directories show eza listing, files show batcat preview
+# fzf popup: directories show eza listing, files show bat preview
 
 # switch between completion groups
 < / >   move between groups (e.g. files vs directories)

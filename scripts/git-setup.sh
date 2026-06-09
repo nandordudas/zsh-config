@@ -146,16 +146,14 @@ EOF
 # =============================================================================
 cat > "$GIT_DIR/config" << 'CONFIG_EOF'
 # ═══════════════════════════════════════════════════════════════════════════════
-# GIT CONFIGURATION — WSL vs macOS M5 OPTIMIZATIONS
+# GIT CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════════
-# This config is optimized for WSL2. When migrating to native macOS M5, adjust:
+# Base values below are safe defaults for Linux/WSL2. git-setup.sh adjusts
+# them automatically when run on macOS:
 #
-#   1. core.longpaths: Set to false (Windows-only for NTFS long path support)
-#   2. core.fsmonitor: Set to true (enables native macOS FS event monitoring)
-#   3. fetch.parallel: Increase from 4 to 8-10 (M5 has 8-10 cores)
-#   4. index.threads: Increase from 4 to 8-10 (better ARM64 multi-core utilization)
-#   5. delta.syntax-theme: Consider Nord, Dracula, or Monokai Soda for Terminal.app
-#   6. Credential helper: Same on both platforms (no changes needed)
+#   - core.fsmonitor → true   (native FSEvents monitoring on APFS)
+#   - core.longpaths → unset  (NTFS-only setting)
+#   - fetch.parallel / index.threads → CPU core count (Apple Silicon)
 #
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -458,6 +456,20 @@ sed -i.bak \
   exit 1
 }
 rm -f "$GIT_DIR/config.bak"
+
+# =============================================================================
+# PLATFORM ADJUSTMENTS
+# Base config targets Linux/WSL; on macOS enable native filesystem monitoring,
+# drop the NTFS-only longpaths setting, and use all CPU cores.
+# =============================================================================
+if [[ "$(uname -s)" == "Darwin" ]]; then
+  CORES=$(sysctl -n hw.ncpu 2>/dev/null || echo 8)
+  git config --file "$GIT_DIR/config" core.fsmonitor true
+  git config --file "$GIT_DIR/config" --unset core.longpaths 2>/dev/null || true
+  git config --file "$GIT_DIR/config" fetch.parallel "$CORES"
+  git config --file "$GIT_DIR/config" index.threads "$CORES"
+  printf "Applied macOS optimizations (fsmonitor=true, %s threads)\n" "$CORES"
+fi
 
 # =============================================================================
 # GITHUB CREDENTIAL HELPER (gh CLI)

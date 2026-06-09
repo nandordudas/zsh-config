@@ -120,11 +120,10 @@ upgrade --dry-run --only claude  # Preview specific tools
 ```
 
 **What it upgrades (parallel jobs):**
-- `apt update && apt-get upgrade --autoremove --purge`
+- **System packages** — auto-detected: `brew update && brew upgrade` on macOS,
+  `apt-get upgrade --autoremove --purge` on Debian/Ubuntu (sudo asked up front)
 - `zinit self-update && zinit update --all` (if zinit loaded)
-- **Rust**: `rustup update` + smart cargo updater
-  - Prebuilt binaries first (~30-60s), falls back to source rebuild
-  - Skips rebuild if nothing to update
+- **Rust**: `rustup update` + `cargo install-update -a` (if cargo-update installed)
 - **Go**: checks `go.dev/VERSION` API, updates only if behind (if `g` present)
 - **Node**: `fnm install --lts` + global npm packages (if fnm present)
 - **Claude**: checks npm registry for updates (if claude present)
@@ -208,9 +207,10 @@ ZSH Configuration:
 ```
 
 **Checks performed:**
-- Core tools: git, zsh, fzf, eza, bat, fd
+- Platform: macOS / WSL2 / Linux detection, Homebrew location on Apple Silicon
+- Core tools: git, zsh, fzf, eza, bat, fd (resolves `batcat`/`fdfind` on Debian)
 - Languages: Go, Rust, Node, Python
-- PATH: key directories present (.cargo, .local, go, /usr/local)
+- PATH: key directories present (.local, Homebrew, .cargo, go)
 - Shell: ZDOTDIR set, Zinit loaded, Zoxide available
 
 Exit code 0 if all critical checks pass, 1 if issues detected.
@@ -242,7 +242,8 @@ Switched to a new branch 'feat/new-api'
 
 ## ports
 
-Show all TCP sockets currently in LISTEN state.
+Show all TCP sockets currently in LISTEN state. Uses `ss` on Linux and
+falls back to `lsof` on macOS (which has no `ss`).
 
 ```
 $ ports
@@ -312,4 +313,31 @@ Cleared 4 cache file(s). Restart shell to regenerate.
 
 # if caches were already absent:
 Cleared 0 cache file(s). Restart shell to regenerate.
+```
+
+---
+
+## toggle_interactive
+
+Switch between full interactive mode (Starship + Zinit plugins) and a bare
+fast shell for headless/automation use. State persists across shells.
+
+```
+$ toggle_interactive off    # fast shell (~50ms), no prompt theme, no plugins
+$ toggle_interactive on     # full features
+$ toggle_interactive        # show current state
+```
+
+---
+
+## freespace
+
+Smart disk cleanup with confirmation prompts. Targets `node_modules` and
+`vendor` directories under `~/code`; with `--aggressive` also cleans system
+caches (npm, pip, go, cargo, and brew on macOS / apt on Linux).
+
+```
+$ freespace --dry-run              # preview, no changes
+$ freespace                        # clean project dirs (asks first)
+$ freespace --aggressive           # also clean system caches
 ```

@@ -1,4 +1,6 @@
-# All aliases organized by category
+# All aliases organized by category.
+# Aliases for optional tools are guarded with $+commands so a missing tool
+# never shadows the real command (important across macOS/Linux/WSL).
 
 # =============================================================================
 # NAVIGATION
@@ -8,13 +10,18 @@ alias gb='[[ -n "$BITBUCKET_USER" ]] && cd ~/code/bitbucket/"$BITBUCKET_USER" ||
 alias cr='code --reuse-window .'
 
 # =============================================================================
-# FILE LISTING (eza)
+# FILE LISTING (eza, falls back to plain ls if missing)
 # =============================================================================
-alias ls='eza -F --icons --git'
-alias l='eza -F --icons'
-alias la='eza -laF --icons --git'
-alias ll='eza -laF --icons --git --group-directories-first'
-alias lt='eza -T --icons --git-ignore'
+if (( $+commands[eza] )); then
+  alias ls='eza -F --icons --git'
+  alias l='eza -F --icons'
+  alias la='eza -laF --icons --git'
+  alias ll='eza -laF --icons --git --group-directories-first'
+  alias lt='eza -T --icons --git-ignore'
+else
+  alias ll='ls -la'
+  alias la='ls -la'
+fi
 
 # =============================================================================
 # FILE OPERATIONS
@@ -36,7 +43,7 @@ alias cdd='cd -'  # Back to previous directory
 # These are custom extensions that don't conflict with the plugin aliases.
 # =============================================================================
 alias dc-up='UID=$(id -u) GID=$(id -g) docker compose up'  # injects host UID/GID
-alias drm='docker rm $(docker ps -aq)'  # removes ALL containers
+alias drm='docker rm $(docker ps -aq)'  # removes all STOPPED containers (running ones are skipped)
 alias drmi='docker rmi $(docker images -qf dangling=true)'  # dangling images only
 
 # =============================================================================
@@ -57,17 +64,24 @@ alias gunwip='git log -n 1 --format=%s | grep -q "^wip" && git reset HEAD~1'
 
 # =============================================================================
 # TOOLS & UTILITIES (command replacements and shortcuts)
+# ZSH_BAT_CMD / ZSH_FD_CMD are resolved in modules/platform.zsh
+# (bat/fd everywhere except Debian/Ubuntu where they are batcat/fdfind).
 # =============================================================================
-alias bat='batcat --theme TwoDark'
-alias fd='fdfind'
-alias df='duf'
-alias du='dust'
-alias pss='procs'
-alias g="$HOME/go/bin/g"
+export BAT_THEME="${BAT_THEME:-TwoDark}"
+[[ "$ZSH_BAT_CMD" == "batcat" ]] && alias bat='batcat'
+[[ "$ZSH_FD_CMD" == "fdfind" ]] && alias fd='fdfind'
+
+(( $+commands[duf] ))   && alias df='duf'
+(( $+commands[dust] ))  && alias du='dust'
+(( $+commands[procs] )) && alias pss='procs'
+
+# `g` Go version manager (only when installed via its default location)
+[[ -x "$HOME/go/bin/g" ]] && alias g="$HOME/go/bin/g"
+
 alias ik='interactive_kill'
 alias qfind='find . -name'
 alias rand='openssl rand -base64 32'
-alias zshconfig='code --wait "$ZDOTDIR/.zshrc" && exec zsh'
+alias zshconfig='${VISUAL:-${EDITOR:-vi}} "$ZDOTDIR" && exec zsh'
 alias reload='exec zsh'
 alias json='python3 -m json.tool'
 
@@ -75,10 +89,11 @@ alias json='python3 -m json.tool'
 # SYSTEM
 # =============================================================================
 alias psa='ps aux'
-alias free='free -h'
+(( IS_LINUX )) && alias free='free -h'   # `free` does not exist on macOS
 
 # =============================================================================
-# WSL-SPECIFIC ALIASES
+# PLATFORM-SPECIFIC ALIASES
+# macOS ships open/pbcopy/pbpaste natively; WSL maps them to Windows tools.
 # =============================================================================
 if (( IS_WSL )); then
   alias open='explorer.exe'
@@ -86,12 +101,21 @@ if (( IS_WSL )); then
   # Use sed instead of tr for more reliable carriage return removal
   alias pbpaste='powershell.exe Get-Clipboard | sed "s/\r$//"'
   alias uuid="cat /proc/sys/kernel/random/uuid | tr -d '\n' | clip.exe"
+elif (( IS_MACOS )); then
+  alias uuid="uuidgen | tr '[:upper:]' '[:lower:]' | tr -d '\n' | pbcopy"
+elif (( IS_LINUX )); then
+  (( $+commands[xdg-open] )) && alias open='xdg-open'
+  if (( $+commands[wl-copy] )); then
+    alias pbcopy='wl-copy' pbpaste='wl-paste'
+  elif (( $+commands[xclip] )); then
+    alias pbcopy='xclip -selection clipboard' pbpaste='xclip -selection clipboard -o'
+  fi
 fi
 
 # =============================================================================
 # DEVELOPMENT TOOLS
 # =============================================================================
-alias nvm='fnm'  # Use fnm instead of nvm
+(( $+commands[fnm] )) && alias nvm='fnm'  # Use fnm instead of nvm
 
 # =============================================================================
 # CARGO (Rust)
@@ -99,7 +123,7 @@ alias nvm='fnm'  # Use fnm instead of nvm
 alias cb='cargo build'
 alias ct='cargo test'
 alias crun='cargo run'
-alias cc='cargo check'
+alias cch='cargo check'  # not `cc` — that would shadow the system C compiler
 alias cf='cargo fmt'
 alias clippy='cargo clippy -- -D warnings'
 
@@ -111,7 +135,7 @@ alias gocover='go test -coverprofile=/tmp/cover.out ./... && go tool cover -html
 # =============================================================================
 # NODE / PNPM
 # =============================================================================
-alias taze='taze -r'  # Check all workspaces for outdated deps
+(( $+commands[taze] )) && alias taze='taze -r'  # Check all workspaces for outdated deps
 
 # =============================================================================
 # TMUX

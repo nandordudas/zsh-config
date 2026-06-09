@@ -111,16 +111,18 @@ unset _direnv_bin
     --bind alt-k:preview-up
   '
 
-  # Using fdfind (Debian package name for fd)
-  export FZF_DEFAULT_COMMAND='fdfind --type f --hidden --follow --exclude .git 2>/dev/null'
-  export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
-  export FZF_ALT_C_COMMAND='fdfind --type d --hidden --follow --exclude .git 2>/dev/null'
+  # fd/bat command names resolved in modules/platform.zsh (fdfind/batcat on Debian)
+  if [[ "$ZSH_FD_CMD" != "find" ]]; then
+    export FZF_DEFAULT_COMMAND="$ZSH_FD_CMD --type f --hidden --follow --exclude .git 2>/dev/null"
+    export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+    export FZF_ALT_C_COMMAND="$ZSH_FD_CMD --type d --hidden --follow --exclude .git 2>/dev/null"
+  fi
 
-  # Ctrl+T preview: file content via batcat (Debian name for bat)
-  export FZF_CTRL_T_OPTS='
-    --preview "batcat --color=always --style=numbers --line-range=:100 {} 2>/dev/null || cat {}"
+  # Ctrl+T preview: file content via bat
+  export FZF_CTRL_T_OPTS="
+    --preview \"$ZSH_BAT_CMD --color=always --style=numbers --line-range=:100 {} 2>/dev/null || cat {}\"
     --preview-window right:55%:wrap
-  '
+  "
 
   # Alt+C preview: directory listing via eza
   export FZF_ALT_C_OPTS='

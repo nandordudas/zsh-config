@@ -1,6 +1,25 @@
 # ~/.config/zsh/.zprofile
-# Sourced once for login shells (every new VS Code terminal in WSL, ssh sessions).
+# Sourced once for login shells (every new VS Code terminal in WSL, ssh
+# sessions, every Terminal.app/iTerm2 tab on macOS).
 # Sets up PATH, persistent env vars, and creates required directories.
+
+# =============================================================================
+# OS DETECTION
+# Runs once at login; all child shells inherit the flags from the environment.
+# =============================================================================
+case "$OSTYPE" in
+  darwin*) export IS_MACOS=1 IS_LINUX=0 ;;
+  linux*)  export IS_MACOS=0 IS_LINUX=1 ;;
+  *)       export IS_MACOS=0 IS_LINUX=0 ;;
+esac
+
+if [[ -z "$IS_WSL" ]]; then
+  if (( IS_LINUX )) && [[ -r /proc/version ]] && grep -qi microsoft /proc/version 2>/dev/null; then
+    export IS_WSL=1
+  else
+    export IS_WSL=0
+  fi
+fi
 
 # =============================================================================
 # ONE-TIME DIRECTORY SETUP
@@ -12,10 +31,27 @@
 [[ -d "$XDG_STATE_HOME/zsh" ]]            || mkdir -p "$XDG_STATE_HOME/zsh"
 
 # =============================================================================
+# HOMEBREW (macOS and Linuxbrew)
+# Must come before the PATH block so brew-installed tools are found.
+# /opt/homebrew = Apple Silicon, /usr/local = Intel macs, /home/linuxbrew = Linux
+# =============================================================================
+if [[ -z "$HOMEBREW_PREFIX" ]]; then
+  for _brew in /opt/homebrew/bin/brew /usr/local/bin/brew /home/linuxbrew/.linuxbrew/bin/brew; do
+    if [[ -x "$_brew" ]]; then
+      eval "$("$_brew" shellenv)"
+      break
+    fi
+  done
+  unset _brew
+fi
+
+# =============================================================================
 # ZSH CONFIG UPDATE CHECK
-# Check if zsh-config repo has updates (cache check daily to avoid slowdown)
+# Once a day, fetch the repo's upstream and report if new commits are available.
 # =============================================================================
 _check_zsh_config_updates() {
+  zmodload zsh/datetime 2>/dev/null || return 0
+
   local zsh_dir="$ZDOTDIR"
   local cache_file="$XDG_CACHE_HOME/zsh/update-check"
   local cache_max_age=86400  # 1 day in seconds
@@ -32,14 +68,17 @@ _check_zsh_config_updates() {
   # Update cache timestamp
   printf '%s' "$EPOCHSECONDS" >"$cache_file"
 
-  # Check for updates
+  # Fetch upstream quietly (only on the daily check, so login stays fast)
+  git -C "$zsh_dir" fetch --quiet 2>/dev/null || return 0
+
+  # Count commits upstream has that we don't
   local behind
-  behind=$(git -C "$zsh_dir" rev-list --count @{u}..HEAD 2>/dev/null)
+  behind=$(git -C "$zsh_dir" rev-list --count HEAD..@{u} 2>/dev/null)
 
   if [[ -n "$behind" && "$behind" -gt 0 ]]; then
-    printf '\n%s\n' "╭─ 🔄 zsh-config has $behind new commit(s)"
-    printf '%s\n' "├─ Run: cd ~/.config/zsh && git pull"
-    printf '%s\n' "╰─────────────────────────────────────────\n"
+    printf '\n%s\n' "╭─ 🔄 zsh-config has $behind new commit(s) upstream"
+    printf '%s\n' "├─ Run: git -C \$ZDOTDIR pull && exec zsh"
+    printf '%s\n' "╰─────────────────────────────────────────"
   fi
 }
 
@@ -48,7 +87,8 @@ _check_zsh_config_updates
 # =============================================================================
 # PATH (deduplicated via typeset -U)
 # Ordered: user-local → language runtimes → system
-# ~/.fzf/bin is listed here so fzf is in PATH before .zshrc runs
+# Homebrew paths (if any) were already prepended by brew shellenv above and
+# are preserved through $path at the end.
 # =============================================================================
 typeset -U PATH path
 
@@ -57,14 +97,14 @@ path=(
   "$HOME/.fzf/bin"             # fzf (git-cloned install)
   "$HOME/.cargo/bin"           # fnm, cargo-installed tools
   "$HOME/go/bin"               # go-installed binaries (g, etc.)
-  "$HOME/.go/bin"              # go toolchain itself
+  "$HOME/.go/bin"              # go toolchain itself (g version manager)
   "$XDG_CONFIG_HOME/zsh/bin"   # personal scripts
+  $path                        # homebrew + system dirs (/usr/local/bin, /usr/bin, …)
   /usr/local/bin
   /usr/bin
   /bin
   /usr/sbin
   /sbin
-  $path                        # preserve entries from /etc/environment
 )
 
 export PATH
@@ -76,9 +116,18 @@ export LANG="${LANG:-en_US.UTF-8}"
 
 # =============================================================================
 # EDITOR
+# Prefer VS Code when installed, fall back to nvim/vim/nano.
 # =============================================================================
-export EDITOR='code --wait'
-export VISUAL='code'
+if (( $+commands[code] )); then
+  export EDITOR='code --wait'
+  export VISUAL='code'
+elif (( $+commands[nvim] )); then
+  export EDITOR='nvim' VISUAL='nvim'
+elif (( $+commands[vim] )); then
+  export EDITOR='vim' VISUAL='vim'
+else
+  export EDITOR='nano' VISUAL='nano'
+fi
 
 # =============================================================================
 # HISTORY
@@ -91,25 +140,16 @@ export LESSHISTFILE="$XDG_CACHE_HOME/lesshst"
 
 # =============================================================================
 # GO
+# Only point GOROOT at ~/.go when the `g` version manager layout exists.
+# (Homebrew/system Go installs manage GOROOT themselves.)
 # =============================================================================
-export GOROOT="$HOME/.go"
-export GOPATH="$HOME/go"
+[[ -d "$HOME/.go" ]] && export GOROOT="$HOME/.go"
+export GOPATH="${GOPATH:-$HOME/go}"
 
 # =============================================================================
 # GIT & PERSONAL IDENTIFIERS
 # =============================================================================
 export GIT_CONFIG_GLOBAL="$HOME/.config/git/config"
-# =============================================================================
-# WSL DETECTION
-# Runs once at login; all child shells inherit IS_WSL from the environment.
-# =============================================================================
-if [[ -z "$IS_WSL" ]]; then
-  if [[ -r /proc/version ]] && grep -qi microsoft /proc/version 2>/dev/null; then
-    export IS_WSL=1
-  else
-    export IS_WSL=0
-  fi
-fi
 
 # =============================================================================
 # RUST / CARGO

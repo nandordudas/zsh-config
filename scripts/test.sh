@@ -37,7 +37,7 @@ capture() { "$@" 2>&1 || true; }
 # -----------------------------------------------------------------------------
 section "Syntax"
 
-for f in "$REPO_DIR"/scripts/*.sh; do
+for f in "$REPO_DIR"/scripts/*.sh "$REPO_DIR"/install.sh; do
   check "bash -n $(basename "$f")" bash -n "$f"
 done
 
@@ -60,6 +60,8 @@ required_files=(
   .zshrc
   .zprofile
   .gitignore
+  install.sh
+  modules/platform.zsh
   modules/options.zsh
   modules/zinit.zsh
   modules/completions.zsh
@@ -167,10 +169,19 @@ if [[ -f "$GIT_DIR/config" ]]; then
     fail "name/email missing or wrong in config"
   fi
 
-  if grep -q "fsmonitor = false" "$GIT_DIR/config"; then
-    ok "fsmonitor = false (WSL safe)"
+  # git-setup.sh adjusts fsmonitor per platform: true on macOS, false elsewhere
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    if grep -q "fsmonitor = true" "$GIT_DIR/config"; then
+      ok "fsmonitor = true (macOS native FS monitoring)"
+    else
+      fail "fsmonitor not enabled on macOS"
+    fi
   else
-    fail "fsmonitor not set to false"
+    if grep -q "fsmonitor = false" "$GIT_DIR/config"; then
+      ok "fsmonitor = false (Linux/WSL safe)"
+    else
+      fail "fsmonitor not set to false"
+    fi
   fi
 
   if grep -q "__GIT_NAME__\|__GIT_EMAIL__" "$GIT_DIR/config"; then

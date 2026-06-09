@@ -3,6 +3,9 @@
 [[ -n "$__functions_zsh_loaded" ]] && return
 __functions_zsh_loaded=1
 
+# $EPOCHSECONDS (used by upgrade) requires the datetime module
+zmodload zsh/datetime 2>/dev/null
+
 # =============================================================================
 # ENVIRONMENT HELPERS
 # =============================================================================
@@ -116,7 +119,7 @@ bootstrap() {
     printf "Solution: Run ~/.config/zsh/scripts/git-setup.sh to set up git configuration.\n" >&2
     return 1
   fi
-  local folder_name="${1:-$(tr -dc 'a-z0-9' </dev/urandom | head -c 13)}"
+  local folder_name="${1:-$(LC_ALL=C tr -dc 'a-z0-9' </dev/urandom | head -c 13)}"
   mkcd "${folder_name}" && git bootstrap || return 1
   cr
 }
@@ -149,156 +152,8 @@ interactive_kill() {
 # SYSTEM UPGRADES & MAINTENANCE
 # =============================================================================
 
-# Attempt to download prebuilt binary from GitHub releases
-# Returns 0 (success) if binary was downloaded and installed, 1 (failure) if not available
-# Usage: _cargo_download_binary "package_name" "github_repo" "asset_pattern" "extract_cmd"
-_cargo_download_binary() {
-  local package="$1" github_repo="$2" asset_pattern="$3" extract_cmd="$4"
-  local install_dir="${HOME}/.cargo/bin"
-  local temp_dir
-
-  [[ -n "$package" && -n "$github_repo" && -n "$asset_pattern" ]] || return 1
-
-  # Create temp directory for download
-  temp_dir=$(mktemp -d) || return 1
-  trap "rm -rf '$temp_dir'" RETURN
-
-  # Try to download from GitHub releases
-  # Use /latest/download/ redirect to avoid API rate limits
-  local release_url="https://github.com/${github_repo}/releases/latest/download/${asset_pattern}"
-
-  if ! curl -fsSL "$release_url" -o "$temp_dir/binary.tar.gz" 2>/dev/null; then
-    return 1
-  fi
-
-  # Extract and install binary
-  if eval "$extract_cmd" "$temp_dir/binary.tar.gz" "$install_dir" 2>/dev/null; then
-    printf "✓ Downloaded prebuilt: %s\n" "$package"
-    return 0
-  else
-    return 1
-  fi
-}
-
-# Extract tar.gz into directory, preserving binary permissions
-_extract_binary_tar() {
-  local archive="$1" dest_dir="$2"
-  tar -xzf "$archive" -C "$dest_dir" --wildcards '*/'"$3" 2>/dev/null || tar -xzf "$archive" -C "$dest_dir" 2>/dev/null
-}
-
-# Extract zip file and locate binary
-_extract_binary_zip() {
-  local archive="$1" dest_dir="$2" binary_name="$3"
-  local extracted
-  extracted=$(unzip -q -l "$archive" | grep -o "[^/]*${binary_name}[^ ]*" | head -1) || return 1
-  unzip -q -o "$archive" -d "$dest_dir" "$extracted" 2>/dev/null || return 1
-  # Move extracted binary to proper location
-  find "$dest_dir" -name "$binary_name" -exec mv {} "$dest_dir/$binary_name" \; 2>/dev/null
-}
-
-# Smart cargo package updater — hybrid approach: prebuilt first, source fallback
-# Tries to download prebuilt binaries from GitHub releases first (fast: ~10-15s)
-# Falls back to cargo install if prebuilt unavailable (slow: 5-10 min)
-# Only rebuilds if updates available
-_cargo_smart_update() {
-  local cache_dir="$(_zcache_dir)"
-  local manifest_file="$cache_dir/cargo-manifest.json"
-  local needs_update=0
-
-  # Package metadata: name, github_repo, release_asset_pattern, extract_binary_name
-  declare -A packages=(
-    [eza]="eza-community/eza|eza_x86_64-unknown-linux-musl.tar.gz|eza"
-    [procs]="dalance/procs|procs-*-x86_64-linux.zip|procs"
-    [git-delta]="dandavison/delta|delta-*-x86_64-unknown-linux-musl.tar.gz|delta"
-    [du-dust]="bootandy/dust|dust-*-x86_64-unknown-linux-musl.tar.gz|dust"
-    [fnm]="Schniz/fnm|fnm-linux.zip|fnm"
-  )
-
-  # Initialize manifest if missing
-  if [[ ! -f "$manifest_file" ]]; then
-    mkdir -p "$cache_dir"
-    echo "{" >"$manifest_file"
-    local first=1
-    for pkg in "${(k)packages[@]}"; do
-      local version=$($HOME/.cargo/bin/$pkg --version 2>/dev/null | awk '{print $NF}' || echo "unknown")
-      (( ! first )) && echo "," >>"$manifest_file"
-      printf '  "%s": "%s"' "$pkg" "$version" >>"$manifest_file"
-      first=0
-    done
-    echo "}" >>"$manifest_file"
-    needs_update=1
-  fi
-
-  # Check if any installed package is outdated
-  if (( ! needs_update )); then
-    local output
-    output=$(cargo install-update -a --dry-run 2>&1 || echo "check_error")
-
-    if echo "$output" | grep -q "Updating"; then
-      needs_update=1
-    elif echo "$output" | grep -q "check_error"; then
-      echo "⚠ cargo-update check failed; rebuilding conservatively"
-      cargo install-update -a
-      return $?
-    else
-      echo "✓ Cargo packages up-to-date (checked $(date +%H:%M:%S))"
-      return 0
-    fi
-  fi
-
-  if (( needs_update )); then
-    echo "↻ Updating cargo packages (trying prebuilt binaries first)..."
-
-    # Try downloading prebuilt binaries in parallel
-    local -a download_pids=()
-    local download_count=0
-    local failed_packages=()
-
-    for pkg in "${(k)packages[@]}"; do
-      local meta="${packages[$pkg]}"
-      local repo="${meta%%|*}" asset="${meta#*|}" asset="${asset%%|*}" binary="${meta##*|}"
-
-      # Attempt download in background
-      (
-        if [[ "$asset" == *.tar.gz ]]; then
-          curl -fsSL "https://github.com/${repo}/releases/latest/download/${asset}" | tar -xzf - -C "$HOME/.cargo/bin" 2>/dev/null && exit 0
-        elif [[ "$asset" == *.zip ]]; then
-          local temp_dir=$(mktemp -d)
-          trap "rm -rf '$temp_dir'" RETURN
-          if curl -fsSL "https://github.com/${repo}/releases/latest/download/${asset}" -o "$temp_dir/archive.zip" 2>/dev/null; then
-            unzip -q "$temp_dir/archive.zip" -d "$temp_dir" && \
-            find "$temp_dir" -name "$binary" -exec cp {} "$HOME/.cargo/bin/$binary" \; 2>/dev/null && \
-            chmod +x "$HOME/.cargo/bin/$binary" && exit 0
-          fi
-        fi
-        exit 1
-      ) &
-      download_pids+=($!)
-      (( download_count++ ))
-    done
-
-    # Wait for all downloads and check results
-    local succeeded=0
-    for pid in "${download_pids[@]}"; do
-      if wait "$pid" 2>/dev/null; then
-        (( succeeded++ ))
-      fi
-    done
-
-    # If some downloads failed, fall back to cargo install for failed packages
-    if (( succeeded < download_count )); then
-      echo "↻ Prebuilt binaries unavailable for some packages; rebuilding from source..."
-      cargo install-update -a
-    else
-      printf "✓ Updated %d packages from prebuilt binaries\n" "$download_count"
-    fi
-
-    # Update manifest timestamp
-    rm -f "$manifest_file"
-  fi
-}
-
 # Comprehensive system upgrade — parallel execution with selective tool support
+# Package manager is auto-detected: brew (macOS/Linuxbrew) or apt (Debian/Ubuntu).
 # Usage: upgrade [--only tool1,tool2,...] [--dry-run]
 upgrade() {
   setopt LOCAL_OPTIONS
@@ -325,10 +180,20 @@ upgrade() {
     trap - INT TERM
   ' INT TERM
 
-  if ! sudo -n true 2>/dev/null; then
-    printf "Error: sudo access required\n" >&2
-    rm -rf "$tmpdir"
-    return 1
+  # Detect system package manager: brew preferred, apt fallback
+  local pkg_manager=""
+  if (( $+commands[brew] )); then
+    pkg_manager=brew
+  elif (( $+commands[apt-get] )); then
+    pkg_manager=apt
+    # apt is the only job that needs root; ask up front so jobs don't stall
+    if [[ -z "$only_tools" || "$only_tools" =~ (^|,)apt(,|$) ]]; then
+      if ! sudo -v 2>/dev/null; then
+        printf "Error: sudo access required for apt upgrades (use --only to skip apt)\n" >&2
+        rm -rf "$tmpdir"
+        return 1
+      fi
+    fi
   fi
 
   local -a names=() pids=()
@@ -353,13 +218,18 @@ upgrade() {
     sudo apt-get upgrade -y --autoremove --purge
     sudo apt-get autoclean
   }
+  _upgrade_brew() {
+    brew update --quiet
+    brew upgrade
+    brew cleanup --prune=7
+  }
   _upgrade_zinit() {
     (( ${+functions[zinit]} )) || return 0
-    local zinit_dir="${ZINIT[HOME_DIR]:-${HOME}/.local/share/zinit/zinit.git}"
+    local zinit_dir="${ZINIT[HOME_DIR]:-${XDG_DATA_HOME:-$HOME/.local/share}/zinit/zinit.git}"
     git -C "$zinit_dir" fetch origin --quiet 2>/dev/null || true
     local behind=$(git -C "$zinit_dir" rev-list HEAD..FETCH_HEAD --count 2>/dev/null || echo 0)
     (( behind > 0 )) && zinit self-update --quiet || true
-    local stamp="${HOME}/.cache/zinit-plugins-updated"
+    local stamp="$(_zcache_dir)/zinit-plugins-updated"
     if [[ ! -f "$stamp" ]] || (( EPOCHSECONDS - $(<"$stamp") > 86400 )); then
       zinit update --all --quiet || true
       printf '%s' $EPOCHSECONDS >"$stamp"
@@ -371,16 +241,19 @@ upgrade() {
       rustup update || echo "rustup update failed"
     else
       echo "rustup not installed"
+      return 0
     fi
-    if command -v cargo &>/dev/null; then
-      _cargo_smart_update || echo "cargo update failed"
+    # cargo-update plugin updates cargo-installed binaries from source.
+    # On macOS most CLI tools come from brew instead, so this is usually a no-op.
+    if command -v cargo-install-update &>/dev/null; then
+      cargo install-update -a || echo "cargo package update failed"
     fi
   }
   _upgrade_go() {
-    [[ ! -x "$HOME/go/bin/g" ]] && return 0
+    [[ -x "$HOME/go/bin/g" ]] || return 0
     export GOPATH="${GOPATH:-$HOME/go}"
-    export GOROOT="${GOROOT:-$HOME/go/go}"
-    export PATH="$GOPATH/bin:$PATH"
+    export GOROOT="${GOROOT:-$HOME/.go}"
+    export PATH="$GOPATH/bin:$GOROOT/bin:$PATH"
     local local_go=$(go version 2>/dev/null | awk '{print $3}' | sed 's/go//') || return 0
     local remote_go=$(curl -sf 'https://go.dev/VERSION?m=text' 2>/dev/null | head -1 | sed 's/go//') || return 0
     [[ -n "$remote_go" && "$local_go" != "$remote_go" ]] && "$HOME/go/bin/g" install latest && "$HOME/go/bin/g" use latest || true
@@ -405,7 +278,8 @@ upgrade() {
     [[ -n "$only_tools" ]] && printf "Selected tools: %s\n\n" "$only_tools"
   fi
 
-  _launch_job apt _upgrade_apt
+  [[ "$pkg_manager" == "apt" ]]  && _launch_job apt _upgrade_apt
+  [[ "$pkg_manager" == "brew" ]] && _launch_job brew _upgrade_brew
   _launch_job zinit _upgrade_zinit
   _launch_job rust _upgrade_rust
   _launch_job go _upgrade_go
@@ -488,11 +362,15 @@ upgrade() {
   done
 
   # Version summary — data-driven
-  local _ver() {
+  _ver() {
     local label=$1; shift
     printf '  %-12s %s\n' "$label" "$("$@" 2>/dev/null || echo 'not found')"
   }
-  _ver 'OS:'     lsb_release -ds
+  if (( IS_MACOS )); then
+    _ver 'OS:'   sh -c 'echo "$(sw_vers -productName) $(sw_vers -productVersion) ($(uname -m))"'
+  else
+    _ver 'OS:'   sh -c 'lsb_release -ds 2>/dev/null || grep PRETTY_NAME /etc/os-release | cut -d\" -f2'
+  fi
   _ver 'Kernel:' uname -r
   _ver 'Go:'     sh -c 'go version 2>/dev/null | awk "{print \$3}"'
   _ver 'Rust:'   sh -c 'rustc --version 2>/dev/null | awk "{print \$2}"'
@@ -506,7 +384,7 @@ upgrade() {
   printf '\n'
 
   trap - INT TERM
-  unfunction _job_start _job_end _launch_job _upgrade_{apt,zinit,rust,go,node,claude} _ver
+  unfunction _job_start _job_end _launch_job _upgrade_{apt,brew,zinit,rust,go,node,claude} _ver 2>/dev/null
   rm -rf "$tmpdir"
 
   if (( has_failure )); then
@@ -534,38 +412,34 @@ zsh-health() {
 
   printf "${_COLOR_GREEN}=== ZSH Configuration Health ===${_COLOR_RESET}\n\n"
 
+  # Platform
+  printf "Platform:\n"
+  if (( IS_MACOS )); then
+    printf "  ${_COLOR_GREEN}✓${_COLOR_RESET} macOS %s (%s)\n" "$(sw_vers -productVersion 2>/dev/null)" "$(uname -m)"
+    if [[ "$(uname -m)" == "arm64" && ! -x /opt/homebrew/bin/brew ]]; then
+      printf "  ${_COLOR_YELLOW}⊙${_COLOR_RESET} Homebrew not found at /opt/homebrew (run install.sh)\n"
+      (( issues++ ))
+    fi
+  elif (( IS_WSL )); then
+    printf "  ${_COLOR_GREEN}✓${_COLOR_RESET} WSL2 (%s)\n" "$(uname -r)"
+  else
+    printf "  ${_COLOR_GREEN}✓${_COLOR_RESET} Linux (%s)\n" "$(uname -r)"
+  fi
+  printf "\n"
+
   # Check core tools
   printf "Core Tools:\n"
-  if command -v git &>/dev/null; then
-    printf "  ${_COLOR_GREEN}✓${_COLOR_RESET} %-8s %s\n" "git" "$(git --version 2>&1 | head -1)"
-  else
-    printf "  ${_COLOR_RED}✗${_COLOR_RESET} %-8s NOT FOUND\n" "git"; (( issues++ ))
-  fi
-  if command -v zsh &>/dev/null; then
-    printf "  ${_COLOR_GREEN}✓${_COLOR_RESET} %-8s %s\n" "zsh" "$(zsh --version 2>&1 | head -1)"
-  else
-    printf "  ${_COLOR_RED}✗${_COLOR_RESET} %-8s NOT FOUND\n" "zsh"; (( issues++ ))
-  fi
-  if command -v fzf &>/dev/null; then
-    printf "  ${_COLOR_GREEN}✓${_COLOR_RESET} %-8s %s\n" "fzf" "$(fzf --version 2>&1)"
-  else
-    printf "  ${_COLOR_RED}✗${_COLOR_RESET} %-8s NOT FOUND\n" "fzf"; (( issues++ ))
-  fi
-  if command -v eza &>/dev/null; then
-    printf "  ${_COLOR_GREEN}✓${_COLOR_RESET} %-8s %s\n" "eza" "$(eza --version 2>&1 | head -1)"
-  else
-    printf "  ${_COLOR_RED}✗${_COLOR_RESET} %-8s NOT FOUND\n" "eza"; (( issues++ ))
-  fi
-  if command -v batcat &>/dev/null; then
-    printf "  ${_COLOR_GREEN}✓${_COLOR_RESET} %-8s %s\n" "bat" "$(batcat --version 2>&1 | head -1)"
-  else
-    printf "  ${_COLOR_RED}✗${_COLOR_RESET} %-8s NOT FOUND\n" "bat"; (( issues++ ))
-  fi
-  if command -v fdfind &>/dev/null; then
-    printf "  ${_COLOR_GREEN}✓${_COLOR_RESET} %-8s %s\n" "fd" "$(fdfind --version 2>&1 | head -1)"
-  else
-    printf "  ${_COLOR_RED}✗${_COLOR_RESET} %-8s NOT FOUND\n" "fd"; (( issues++ ))
-  fi
+  local -a core_tools=(git zsh fzf eza "$ZSH_BAT_CMD" "$ZSH_FD_CMD")
+  local -a core_labels=(git zsh fzf eza bat fd)
+  local i tool label
+  for (( i = 1; i <= ${#core_tools[@]}; i++ )); do
+    tool="${core_tools[$i]}" label="${core_labels[$i]}"
+    if [[ "$tool" != "cat" && "$tool" != "find" ]] && command -v "$tool" &>/dev/null; then
+      printf "  ${_COLOR_GREEN}✓${_COLOR_RESET} %-8s %s\n" "$label" "$("$tool" --version 2>&1 | head -1)"
+    else
+      printf "  ${_COLOR_RED}✗${_COLOR_RESET} %-8s NOT FOUND\n" "$label"; (( issues++ ))
+    fi
+  done
   printf "\n"
 
   # Check language tools
@@ -594,21 +468,23 @@ zsh-health() {
 
   # Check PATH
   printf "PATH Configuration:\n"
-  local path_count=$(echo $PATH | tr ':' '\n' | wc -l)
+  local path_count=$(echo $PATH | tr ':' '\n' | wc -l | tr -d ' ')
   printf "  • %d directories in PATH\n" "$path_count"
 
-  local key_dirs=(
-    "$HOME/.cargo/bin:Rust/Cargo"
+  local -a key_dirs=(
     "$HOME/.local/bin:Local tools"
-    "$HOME/go/bin:Go tools"
-    "/usr/local/bin:System tools"
   )
+  (( IS_MACOS )) && key_dirs+=("${HOMEBREW_PREFIX:-/opt/homebrew}/bin:Homebrew")
+  [[ -d "$HOME/.cargo/bin" ]] && key_dirs+=("$HOME/.cargo/bin:Rust/Cargo")
+  [[ -d "$HOME/go/bin" ]]     && key_dirs+=("$HOME/go/bin:Go tools")
+
+  local spec dir lbl
   for spec in "${key_dirs[@]}"; do
-    local dir="${spec%%:*}" label="${spec##*:}"
-    if [[ ":$PATH:" =~ ":$dir:" ]]; then
-      printf "  ${_COLOR_GREEN}✓${_COLOR_RESET} %s (%s)\n" "$dir" "$label"
+    dir="${spec%%:*}" lbl="${spec##*:}"
+    if [[ ":$PATH:" == *":$dir:"* ]]; then
+      printf "  ${_COLOR_GREEN}✓${_COLOR_RESET} %s (%s)\n" "$dir" "$lbl"
     else
-      printf "  ${_COLOR_YELLOW}⊙${_COLOR_RESET} %s (%s) missing from PATH\n" "$dir" "$label"
+      printf "  ${_COLOR_YELLOW}⊙${_COLOR_RESET} %s (%s) missing from PATH\n" "$dir" "$lbl"
     fi
   done
   printf "\n"
@@ -642,17 +518,16 @@ zsh-health() {
 }
 
 # =============================================================================
-# GIT HELPERS
-# =============================================================================
-# Note: git checkout helper provided by forgit plugin (gcb alias)
-
-# =============================================================================
 # UTILITIES
 # =============================================================================
 
-# Show listening ports
+# Show listening TCP ports (ss on Linux, lsof on macOS)
 ports() {
-  ss -tlnp | awk 'NR==1 || /LISTEN/'
+  if (( $+commands[ss] )); then
+    ss -tlnp | awk 'NR==1 || /LISTEN/'
+  else
+    lsof -iTCP -sTCP:LISTEN -n -P
+  fi
 }
 
 # Display PATH entries one per line, numbered
@@ -713,24 +588,11 @@ zsh-cache-clear() {
 #      OR add manually at: https://github.com/settings/ssh/new
 #      (add once as Authentication Key, once as Signing Key)
 #
-# GIT CONFIG (already applied to ~/.config/git/config):
-#   [user]
-#     signingKey = ~/.ssh/id_ed25519.pub
-#   [gpg]
-#     format = ssh
-#   [gpg "ssh"]
-#     allowedSignersFile = ~/.config/git/allowed_signers
-#   [commit]
-#     gpgSign = true
-#   [tag]
-#     gpgSign = true
+# Run scripts/git-setup.sh to apply all of this automatically.
 #
 # VERIFY a signed commit:
 #   git log --show-signature -1
 #   # Expected: Good "git" signature for your@email.com with ED25519 key SHA256:...
-#
-# NOTE: GitHub shows a "Verified" badge only after the key is registered as a
-#       Signing Key on GitHub (step 3 above). Local verification works immediately.
 
 # =============================================================================
 # DISK SPACE CLEANUP
@@ -739,7 +601,7 @@ zsh-cache-clear() {
 # Smart disk cleanup: targets project dirs (node_modules, vendor) and system caches
 # Usage: freespace [--dry-run] [--aggressive]
 #   --dry-run     Show what would be deleted without deleting
-#   --aggressive  Also clean system caches (apt, npm, pip, go, cargo)
+#   --aggressive  Also clean system caches (apt/brew, npm, pip, go, cargo)
 freespace() {
   local dry_run=0 aggressive=0
   while [[ -n "$1" ]]; do
@@ -752,7 +614,7 @@ freespace() {
 
   local start_kb=$(/bin/df -k "$HOME" | awk 'NR==2 {print $4}')
   local removed_kb=0
-  local -a actions=()
+  local -a actions=()   # action keywords, executed by _freespace_run below (no eval)
 
   printf "${_COLOR_YELLOW}Analyzing disk usage...${_COLOR_RESET}\n\n"
 
@@ -760,20 +622,20 @@ freespace() {
   printf "Project directories (~/code):\n"
 
   # Node modules
-  local nm_count=$(find "$HOME/code" -maxdepth 4 -type d -name node_modules 2>/dev/null | wc -l)
+  local nm_count=$(command find "$HOME/code" -maxdepth 4 -type d -name node_modules 2>/dev/null | wc -l | tr -d ' ')
   if (( nm_count > 0 )); then
-    local nm_size=$(find "$HOME/code" -maxdepth 4 -type d -name node_modules 2>/dev/null -exec du -sk {} + | awk '{s+=$1} END {print s}')
+    local nm_size=$(command find "$HOME/code" -maxdepth 4 -type d -name node_modules -exec du -sk {} + 2>/dev/null | awk '{s+=$1} END {print s}')
     printf "  ${_COLOR_YELLOW}→${_COLOR_RESET} node_modules (%d dirs, %s MB)\n" "$nm_count" "$(( nm_size / 1024 ))"
-    actions+=("find '$HOME/code' -maxdepth 4 -type d -name node_modules -exec rm -rf {} + 2>/dev/null || true")
+    actions+=(node_modules)
     (( removed_kb += nm_size ))
   fi
 
   # Vendor directories
-  local vendor_count=$(find "$HOME/code" -maxdepth 4 -type d -name vendor 2>/dev/null | wc -l)
+  local vendor_count=$(command find "$HOME/code" -maxdepth 4 -type d -name vendor 2>/dev/null | wc -l | tr -d ' ')
   if (( vendor_count > 0 )); then
-    local vendor_size=$(find "$HOME/code" -maxdepth 4 -type d -name vendor 2>/dev/null -exec du -sk {} + | awk '{s+=$1} END {print s}')
+    local vendor_size=$(command find "$HOME/code" -maxdepth 4 -type d -name vendor -exec du -sk {} + 2>/dev/null | awk '{s+=$1} END {print s}')
     printf "  ${_COLOR_YELLOW}→${_COLOR_RESET} vendor (%d dirs, %s MB)\n" "$vendor_count" "$(( vendor_size / 1024 ))"
-    actions+=("find '$HOME/code' -maxdepth 4 -type d -name vendor -exec rm -rf {} + 2>/dev/null || true")
+    actions+=(vendor)
     (( removed_kb += vendor_size ))
   fi
 
@@ -783,56 +645,46 @@ freespace() {
   if (( aggressive )); then
     printf "System caches (--aggressive):\n"
 
-    # npm cache
+    local cache_size
     if [[ -d "$HOME/.npm" ]]; then
-      local npm_size=$(/bin/du -sk "$HOME/.npm" 2>/dev/null | awk '{print $1}' | head -1)
-      npm_size=${npm_size:-0}
-      if (( npm_size > 0 )); then
-        printf "  ${_COLOR_YELLOW}→${_COLOR_RESET} npm cache (%s MB)\n" "$(( npm_size / 1024 ))"
-        actions+=("npm cache clean --force 2>/dev/null || true")
-        (( removed_kb += npm_size ))
+      cache_size=$(/usr/bin/du -sk "$HOME/.npm" 2>/dev/null | awk '{print $1}'); cache_size=${cache_size:-0}
+      if (( cache_size > 0 )); then
+        printf "  ${_COLOR_YELLOW}→${_COLOR_RESET} npm cache (%s MB)\n" "$(( cache_size / 1024 ))"
+        actions+=(npm_cache); (( removed_kb += cache_size ))
       fi
     fi
 
-    # pip cache
     if [[ -d "$HOME/.cache/pip" ]]; then
-      local pip_size=$(/bin/du -sk "$HOME/.cache/pip" 2>/dev/null | awk '{print $1}' | head -1)
-      pip_size=${pip_size:-0}
-      if (( pip_size > 0 )); then
-        printf "  ${_COLOR_YELLOW}→${_COLOR_RESET} pip cache (%s MB)\n" "$(( pip_size / 1024 ))"
-        actions+=("rm -rf '$HOME/.cache/pip' 2>/dev/null || true")
-        (( removed_kb += pip_size ))
+      cache_size=$(/usr/bin/du -sk "$HOME/.cache/pip" 2>/dev/null | awk '{print $1}'); cache_size=${cache_size:-0}
+      if (( cache_size > 0 )); then
+        printf "  ${_COLOR_YELLOW}→${_COLOR_RESET} pip cache (%s MB)\n" "$(( cache_size / 1024 ))"
+        actions+=(pip_cache); (( removed_kb += cache_size ))
       fi
     fi
 
-    # Go build cache
     if [[ -d "$HOME/.cache/go-build" ]]; then
-      local go_size=$(/bin/du -sk "$HOME/.cache/go-build" 2>/dev/null | awk '{print $1}' | head -1)
-      go_size=${go_size:-0}
-      if (( go_size > 0 )); then
-        printf "  ${_COLOR_YELLOW}→${_COLOR_RESET} go build cache (%s MB)\n" "$(( go_size / 1024 ))"
-        actions+=("go clean -cache 2>/dev/null || true; rm -rf '$HOME/.cache/go-build' 2>/dev/null || true")
-        (( removed_kb += go_size ))
+      cache_size=$(/usr/bin/du -sk "$HOME/.cache/go-build" 2>/dev/null | awk '{print $1}'); cache_size=${cache_size:-0}
+      if (( cache_size > 0 )); then
+        printf "  ${_COLOR_YELLOW}→${_COLOR_RESET} go build cache (%s MB)\n" "$(( cache_size / 1024 ))"
+        actions+=(go_cache); (( removed_kb += cache_size ))
       fi
     fi
 
-    # Cargo cache
     if [[ -d "$HOME/.cargo/registry/cache" ]]; then
-      local cargo_size=$(/bin/du -sk "$HOME/.cargo/registry/cache" 2>/dev/null | awk '{print $1}' | head -1)
-      cargo_size=${cargo_size:-0}
-      if (( cargo_size > 0 )); then
-        printf "  ${_COLOR_YELLOW}→${_COLOR_RESET} cargo registry cache (%s MB)\n" "$(( cargo_size / 1024 ))"
-        actions+=("rm -rf '$HOME/.cargo/registry/cache' 2>/dev/null || true")
-        (( removed_kb += cargo_size ))
+      cache_size=$(/usr/bin/du -sk "$HOME/.cargo/registry/cache" 2>/dev/null | awk '{print $1}'); cache_size=${cache_size:-0}
+      if (( cache_size > 0 )); then
+        printf "  ${_COLOR_YELLOW}→${_COLOR_RESET} cargo registry cache (%s MB)\n" "$(( cache_size / 1024 ))"
+        actions+=(cargo_cache); (( removed_kb += cache_size ))
       fi
     fi
 
-    # APT cache
-    if command -v apt &>/dev/null; then
-      local apt_size=$(du -sk /var/cache/apt 2>/dev/null | awk '{print $1}')
-      (( apt_size > 0 )) && printf "  ${_COLOR_YELLOW}→${_COLOR_RESET} apt cache (%s MB, requires sudo)\n" "$(( apt_size / 1024 ))"
-      actions+=("sudo apt-get autoclean 2>/dev/null || true")
-      (( removed_kb += apt_size ))
+    if (( $+commands[brew] )); then
+      printf "  ${_COLOR_YELLOW}→${_COLOR_RESET} homebrew cache (brew cleanup)\n"
+      actions+=(brew_cache)
+    elif (( $+commands[apt-get] )); then
+      cache_size=$(/usr/bin/du -sk /var/cache/apt 2>/dev/null | awk '{print $1}'); cache_size=${cache_size:-0}
+      (( cache_size > 0 )) && printf "  ${_COLOR_YELLOW}→${_COLOR_RESET} apt cache (%s MB, requires sudo)\n" "$(( cache_size / 1024 ))"
+      actions+=(apt_cache); (( removed_kb += cache_size ))
     fi
 
     printf "\n"
@@ -840,6 +692,8 @@ freespace() {
 
   # Summary
   printf "Total space to recover: ${_COLOR_GREEN}%s MB${_COLOR_RESET}\n\n" "$(( removed_kb / 1024 ))"
+
+  [[ ${#actions[@]} -eq 0 ]] && { printf "Nothing to clean.\n"; return 0; }
 
   # Dry-run or execute
   if (( dry_run )); then
@@ -855,10 +709,26 @@ freespace() {
     return 1
   fi
 
+  _freespace_run() {
+    case "$1" in
+      node_modules) command find "$HOME/code" -maxdepth 4 -type d -name node_modules -exec rm -rf {} + 2>/dev/null ;;
+      vendor)       command find "$HOME/code" -maxdepth 4 -type d -name vendor -exec rm -rf {} + 2>/dev/null ;;
+      npm_cache)    npm cache clean --force 2>/dev/null ;;
+      pip_cache)    rm -rf "$HOME/.cache/pip" 2>/dev/null ;;
+      go_cache)     go clean -cache 2>/dev/null; rm -rf "$HOME/.cache/go-build" 2>/dev/null ;;
+      cargo_cache)  rm -rf "$HOME/.cargo/registry/cache" 2>/dev/null ;;
+      brew_cache)   brew cleanup --prune=all 2>/dev/null ;;
+      apt_cache)    sudo apt-get autoclean 2>/dev/null ;;
+    esac
+    return 0
+  }
+
   printf "\n${_COLOR_YELLOW}Cleaning...${_COLOR_RESET}\n"
+  local action
   for action in "${actions[@]}"; do
-    eval "$action"
+    _freespace_run "$action"
   done
+  unfunction _freespace_run
 
   local end_kb=$(/bin/df -k "$HOME" | awk 'NR==2 {print $4}')
   local freed=$(( (end_kb - start_kb) / 1024 ))

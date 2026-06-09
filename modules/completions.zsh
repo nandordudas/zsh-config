@@ -35,7 +35,8 @@ zstyle ':completion:*' menu select
 # PROCESS COMPLETION
 # =============================================================================
 zstyle ':completion:*:*:kill:*' menu yes select
-zstyle ':completion:*:*:*:*:processes' command "ps -u $USER -o pid,%cpu,cmd"
+# `command` column name is POSIX (GNU ps accepts it too; `cmd` is GNU-only)
+zstyle ':completion:*:*:*:*:processes' command "ps -u $USER -o pid,%cpu,command"
 
 # =============================================================================
 # GIT COMPLETION
@@ -53,16 +54,17 @@ zstyle ':fzf-tab:complete:cd:*' fzf-preview \
   'eza -1 --icons --color=always $realpath 2>/dev/null || ls $realpath'
 
 # ls/la/ll preview: directory listing or file content
+# $ZSH_BAT_CMD (exported by platform.zsh) is bat or batcat depending on OS
 zstyle ':fzf-tab:complete:(ls|la|ll|lt):*' fzf-preview \
   'if [[ -d $realpath ]]; then
      eza -1 --icons --color=always $realpath 2>/dev/null || ls $realpath
    else
-     batcat --color=always --style=numbers --line-range=:50 $realpath 2>/dev/null || cat $realpath
+     $ZSH_BAT_CMD --color=always --style=numbers --line-range=:50 $realpath 2>/dev/null || cat $realpath
    fi'
 
-# kill preview: show process command
+# kill preview: show process command (ps -p/-o command= is POSIX — works on macOS and Linux)
 zstyle ':fzf-tab:complete:kill:argument-rest' fzf-preview \
-  '[[ $group == "[process ID]" ]] && ps --pid=$word -o cmd --no-header -w -w'
+  '[[ $group == "[process ID]" ]] && ps -p $word -o command='
 
 # Tab/Shift-Tab to switch between completion groups
 zstyle ':fzf-tab:*' switch-group '<' '>'

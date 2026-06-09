@@ -237,20 +237,26 @@ $ gunwip
 
 ## Tools & Utilities
 
+Aliases for optional tools only activate when the tool is installed, so a
+missing tool never shadows the real command.
+
 | Alias | Expands to |
 |-------|-----------|
-| `bat` | `batcat --theme TwoDark ...` |
-| `fd` | `fdfind` |
-| `df` | `duf` |
-| `du` | `dust` |
-| `pss` | `procs` |
-| `g` | `~/.cargo/bin/g` (Go version manager) |
+| `bat` | `batcat` (Debian/Ubuntu only — elsewhere `bat` is the real name) |
+| `fd` | `fdfind` (Debian/Ubuntu only — elsewhere `fd` is the real name) |
+| `df` | `duf` (if installed) |
+| `du` | `dust` (if installed) |
+| `pss` | `procs` (if installed) |
+| `g` | `~/go/bin/g` (Go version manager, if installed) |
 | `ik` | `interactive_kill` |
 | `qfind` | `find . -name` |
 | `rand` | `openssl rand -base64 32` |
 | `json` | `python3 -m json.tool` |
-| `zshconfig` | open `.zshrc` in VS Code, reload on close |
+| `zshconfig` | open the config dir in `$VISUAL`/`$EDITOR`, reload on close |
 | `reload` | `exec zsh` |
+
+The bat theme is set via `BAT_THEME` (default `TwoDark`) — override it in
+`modules/local.zsh`.
 
 ```
 $ bat src/main.rs
@@ -302,7 +308,7 @@ $ reload
 | Alias | Expands to |
 |-------|-----------|
 | `psa` | `ps aux` |
-| `free` | `free -h` |
+| `free` | `free -h` (Linux only — macOS has no `free`; use Activity Monitor or `vm_stat`) |
 
 ```
 $ psa | head -3
@@ -318,16 +324,25 @@ Swap:          4.0Gi     0B   4.0Gi
 
 ---
 
-## WSL-Specific
+## Platform-Specific
 
-Available only when `IS_WSL=1`.
+**macOS** ships `open`, `pbcopy`, and `pbpaste` natively — only `uuid` is added:
+
+| Alias | Expands to |
+|-------|-----------|
+| `uuid` | `uuidgen` (lowercased) copied to clipboard |
+
+**WSL** (`IS_WSL=1`) maps the macOS names to Windows tools:
 
 | Alias | Expands to |
 |-------|-----------|
 | `open` | `explorer.exe` |
 | `pbcopy` | `clip.exe` |
-| `pbpaste` | `powershell.exe Get-Clipboard \| tr -d "\r"` |
+| `pbpaste` | `powershell.exe Get-Clipboard \| sed 's/\r$//'` |
 | `uuid` | generate UUID and copy to Windows clipboard |
+
+**Native Linux** gets `open` → `xdg-open` and `pbcopy`/`pbpaste` via
+`wl-copy`/`wl-paste` (Wayland) or `xclip` (X11), when installed.
 
 ```
 $ open .
@@ -370,12 +385,12 @@ $ nvm use 20
 | `cb` | `cargo build` |
 | `ct` | `cargo test` |
 | `crun` | `cargo run` |
-| `cc` | `cargo check` |
+| `cch` | `cargo check` (not `cc` — that would shadow the system C compiler) |
 | `cf` | `cargo fmt` |
 | `clippy` | `cargo clippy -- -D warnings` |
 
 ```
-$ cc
+$ cch
     Checking my-crate v0.1.0
     Finished `dev` profile in 0.38s
 
