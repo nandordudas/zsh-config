@@ -247,11 +247,14 @@ upgrade() {
   }
   _upgrade_mise() {
     command -v mise &>/dev/null || return 0
-    # Upgrade managed runtimes (node, go, …) within their pinned ranges
+    # Upgrade managed runtimes (node + any per-project pins) within their ranges
     mise upgrade --yes 2>/dev/null || mise upgrade || true
-    # Refresh global npm packages on the mise-managed node
+    # Refresh global npm packages; ~/.default-npm-packages is the source of truth
     command -v npm &>/dev/null || return 0
-    npm outdated --global 2>/dev/null | grep -q . && npm install --global npm@latest pnpm@latest @antfu/ni eslint taze npkill || true
+    local pkgs
+    pkgs=$(xargs < "$HOME/.default-npm-packages" 2>/dev/null)
+    [[ -z "$pkgs" ]] && pkgs="pnpm @antfu/ni taze npkill ccstatusline eslint"
+    npm outdated --global 2>/dev/null | grep -q . && npm install --global npm@latest ${=pkgs} || true
   }
   _upgrade_claude() {
     command -v claude &>/dev/null || return 0
@@ -580,7 +583,7 @@ freespace() {
   printf "${_COLOR_YELLOW}Analyzing disk usage...${_COLOR_RESET}\n\n"
 
   # === Project cleanup (always safe) ===
-  local code_dir="${CODE_DIR:-$HOME/Development/code}"
+  local code_dir="${CODE_DIR:-$HOME/Development/Code}"
   printf "Project directories (%s):\n" "${code_dir/#$HOME/~}"
 
   # Node modules

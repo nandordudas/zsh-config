@@ -131,7 +131,7 @@ export GIT_CONFIG_GLOBAL="$HOME/.config/git/config"
 # Used by the gg/gb navigation aliases and freespace cleanup.
 # Override in modules/local.zsh if your projects live elsewhere.
 # =============================================================================
-export CODE_DIR="${CODE_DIR:-$HOME/Development/code}"
+export CODE_DIR="${CODE_DIR:-$HOME/Development/Code}"
 
 # =============================================================================
 # RUST / CARGO

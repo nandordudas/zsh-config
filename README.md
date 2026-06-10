@@ -97,8 +97,9 @@ git clone https://github.com/nandordudas/zsh-config ~/.config/zsh
 brew bundle --file=~/.config/zsh/Brewfile       # core tools
 brew bundle --file=~/.config/zsh/Brewfile.dev   # Node/Go/Rust toolchains
 
-# 4. Runtimes via mise, Rust via rustup
-mise use -g node@lts go@latest
+# 4. Node (global) via mise, Rust via rustup — other runtimes are per-project
+printf 'pnpm\n@antfu/ni\ntaze\nnpkill\nccstatusline\neslint\n' > ~/.default-npm-packages
+mise use -g node@lts
 rustup-init -y --no-modify-path
 
 # 5. Create ~/.zshenv (required — points zsh at the config)
@@ -135,6 +136,10 @@ File: `~/.config/zsh/modules/local.zsh` (gitignored — safe for secrets)
 # GitHub and BitBucket usernames (for gg/gb navigation aliases)
 export GITHUB_USER="your-github-username"
 export BITBUCKET_USER="your-bitbucket-username"
+
+# Project root for gg/gb and freespace (default: ~/Development/Code)
+# Tip: ~/Developer gets a special hammer icon in Finder
+# export CODE_DIR="$HOME/Developer"
 
 # Custom aliases / functions / overrides
 alias myproject="cd ~/projects/myproject"
@@ -180,7 +185,7 @@ exec zsh             # restart shell (regenerates caches)
 
 ```bash
 freespace --dry-run              # preview (no changes)
-freespace                        # clean node_modules/vendor under ~/Development/code
+freespace                        # clean node_modules/vendor under ~/Development/Code
 freespace --aggressive           # also clean npm/pip/go/cargo/brew caches
 ```
 
@@ -199,6 +204,21 @@ git alias              # list all 80+ git aliases
 - `Ctrl+R` → fuzzy history search
 - `Ctrl+T` → fuzzy file finder (with bat preview)
 - `Alt+C` → fuzzy directory jump
+
+### Per-project runtimes (mise)
+
+Node is installed **globally** (always-on tools like `ccstatusline` and `taze`
+need it). Everything else is pinned **per project**:
+
+```bash
+cd myproject
+mise use go@1.24 python@3.13   # writes .mise.toml, installs on demand
+mise ls                        # what's active here
+```
+
+Global npm tools live in `~/.default-npm-packages` — mise re-installs them
+automatically into every new node version, so they survive node upgrades.
+Rust is per-project too: commit a `rust-toolchain.toml` and rustup obeys it.
 
 ### Headless / automation mode
 

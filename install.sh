@@ -152,8 +152,33 @@ if (( ! CONFIG_ONLY )); then
       rustup-init -y --no-modify-path || warn "rustup-init failed — run it manually later"
     fi
 
-    info "Installing Node.js LTS and Go via mise..."
-    mise use --global node@lts go@latest || warn "mise install failed — run 'mise use -g node@lts go@latest' later"
+    # Node is the only GLOBAL runtime — always-on tools (ccstatusline, taze, …)
+    # need it. Go/Python/etc. are per-project: run `mise use go@1.24` inside a
+    # project to pin and install on demand (writes .mise.toml).
+    #
+    # ~/.default-npm-packages: mise auto-installs these into EVERY node version
+    # it installs, so global npm tools survive node upgrades and switches.
+    if [[ ! -f "$HOME/.default-npm-packages" ]]; then
+      cat > "$HOME/.default-npm-packages" << 'EOF'
+pnpm
+@antfu/ni
+taze
+npkill
+ccstatusline
+eslint
+EOF
+      info "Created ~/.default-npm-packages (auto-installed with every node version)"
+    fi
+
+    info "Installing Node.js LTS via mise..."
+    if mise use --global node@lts; then
+      # Ensure globals exist even when node was already installed before
+      # the default-packages file was created (re-runs, upgrades)
+      mise exec -- npm install --global $(xargs < "$HOME/.default-npm-packages") \
+        || warn "npm globals failed — run: npm i -g \$(xargs < ~/.default-npm-packages)"
+    else
+      warn "mise install failed — run 'mise use -g node@lts' later"
+    fi
   fi
 fi
 
@@ -220,8 +245,8 @@ ln -sf "$ZSH_DIR/tmux/tmux.conf" "$TMUX_CONF"
 info "Linked tmux config"
 
 # 5. Project root for gg/gb aliases and freespace
-mkdir -p "$HOME/Development/code"
-info "Project root: ~/Development/code (override CODE_DIR in modules/local.zsh)"
+mkdir -p "$HOME/Development/Code"
+info "Project root: ~/Development/Code (override CODE_DIR in modules/local.zsh)"
 
 # 6. Git identity + SSH signing (optional)
 if [[ -n "$GIT_NAME" && -n "$GIT_EMAIL" ]]; then

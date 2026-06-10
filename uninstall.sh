@@ -7,7 +7,8 @@
 #   - ~/.config/zsh      → moved to ~/.config/zsh.uninstalled (kept, not deleted)
 #   - zsh caches/state   → removed (~/.cache/zsh, zinit plugins)
 #
-# NOT touched: Homebrew packages, mise runtimes, git config, SSH keys, history.
+# NOT touched: Homebrew packages, mise runtimes, npm globals
+# (~/.default-npm-packages), git config, SSH keys, history.
 # To also remove packages afterwards: brew bundle cleanup --file=Brewfile
 #
 # Usage:
@@ -36,7 +37,7 @@ printf "  • restore ~/.zshenv from backup (or remove it)\n"
 printf "  • remove the tmux config symlink (restore backup if present)\n"
 printf "  • move %s to %s.uninstalled (kept as backup)\n" "$ZSH_DIR" "$ZSH_DIR"
 printf "  • clear zsh caches and zinit plugins\n"
-printf "\nKept untouched: brew packages, mise runtimes, git config, SSH keys, shell history.\n\n"
+printf "\nKept untouched: brew packages, mise runtimes, npm globals, git config, SSH keys, shell history.\n\n"
 
 if (( ! ASSUME_YES )); then
   printf "Proceed? [y/N] "
