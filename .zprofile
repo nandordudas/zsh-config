@@ -94,17 +94,20 @@ export LANG="${LANG:-en_US.UTF-8}"
 # =============================================================================
 # EDITOR
 # Prefer VS Code when installed, fall back to nvim/vim/nano.
+# VISUAL mirrors EDITOR so every consumer (git resolves VISUAL before
+# EDITOR) gets the same waiting editor — `code` without --wait returns
+# immediately and breaks rebase/commit editing.
 # =============================================================================
 if (( $+commands[code] )); then
   export EDITOR='code --wait'
-  export VISUAL='code'
 elif (( $+commands[nvim] )); then
-  export EDITOR='nvim' VISUAL='nvim'
+  export EDITOR='nvim'
 elif (( $+commands[vim] )); then
-  export EDITOR='vim' VISUAL='vim'
+  export EDITOR='vim'
 else
-  export EDITOR='nano' VISUAL='nano'
+  export EDITOR='nano'
 fi
+export VISUAL="$EDITOR"
 
 # =============================================================================
 # HISTORY
