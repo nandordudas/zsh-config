@@ -24,7 +24,7 @@ source "$ZDOTDIR/modules/aliases.zsh"
 # 6. Functions
 source "$ZDOTDIR/modules/functions.zsh"
 
-# 7. External tool init (cached evals: starship, zoxide, fnm, direnv, fzf)
+# 7. External tool init (cached evals: starship, zoxide, mise, fzf)
 source "$ZDOTDIR/modules/tools.zsh"
 
 # 8. Machine-local overrides (gitignored)

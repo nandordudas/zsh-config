@@ -120,7 +120,8 @@ export LESSHISTFILE="$XDG_CACHE_HOME/lesshst"
 
 # =============================================================================
 # GO
-# Homebrew Go manages GOROOT itself; only GOPATH is needed.
+# Go itself is per-project via mise (GOROOT handled by mise); GOPATH is
+# where `go install` puts binaries — kept stable across versions.
 # =============================================================================
 export GOPATH="${GOPATH:-$HOME/go}"
 

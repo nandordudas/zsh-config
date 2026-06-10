@@ -95,16 +95,16 @@ overwrite config.toml.bak? n
 
 ```
 $ pwd
-/home/user/code/git_hub/nandordudas/my-project/src
+/Users/user/Development/code/github/nandordudas/my-project/src
 
 $ ..
-/home/user/code/git_hub/nandordudas/my-project
+/Users/user/Development/code/github/nandordudas/my-project
 
 $ ~
 ~
 
 $ cdd
-/home/user/code/git_hub/nandordudas/my-project   # jumps back to previous dir
+/Users/user/Development/code/github/nandordudas/my-project   # jumps back to previous dir
 ```
 
 ---
@@ -248,8 +248,8 @@ missing tool never shadows the real command.
 | `ik` | `interactive_kill` |
 | `qfind` | `find . -name` |
 | `rand` | `openssl rand -base64 32` |
-| `json` | `python3 -m json.tool` |
-| `zshconfig` | open the config dir in `$VISUAL`/`$EDITOR`, reload on close |
+| `json` | `jq .` (falls back to `python3 -m json.tool` if jq missing) |
+| `zshconfig` | open the config dir in `$EDITOR` (waits), then reload the shell |
 | `reload` | `exec zsh` |
 
 The bat theme is set via `BAT_THEME` (default `TwoDark`) — override it in
@@ -279,8 +279,8 @@ $ echo '{"name":"alice","age":30}' | json
 }
 
 $ zshconfig
-# opens ~/.config/zsh/.zshrc in VS Code
-# saving and closing VS Code triggers exec zsh to reload the shell
+# opens the ~/.config/zsh directory in $EDITOR (VS Code, waiting)
+# closing the editor triggers exec zsh to reload the shell
 
 $ reload
 # replaces the current shell process with a fresh zsh

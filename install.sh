@@ -8,7 +8,7 @@
 #   ~/.config/zsh/install.sh                  # full install
 #
 # Options:
-#   --minimal           Core tools only (skip Rust/Go/Node toolchains)
+#   --minimal           Core tools only (skip dev toolchains: mise, rustup)
 #   --config-only       Only set up config files, install no packages
 #   --yes, -y           Don't ask for confirmation
 #   --git-name  NAME    Also run scripts/git-setup.sh with this name
@@ -41,7 +41,7 @@ Usage:
   ~/.config/zsh/install.sh                  # full install
 
 Options:
-  --minimal           Core tools only (skip Brewfile.dev: Rust/Go/Node)
+  --minimal           Core tools only (skip Brewfile.dev: mise, rustup)
   --config-only       Only set up config files, install no packages
   --yes, -y           Don't ask for confirmation
   --git-name  NAME    Also run scripts/git-setup.sh with this name

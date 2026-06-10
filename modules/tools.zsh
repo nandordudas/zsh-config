@@ -6,7 +6,7 @@
 # This turns ~65-85ms of subprocess forks into ~1-2ms of file sourcing.
 #
 # Helper function _ztool_init() centralizes cache logic and reduces duplication.
-# Special case: FZF requires complex PATH handling and stays in anonymous function.
+# FZF additionally exports its FZF_* config vars inside an anonymous function.
 
 _ztool_cache="$XDG_CACHE_HOME/zsh"
 mkdir -p "$_ztool_cache"

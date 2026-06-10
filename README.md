@@ -22,7 +22,7 @@ zsh-health
 That's it. The installer:
 
 - Installs **Homebrew** if missing (`/opt/homebrew` on Apple Silicon — all bottles native arm64)
-- Installs every tool the config uses via **`brew bundle`** — the package list is declared in [`Brewfile`](Brewfile) (core) and [`Brewfile.dev`](Brewfile.dev) (Node/Go/Rust toolchains)
+- Installs every tool the config uses via **`brew bundle`** — the package list is declared in [`Brewfile`](Brewfile) (core) and [`Brewfile.dev`](Brewfile.dev) (dev toolchains: mise, rustup, fastfetch)
 - Writes `~/.zshenv`, creates `modules/local.zsh`, links the tmux config
 - Is **idempotent** — safe to re-run anytime; existing files are backed up, never silently overwritten
 
@@ -30,7 +30,7 @@ That's it. The installer:
 
 | Flag | Effect |
 |------|--------|
-| `--minimal` | Core tools only — skip Rust/Go/Node toolchains |
+| `--minimal` | Core tools only — skip dev toolchains (mise runtimes, rustup) |
 | `--config-only` | Only set up config files, install no packages |
 | `--yes` / `-y` | Skip confirmation prompts |
 | `--git-name "X" --git-email "Y"` | Also configure git identity + SSH commit signing |
@@ -71,7 +71,7 @@ A **fully-featured zsh configuration** built with:
 | **Smart plugin loading** | Plugins load on-demand, not at startup |
 | **Git integration** | SSH commit signing, per-host identities, delta diffs, 80+ git aliases |
 | **macOS-tuned git** | FSEvents `fsmonitor`, fetch/index parallelism = CPU cores |
-| **Tool auto-updates** | `upgrade` updates brew, rust, node, zinit and claude in parallel |
+| **Tool auto-updates** | `upgrade` updates brew, zinit, rust, mise and claude in parallel |
 | **Fuzzy finder** | fzf for file/history search, fzf-tab completion menus, forgit |
 | **Diagnostics** | `zsh-health` checks tools, PATH, and config |
 | **XDG compliant** | All config in `~/.config`, cache in `~/.cache` |
@@ -95,7 +95,7 @@ git clone https://github.com/nandordudas/zsh-config ~/.config/zsh
 
 # 3. All tools (native arm64 bottles on Apple Silicon)
 brew bundle --file=~/.config/zsh/Brewfile       # core tools
-brew bundle --file=~/.config/zsh/Brewfile.dev   # Node/Go/Rust toolchains
+brew bundle --file=~/.config/zsh/Brewfile.dev   # dev toolchains: mise, rustup, fastfetch
 
 # 4. Node (global) via mise, Rust via rustup — other runtimes are per-project
 printf 'pnpm\n@antfu/ni\ntaze\nnpkill\nccstatusline\neslint\n' > ~/.default-npm-packages
