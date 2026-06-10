@@ -178,7 +178,7 @@ zsh-health           # platform, tools, PATH, config — with fix hints
 ### Clear caches
 
 ```bash
-zsh-cache-clear      # removes eval caches (starship, zoxide, mise, direnv, fzf)
+zsh-cache-clear      # removes eval caches (starship, zoxide, mise, fzf)
 exec zsh             # restart shell (regenerates caches)
 ```
 
@@ -220,6 +220,37 @@ mise ls                        # what's active here
 Global npm tools live in `~/.default-npm-packages` — mise re-installs them
 automatically into every new node version, so they survive node upgrades.
 Rust is per-project too: commit a `rust-toolchain.toml` and rustup obeys it.
+
+**brew or mise? The rule of thumb:**
+
+> If two projects could ever need *different versions* of it → **mise**.
+> Otherwise → **brew**.
+
+| brew | mise |
+|------|------|
+| Apps & daemons (Docker Desktop, etc. — casks) | Language runtimes: node, go, python, java, … |
+| System CLI tools, one version forever: git, tmux, fzf, bat, ripgrep, jq, gh, delta, … | Anything pinned in a project's `.mise.toml` |
+| mise itself | |
+
+### Per-project env vars (replaces direnv)
+
+mise also manages environment variables, so **direnv is not installed** —
+[mise's docs deprecate combining them](https://mise.jdx.dev/direnv.html)
+(PATH conflicts). Instead:
+
+```bash
+cd myproject
+mise set NODE_ENV=development     # writes [env] into .mise.toml
+mise set                          # list current env vars
+```
+
+Bonus: auto-install a project's pinned tools when you `cd` in — add to its
+`.mise.toml`:
+
+```toml
+[hooks]
+enter = "mise i -q"
+```
 
 ### Headless / automation mode
 

@@ -512,7 +512,7 @@ tmpcd() {
 zsh-cache-clear() {
   local cache_dir="$(_zcache_dir)"
   local removed=0
-  for f in starship.zsh zoxide.zsh mise.zsh direnv.zsh fzf.zsh; do
+  for f in starship.zsh zoxide.zsh mise.zsh fzf.zsh; do
     if [[ -f "$cache_dir/$f" ]]; then
       rm "$cache_dir/$f"
       (( removed++ ))

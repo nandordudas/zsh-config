@@ -58,12 +58,11 @@ _ztool_init zoxide "$(command -v zoxide)" "zoxide init zsh"
 _ztool_init mise "$(command -v mise)" "mise activate zsh"
 
 # =============================================================================
-# DIRENV (project-specific environments)
-# Must initialize before zoxide so project-specific PATH changes apply to cd
+# PROJECT ENVIRONMENTS
+# direnv is intentionally NOT used: mise replaces it (env vars via [env] in
+# mise.toml / `mise set`), and mise's docs deprecate running both — PATH
+# conflicts are not considered bugs. https://mise.jdx.dev/direnv.html
 # =============================================================================
-_direnv_bin="$(command -v direnv 2>/dev/null || echo "$HOME/.local/bin/direnv")"
-_ztool_init direnv "$_direnv_bin" "direnv hook zsh"
-unset _direnv_bin
 
 # =============================================================================
 # FZF (Fuzzy Finder)

@@ -190,7 +190,7 @@ $ cd src/<Tab>
 ## Eval Caching
 
 Configured in `modules/tools.zsh`. External tool initialisation scripts
-(`starship`, `zoxide`, `mise`, `direnv`, `fzf`) are cached to
+(`starship`, `zoxide`, `mise`, `fzf`) are cached to
 `$XDG_CACHE_HOME/zsh/` on first run and sourced directly on subsequent starts.
 
 | Without cache | With cache |

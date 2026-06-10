@@ -8,7 +8,9 @@ brew "tmux"
 brew "fzf"        # fuzzy finder (Ctrl+R / Ctrl+T / Alt+C)
 brew "zoxide"     # smart cd (z)
 brew "starship"   # prompt
-brew "direnv"     # per-directory environments
+# direnv intentionally absent: mise replaces it ([env] in mise.toml, `mise set`)
+# and mise's docs deprecate running both — PATH conflicts.
+# https://mise.jdx.dev/direnv.html
 
 # Modern CLI replacements
 brew "bat"        # cat with syntax highlighting

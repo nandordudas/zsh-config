@@ -297,8 +297,8 @@ $ pwd
 
 ## zsh-cache-clear
 
-Remove cached eval outputs for the five external tools (starship, zoxide,
-mise, direnv, fzf). Forces them to regenerate on the next shell start.
+Remove cached eval outputs for the external tools (starship, zoxide,
+mise, fzf). Forces them to regenerate on the next shell start.
 
 Useful when auto-invalidation via `mtime` doesn't trigger — for example after
 a manual config edit that doesn't touch the binary.
@@ -308,7 +308,6 @@ $ zsh-cache-clear
 Removed: /home/user/.cache/zsh/starship.zsh
 Removed: /home/user/.cache/zsh/zoxide.zsh
 Removed: /home/user/.cache/zsh/mise.zsh
-Removed: /home/user/.cache/zsh/direnv.zsh
 Cleared 4 cache file(s). Restart shell to regenerate.
 
 # if caches were already absent:
