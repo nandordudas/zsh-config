@@ -157,8 +157,10 @@ cat > "$GIT_DIR/config" << 'CONFIG_EOF'
 [core]
 	abbrev = 12
 	autocrlf = input
-	# editor intentionally NOT set — git falls back to $VISUAL/$EDITOR,
-	# which .zprofile resolves with fallbacks (code → nvim → vim → nano)
+	# --wait is essential: git blocks until you close the tab in VS Code.
+	# Without it, rebase todos and commit messages are read before you edit.
+	# If you drop VS Code, change this (or remove it to fall back to $EDITOR).
+	editor = code --wait
 	excludesFile = ~/.config/git/ignore
 	filemode = true
 	# Native FSEvents monitoring on APFS — big speedup for `git status` in large repos
@@ -433,9 +435,9 @@ cat > "$GIT_DIR/config" << 'CONFIG_EOF'
 # config (name/email/signingKey overrides). Trailing / matches recursively.
 # These come LAST so they override the [user] defaults above.
 # If you change CODE_DIR in modules/local.zsh, update these paths to match.
-[includeIf "gitdir:~/Developer/github/"]
+[includeIf "gitdir:~/Development/code/github/"]
 	path = ~/.config/git/github/.gitconfig
-[includeIf "gitdir:~/Developer/bitbucket/"]
+[includeIf "gitdir:~/Development/code/bitbucket/"]
 	path = ~/.config/git/bitbucket/.gitconfig
 CONFIG_EOF
 

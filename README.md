@@ -137,9 +137,10 @@ File: `~/.config/zsh/modules/local.zsh` (gitignored — safe for secrets)
 export GITHUB_USER="your-github-username"
 export BITBUCKET_USER="your-bitbucket-username"
 
-# Project root for gg/gb and freespace.
-# Default: ~/Developer (Apple's dev folder — gets a hammer icon in Finder)
-# export CODE_DIR="$HOME/Development/Code"
+# Project root for gg/gb and freespace (default: ~/Development/code).
+# NOTE: if you change this, also update the [includeIf] paths in
+# ~/.config/git/config so per-host git identities keep working.
+# export CODE_DIR="$HOME/Developer"
 
 # Custom aliases / functions / overrides
 alias myproject="cd ~/projects/myproject"
@@ -185,7 +186,7 @@ exec zsh             # restart shell (regenerates caches)
 
 ```bash
 freespace --dry-run              # preview (no changes)
-freespace                        # clean node_modules/vendor under ~/Developer
+freespace                        # clean node_modules/vendor under ~/Development/code
 freespace --aggressive           # also clean npm/pip/go/cargo/brew caches
 ```
 

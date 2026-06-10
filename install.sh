@@ -245,8 +245,8 @@ ln -sf "$ZSH_DIR/tmux/tmux.conf" "$TMUX_CONF"
 info "Linked tmux config"
 
 # 5. Project root for gg/gb aliases and freespace
-mkdir -p "$HOME/Developer"
-info "Project root: ~/Developer (override CODE_DIR in modules/local.zsh)"
+mkdir -p "$HOME/Development/code"
+info "Project root: ~/Development/code (override CODE_DIR in modules/local.zsh)"
 
 # 6. Git identity + SSH signing (optional)
 if [[ -n "$GIT_NAME" && -n "$GIT_EMAIL" ]]; then

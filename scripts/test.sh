@@ -192,12 +192,12 @@ if [[ -f "$GIT_DIR/config" ]]; then
   fi
 
   # Per-host identities only work if includeIf directives actually exist
-  if [[ "$(git config --file "$GIT_DIR/config" --get 'includeif.gitdir:~/Developer/github/.path')" == *"github/.gitconfig" ]]; then
+  if [[ "$(git config --file "$GIT_DIR/config" --get 'includeif.gitdir:~/Development/code/github/.path')" == *"github/.gitconfig" ]]; then
     ok "includeIf for github identity present"
   else
     fail "includeIf for github identity missing — per-host config never loads"
   fi
-  if [[ "$(git config --file "$GIT_DIR/config" --get 'includeif.gitdir:~/Developer/bitbucket/.path')" == *"bitbucket/.gitconfig" ]]; then
+  if [[ "$(git config --file "$GIT_DIR/config" --get 'includeif.gitdir:~/Development/code/bitbucket/.path')" == *"bitbucket/.gitconfig" ]]; then
     ok "includeIf for bitbucket identity present"
   else
     fail "includeIf for bitbucket identity missing — per-host config never loads"

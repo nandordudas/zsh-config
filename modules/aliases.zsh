@@ -5,9 +5,9 @@
 # =============================================================================
 # NAVIGATION
 # =============================================================================
-# CODE_DIR (default ~/Developer) is set in .zprofile, override in local.zsh
-alias gg='[[ -n "$GITHUB_USER" ]] && cd "${CODE_DIR:-$HOME/Developer}/github/$GITHUB_USER" || echo "GITHUB_USER not set in modules/local.zsh"'
-alias gb='[[ -n "$BITBUCKET_USER" ]] && cd "${CODE_DIR:-$HOME/Developer}/bitbucket/$BITBUCKET_USER" || echo "BITBUCKET_USER not set in modules/local.zsh"'
+# CODE_DIR (default ~/Development/code) is set in .zprofile, override in local.zsh
+alias gg='[[ -n "$GITHUB_USER" ]] && cd "${CODE_DIR:-$HOME/Development/code}/github/$GITHUB_USER" || echo "GITHUB_USER not set in modules/local.zsh"'
+alias gb='[[ -n "$BITBUCKET_USER" ]] && cd "${CODE_DIR:-$HOME/Development/code}/bitbucket/$BITBUCKET_USER" || echo "BITBUCKET_USER not set in modules/local.zsh"'
 alias cr='code --reuse-window .'
 
 # =============================================================================
@@ -75,7 +75,9 @@ export BAT_THEME="${BAT_THEME:-TwoDark}"
 alias ik='interactive_kill'
 alias qfind='find . -name'
 alias rand='openssl rand -base64 32'
-alias zshconfig='${VISUAL:-${EDITOR:-vi}} "$ZDOTDIR" && exec zsh'
+# ${=EDITOR} word-splits "code --wait" so the shell waits for the editor
+# to close before reloading
+alias zshconfig='${=EDITOR:-vi} "$ZDOTDIR" && exec zsh'
 alias reload='exec zsh'
 # jq comes from the Brewfile; python3 fallback needs Xcode CLT
 if (( $+commands[jq] )); then
