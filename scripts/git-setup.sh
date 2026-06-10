@@ -309,6 +309,9 @@ cat > "$GIT_DIR/config" << 'CONFIG_EOF'
 # BOTTOM of this file (they must come after [user] to override it).
 [alias]
 	# ━━━━━━ CONFIG ━━━━━━
+	# Default branch of the current repo (main/master/develop), fallback main.
+	# Used by the branch-comparing aliases below so they work on any repo.
+	default-branch = "!b=$(git symbolic-ref refs/remotes/origin/HEAD --short 2>/dev/null); b=${b#origin/}; echo \"${b:-main}\""
 	alias = "!f() { git config --get-regexp '^alias\\.' | sed 's/alias\\.//' | sort; }; f"
 	conf = "!f() { git config --global --edit && echo '✓ Config saved'; }; f"
 	whoami = "!f() { printf '\\n%b\\n' '\\033[1;36m━━ Git Configuration ━━\\033[0m'; printf '%b %s\\n' '\\033[1;32m✓\\033[0m Name:' \"$(git config user.name)\"; printf '%b %s\\n' '\\033[1;32m✓\\033[0m Email:' \"$(git config user.email)\"; printf '%b %s\\n' '\\033[1;32m✓\\033[0m Signing key:' \"$(git config user.signingkey)\"; printf '%b\\n\\n' '\\033[1;36m━━━━━━━━━━━━━━━━━━━━━━━━\\033[0m'; }; f"
@@ -330,7 +333,7 @@ cat > "$GIT_DIR/config" << 'CONFIG_EOF'
 	undo = reset --soft HEAD~1
 	wip = "!git add -A && git commit -m 'WIP: work in progress'"
 	fixup = "!f() { git commit --fixup \"$1\"; }; f"
-	autofixup = "!upstream=$(git rev-parse --abbrev-ref @{u} 2>/dev/null || echo 'origin/main'); git rebase -i --autosquash \"$upstream\""
+	autofixup = "!upstream=$(git rev-parse --abbrev-ref @{u} 2>/dev/null || echo \"origin/$(git default-branch)\"); git rebase -i --autosquash \"$upstream\""
 	impact = "!git diff --cached --numstat | awk '{added+=$1; removed+=$2} END {print \"Lines added: \" added \", Lines removed: \" removed}'"
 	# ━━━━━━ BRANCHES ━━━━━━
 	br = branch
@@ -342,10 +345,10 @@ cat > "$GIT_DIR/config" << 'CONFIG_EOF'
 	recent = "!git for-each-ref --sort=-committerdate refs/heads --format='%(refname:short) %(committerdate:relative)' | head -15"
 	stale = "!git branch --sort=committerdate --format='%(committerdate:relative)%09%(refname:short)' | tail -15"
 	# ━━━━━━ REBASE ━━━━━━
-	rebase-onto = "!f() { git rebase --onto ${1-main} ${2-main}; }; f"
-	rebase-main = "!git fetch origin main && git rebase origin/main"
+	rebase-onto = "!f() { b=$(git default-branch); git rebase --onto ${1-$b} ${2-$b}; }; f"
+	rebase-main = "!b=$(git default-branch); git fetch origin $b && git rebase origin/$b"
 	reb = "!r() { git rebase --interactive HEAD~$1; }; r"
-	rebase-branch = "!f() { git rebase --interactive $(git merge-base HEAD ${1-main}); }; f"
+	rebase-branch = "!f() { git rebase --interactive $(git merge-base HEAD ${1-$(git default-branch)}); }; f"
 	resign = "!r() { git rebase --interactive HEAD~${1:-10} --exec \"git commit --amend -S --no-edit --no-verify\"; }; r"
 	cont = rebase --continue
 	# ━━━━━━ MERGE ━━━━━━
@@ -353,10 +356,10 @@ cat > "$GIT_DIR/config" << 'CONFIG_EOF'
 	mmsg = merge --no-edit
 	# ━━━━━━ PUSH/FETCH ━━━━━━
 	fp = fetch --all --prune
-	sync = "!upstream=$(git rev-parse --abbrev-ref @{u} 2>/dev/null || echo 'origin/main'); git fetch && git rebase \"$upstream\""
+	sync = "!upstream=$(git rev-parse --abbrev-ref @{u} 2>/dev/null || echo \"origin/$(git default-branch)\"); git fetch && git rebase \"$upstream\""
 	pushf = push --force-with-lease --force-if-includes
 	undo-push = "!git push --force-with-lease origin HEAD~1:$(git branch --show-current)"
-	promi = "!r() { git pull --rebase=interactive origin ${1-main}; }; r"
+	promi = "!r() { git pull --rebase=interactive origin ${1-$(git default-branch)}; }; r"
 	# ━━━━━━ STASH ━━━━━━
 	stashk = stash push --keep-index
 	stash-all = stash push --include-untracked
@@ -366,10 +369,10 @@ cat > "$GIT_DIR/config" << 'CONFIG_EOF'
 	lga = log --graph --abbrev-commit --decorate --all --date=relative --format=format:'%C(bold blue)%h%C(reset)%C(bold yellow)%d%C(reset) %C(white)%s%C(reset) %C(bold green)(%ar)%C(reset)'
 	log-summary = log --oneline --graph --decorate --all
 	what = log --oneline -n 10
-	new = log --graph main..HEAD --oneline
-	missing = log --graph HEAD..main --oneline
-	ahead = log main..HEAD --oneline
-	behind = log HEAD..main --oneline
+	new = "!git log --graph $(git default-branch)..HEAD --oneline"
+	missing = "!git log --graph HEAD..$(git default-branch) --oneline"
+	ahead = "!git log $(git default-branch)..HEAD --oneline"
+	behind = "!git log HEAD..$(git default-branch) --oneline"
 	commits-today = log --since=today --oneline
 	commits-week = "!git log --since='1 week ago' --oneline"
 	commits-since = "!f() { git log --since=\"$1\" --oneline --all; }; f"
@@ -384,7 +387,7 @@ cat > "$GIT_DIR/config" << 'CONFIG_EOF'
 	find-function = "!f() { git log -p --all -G \"(def|function) $1\" -- '*.js' '*.go' '*.php' '*.ts'; }; f"
 	# ━━━━━━ DIFF ━━━━━━
 	diff-tool = difftool --dir-diff
-	diff-main = "!git diff origin/main...HEAD --stat"
+	diff-main = "!git diff origin/$(git default-branch)...HEAD --stat"
 	staged-files = diff --cached --name-only
 	unstaged-files = diff --name-only
 	all-changes = diff HEAD --name-only
@@ -400,7 +403,7 @@ cat > "$GIT_DIR/config" << 'CONFIG_EOF'
 	# ━━━━━━ CHERRY-PICK ━━━━━━
 	pick = cherry-pick --no-commit
 	# ━━━━━━ MAINTENANCE ━━━━━━
-	cleanup = "!f() { echo '🧹 Cleaning merged branches...'; git branch --merged main | grep -v '* main' | xargs -r git branch -d; echo '✅ Done'; }; f"
+	cleanup = "!f() { b=$(git default-branch); echo \"🧹 Cleaning branches merged into $b...\"; git branch --merged \"$b\" | grep -vE \"^\\*|^. ${b}$\" | xargs -r git branch -d; echo '✅ Done'; }; f"
 	gc-aggressive = gc --aggressive --prune=now
 	bootstrap = "!f() { echo \"🚀 Bootstrapping new Git repository...\"; git init || return 1; git maintenance register || return 1; git maintenance start || return 1; git commit --allow-empty --message 'chore: initial commit' $(git config --get commit.gpgsign | grep -q true && echo '-S') || return 1; echo \"✅ Repository bootstrap complete!\"; }; f"
 	# ━━━━━━ STATISTICS ━━━━━━
@@ -411,7 +414,7 @@ cat > "$GIT_DIR/config" << 'CONFIG_EOF'
 	lines-changed = log --format=medium --numstat
 	# ━━━━━━ MONOREPO ━━━━━━
 	workspace = "!f() { cd packages/$1 && git status; }; f"
-	affected = "!git diff origin/main...HEAD --name-only | grep -o 'packages/[^/]*' | sort -u"
+	affected = "!git diff origin/$(git default-branch)...HEAD --name-only | grep -o 'packages/[^/]*' | sort -u"
 	packages-changed = "!git diff --name-only | cut -d'/' -f2 | sort -u"
 [user]
 	signingKey = ~/.ssh/id_ed25519.pub
