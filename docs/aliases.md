@@ -14,10 +14,10 @@ All aliases defined in `modules/aliases.zsh`, with example calls and output.
 
 ```
 $ gg
-~/Development/Code/github/nandordudas
+~/Developer/github/nandordudas
 
 $ gb
-~/Development/Code/bitbucket/nandordudas
+~/Developer/bitbucket/nandordudas
 
 $ cr
 # opens current directory in the existing VS Code window

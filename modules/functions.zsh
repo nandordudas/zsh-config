@@ -583,7 +583,7 @@ freespace() {
   printf "${_COLOR_YELLOW}Analyzing disk usage...${_COLOR_RESET}\n\n"
 
   # === Project cleanup (always safe) ===
-  local code_dir="${CODE_DIR:-$HOME/Development/Code}"
+  local code_dir="${CODE_DIR:-$HOME/Developer}"
   printf "Project directories (%s):\n" "${code_dir/#$HOME/~}"
 
   # Node modules

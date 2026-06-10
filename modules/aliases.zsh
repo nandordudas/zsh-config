@@ -5,9 +5,9 @@
 # =============================================================================
 # NAVIGATION
 # =============================================================================
-# CODE_DIR (default ~/Development/Code) is set in .zprofile, override in local.zsh
-alias gg='[[ -n "$GITHUB_USER" ]] && cd "${CODE_DIR:-$HOME/Development/Code}/github/$GITHUB_USER" || echo "GITHUB_USER not set in modules/local.zsh"'
-alias gb='[[ -n "$BITBUCKET_USER" ]] && cd "${CODE_DIR:-$HOME/Development/Code}/bitbucket/$BITBUCKET_USER" || echo "BITBUCKET_USER not set in modules/local.zsh"'
+# CODE_DIR (default ~/Developer) is set in .zprofile, override in local.zsh
+alias gg='[[ -n "$GITHUB_USER" ]] && cd "${CODE_DIR:-$HOME/Developer}/github/$GITHUB_USER" || echo "GITHUB_USER not set in modules/local.zsh"'
+alias gb='[[ -n "$BITBUCKET_USER" ]] && cd "${CODE_DIR:-$HOME/Developer}/bitbucket/$BITBUCKET_USER" || echo "BITBUCKET_USER not set in modules/local.zsh"'
 alias cr='code --reuse-window .'
 
 # =============================================================================

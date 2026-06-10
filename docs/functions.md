@@ -332,7 +332,7 @@ $ toggle_interactive        # show current state
 ## freespace
 
 Smart disk cleanup with confirmation prompts. Targets `node_modules` and
-`vendor` directories under `$CODE_DIR` (default `~/Development/Code`); with `--aggressive` also cleans system
+`vendor` directories under `$CODE_DIR` (default `~/Developer`); with `--aggressive` also cleans system
 caches (npm, pip, go, cargo, brew).
 
 ```
