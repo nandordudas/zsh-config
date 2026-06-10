@@ -185,7 +185,7 @@ $ glo
 
 ---
 
-## OMZ Completions (golang / rust / docker-compose / npm)
+## OMZ Completions (golang / rust / docker-compose / npm / mise)
 
 Individual completion plugins from oh-my-zsh, loaded without the full OMZ
 framework. Each adds `<Tab>` completions for its tool.
@@ -212,4 +212,11 @@ $ npm <Tab>
 
 $ npm run <Tab>
   build    dev    lint    test    typecheck    ...  (reads scripts from package.json)
+
+# mise
+$ mise <Tab>
+  activate    alias    bin-paths    cache    completion    exec    exec-env    global    hook-env    ...
+
+$ mise use <Tab>
+  node    python    go    rust    java    ruby    ...  (available runtimes)
 ```

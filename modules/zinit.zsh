@@ -88,4 +88,5 @@ zinit wait"1" lucid for \
   OMZP::rust \
   OMZP::docker \
   OMZP::docker-compose \
-  OMZP::npm
+  OMZP::npm \
+  OMZP::mise
