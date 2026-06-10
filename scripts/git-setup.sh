@@ -157,10 +157,10 @@ cat > "$GIT_DIR/config" << 'CONFIG_EOF'
 [core]
 	abbrev = 12
 	autocrlf = input
-	# --wait is essential: git blocks until you close the tab in VS Code.
-	# Without it, rebase todos and commit messages are read before you edit.
-	# If you drop VS Code, change this (or remove it to fall back to $EDITOR).
-	editor = code --wait
+	# editor intentionally NOT set — git falls back to $VISUAL/$EDITOR,
+	# which .zprofile sets to "code --wait" (→ nvim → vim → nano).
+	# The --wait flag there is essential: git must block until the
+	# rebase-todo / commit-message tab is closed in VS Code.
 	excludesFile = ~/.config/git/ignore
 	filemode = true
 	# Native FSEvents monitoring on APFS — big speedup for `git status` in large repos
