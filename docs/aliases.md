@@ -8,16 +8,16 @@ All aliases defined in `modules/aliases.zsh`, with example calls and output.
 
 | Alias | Expands to |
 |-------|-----------|
-| `gg` | `cd ~/code/github/$GITHUB_USER` (requires `GITHUB_USER` in `modules/local.zsh`) |
-| `gb` | `cd ~/code/bitbucket/$BITBUCKET_USER` (requires `BITBUCKET_USER` in `modules/local.zsh`) |
+| `gg` | `cd $CODE_DIR/github/$GITHUB_USER` (requires `GITHUB_USER` in `modules/local.zsh`) |
+| `gb` | `cd $CODE_DIR/bitbucket/$BITBUCKET_USER` (requires `BITBUCKET_USER` in `modules/local.zsh`) |
 | `cr` | `code --reuse-window .` |
 
 ```
 $ gg
-~/code/github/nandordudas
+~/Development/code/github/nandordudas
 
 $ gb
-~/code/bitbucket/nandordudas
+~/Development/code/bitbucket/nandordudas
 
 $ cr
 # opens current directory in the existing VS Code window
@@ -312,16 +312,8 @@ $ uuid
 
 ## Development Tools
 
-### General
-
-| Alias | Expands to |
-|-------|-----------|
-| `nvm` | `fnm` |
-
-```
-$ nvm use 20
-# delegates to fnm — fnm is a faster drop-in for nvm
-```
+Node, Go, and other runtimes are managed by [mise](https://mise.jdx.dev/) —
+use `mise use node@22`, `mise ls`, `mise upgrade` directly (no aliases needed).
 
 ### Cargo (Rust)
 

@@ -97,8 +97,8 @@ git clone https://github.com/nandordudas/zsh-config ~/.config/zsh
 brew bundle --file=~/.config/zsh/Brewfile       # core tools
 brew bundle --file=~/.config/zsh/Brewfile.dev   # Node/Go/Rust toolchains
 
-# 4. Node.js via fnm, Rust via rustup
-fnm install --lts && fnm default lts-latest
+# 4. Runtimes via mise, Rust via rustup
+mise use -g node@lts go@latest
 rustup-init -y --no-modify-path
 
 # 5. Create ~/.zshenv (required — points zsh at the config)
@@ -158,9 +158,9 @@ Full reference: [docs/aliases.md](docs/aliases.md), [docs/keybindings.md](docs/k
 ### Update everything
 
 ```bash
-upgrade              # brew, zinit, rust, node, claude — in parallel
+upgrade              # brew, zinit, rust, mise (node/go), claude — in parallel
 upgrade --dry-run    # see what would run
-upgrade --only node  # update only Node.js
+upgrade --only mise  # update only mise-managed runtimes + npm globals
 ```
 
 ### Check system health
@@ -172,7 +172,7 @@ zsh-health           # platform, tools, PATH, config — with fix hints
 ### Clear caches
 
 ```bash
-zsh-cache-clear      # removes eval caches (starship, zoxide, fnm, direnv, fzf)
+zsh-cache-clear      # removes eval caches (starship, zoxide, mise, direnv, fzf)
 exec zsh             # restart shell (regenerates caches)
 ```
 
@@ -180,7 +180,7 @@ exec zsh             # restart shell (regenerates caches)
 
 ```bash
 freespace --dry-run              # preview (no changes)
-freespace                        # clean node_modules/vendor under ~/code
+freespace                        # clean node_modules/vendor under ~/Development/code
 freespace --aggressive           # also clean npm/pip/go/cargo/brew caches
 ```
 
@@ -296,11 +296,18 @@ Verify: `git commit --allow-empty -m "test" && git log --show-signature -1`
 
 ## Uninstall
 
+One command, one confirmation — the mirror image of install:
+
 ```bash
-mv ~/.config/zsh ~/.config/zsh.bak      # keep a backup
-rm ~/.zshenv ~/.config/tmux/tmux.conf
-# open a new terminal — back to stock macOS zsh
+~/.config/zsh/uninstall.sh
 ```
+
+It restores your original `~/.zshenv` and `tmux.conf` from the backups
+install.sh made, moves the config to `~/.config/zsh.uninstalled` (kept, in
+case `local.zsh` holds secrets), and clears caches/plugins. Brew packages,
+mise runtimes, git config, SSH keys, and shell history are left untouched —
+the script prints the `brew bundle cleanup` command if you want packages
+gone too.
 
 To disable plugins temporarily without uninstalling: `toggle_interactive off`.
 
@@ -312,8 +319,9 @@ To disable plugins temporarily without uninstalling: `toggle_interactive off`.
 ~/.zshenv                     # in $HOME, created by install.sh — sets ZDOTDIR
 ~/.config/zsh/
 ├── install.sh                # one-command installer (Homebrew-based)
+├── uninstall.sh              # one-command uninstaller (restores backups)
 ├── Brewfile                  # core packages (brew bundle)
-├── Brewfile.dev              # dev toolchains: fnm, go, rustup, fastfetch
+├── Brewfile.dev              # dev toolchains: mise, rustup, fastfetch
 ├── .zprofile                 # login shells: Homebrew, PATH, env vars
 ├── .zshrc                    # main orchestrator — sources modules in order
 ├── modules/
@@ -323,7 +331,7 @@ To disable plugins temporarily without uninstalling: `toggle_interactive off`.
 │   ├── keybindings.zsh       # key mappings
 │   ├── aliases.zsh           # command aliases
 │   ├── functions.zsh         # upgrade, zsh-health, freespace, …
-│   ├── tools.zsh             # cached tool init (starship, zoxide, fnm, …)
+│   ├── tools.zsh             # cached tool init (starship, zoxide, mise, …)
 │   └── local.zsh             # machine-local overrides (gitignored)
 ├── tmux/tmux.conf            # tmux config (linked to ~/.config/tmux/)
 ├── scripts/

@@ -51,25 +51,11 @@ unset _zinteractive_mode _zinteractive_mode_file
 _ztool_init zoxide "$(command -v zoxide)" "zoxide init zsh"
 
 # =============================================================================
-# FNM (Node Version Manager)
-# Node itself is installed by install.sh (`fnm install --lts`); the shell
-# only wires up the environment here — no subprocess checks on startup.
+# MISE (runtime version manager: node, go, python, …)
+# Runtimes are installed by install.sh (`mise use -g node@lts go@latest`);
+# the shell only wires up the activation hook here.
 # =============================================================================
-_fnm_bin="$(command -v fnm 2>/dev/null)"
-_ztool_init fnm "$_fnm_bin" "fnm env --use-on-cd --shell zsh"
-
-# FNM's multishell mode may not work in subshells; fallback: add default version to PATH.
-# Only costs subprocesses when node is actually missing from PATH.
-if ! command -v node &>/dev/null && [[ -x "$_fnm_bin" ]]; then
-  _fnm_default=$($_fnm_bin list 2>/dev/null | grep default | awk '{print $2}')
-  _fnm_default_bin="${FNM_DIR:-$HOME/.local/share/fnm}/node-versions/${_fnm_default}/installation/bin"
-  if [[ -d "$_fnm_default_bin" ]]; then
-    export PATH="$_fnm_default_bin:$PATH"
-  fi
-  unset _fnm_default _fnm_default_bin
-fi
-
-unset _fnm_bin
+_ztool_init mise "$(command -v mise)" "mise activate zsh"
 
 # =============================================================================
 # DIRENV (project-specific environments)

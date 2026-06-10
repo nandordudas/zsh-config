@@ -114,7 +114,7 @@ Comprehensive parallel system upgrade. Smart recovery from network failures.
 **Usage:**
 ```bash
 upgrade                          # Full upgrade (all tools)
-upgrade --only node,rust         # Selective (just node + rust)
+upgrade --only mise,rust         # Selective (just mise runtimes + rust)
 upgrade --dry-run                # Preview without executing
 upgrade --dry-run --only claude  # Preview specific tools
 ```
@@ -123,7 +123,7 @@ upgrade --dry-run --only claude  # Preview specific tools
 - **Homebrew**: `brew update && brew upgrade && brew cleanup` (covers Go too)
 - `zinit self-update && zinit update --all` (if zinit loaded)
 - **Rust**: `rustup update` + `cargo install-update -a` (if cargo-update installed)
-- **Node**: `fnm install --lts` + global npm packages (if fnm present)
+- **mise**: `mise upgrade` for managed runtimes (node, go, …) + global npm packages
 - **Claude**: checks npm registry for updates (if claude present)
 
 All jobs run simultaneously with live spinner feedback. Failed job logs appear
@@ -297,7 +297,7 @@ $ pwd
 ## zsh-cache-clear
 
 Remove cached eval outputs for the five external tools (starship, zoxide,
-fnm, direnv, fzf). Forces them to regenerate on the next shell start.
+mise, direnv, fzf). Forces them to regenerate on the next shell start.
 
 Useful when auto-invalidation via `mtime` doesn't trigger — for example after
 a manual config edit that doesn't touch the binary.
@@ -306,7 +306,7 @@ a manual config edit that doesn't touch the binary.
 $ zsh-cache-clear
 Removed: /home/user/.cache/zsh/starship.zsh
 Removed: /home/user/.cache/zsh/zoxide.zsh
-Removed: /home/user/.cache/zsh/fnm.zsh
+Removed: /home/user/.cache/zsh/mise.zsh
 Removed: /home/user/.cache/zsh/direnv.zsh
 Cleared 4 cache file(s). Restart shell to regenerate.
 
@@ -332,7 +332,7 @@ $ toggle_interactive        # show current state
 ## freespace
 
 Smart disk cleanup with confirmation prompts. Targets `node_modules` and
-`vendor` directories under `~/code`; with `--aggressive` also cleans system
+`vendor` directories under `$CODE_DIR` (default `~/Development/code`); with `--aggressive` also cleans system
 caches (npm, pip, go, cargo, brew).
 
 ```

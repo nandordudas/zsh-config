@@ -5,8 +5,9 @@
 # =============================================================================
 # NAVIGATION
 # =============================================================================
-alias gg='[[ -n "$GITHUB_USER" ]] && cd ~/code/github/"$GITHUB_USER" || echo "GITHUB_USER not set in modules/local.zsh"'
-alias gb='[[ -n "$BITBUCKET_USER" ]] && cd ~/code/bitbucket/"$BITBUCKET_USER" || echo "BITBUCKET_USER not set in modules/local.zsh"'
+# CODE_DIR (default ~/Development/code) is set in .zprofile, override in local.zsh
+alias gg='[[ -n "$GITHUB_USER" ]] && cd "${CODE_DIR:-$HOME/Development/code}/github/$GITHUB_USER" || echo "GITHUB_USER not set in modules/local.zsh"'
+alias gb='[[ -n "$BITBUCKET_USER" ]] && cd "${CODE_DIR:-$HOME/Development/code}/bitbucket/$BITBUCKET_USER" || echo "BITBUCKET_USER not set in modules/local.zsh"'
 alias cr='code --reuse-window .'
 
 # =============================================================================
@@ -84,11 +85,6 @@ alias json='python3 -m json.tool'
 # =============================================================================
 alias psa='ps aux'
 alias uuid="uuidgen | tr '[:upper:]' '[:lower:]' | tr -d '\n' | pbcopy"
-
-# =============================================================================
-# DEVELOPMENT TOOLS
-# =============================================================================
-(( $+commands[fnm] )) && alias nvm='fnm'  # Use fnm instead of nvm
 
 # =============================================================================
 # CARGO (Rust)

@@ -245,11 +245,12 @@ upgrade() {
       cargo install-update -a || echo "cargo package update failed"
     fi
   }
-  _upgrade_node() {
-    command -v fnm &>/dev/null || return 0
-    local lts=$(fnm list-remote --lts 2>/dev/null | tail -1 | awk '{print $1}') || return 0
-    local current=$(fnm current 2>/dev/null) || return 0
-    [[ "v${lts#v}" != "v${current#v}" ]] && fnm install --lts && fnm default lts-latest && fnm use lts-latest || true
+  _upgrade_mise() {
+    command -v mise &>/dev/null || return 0
+    # Upgrade managed runtimes (node, go, …) within their pinned ranges
+    mise upgrade --yes 2>/dev/null || mise upgrade || true
+    # Refresh global npm packages on the mise-managed node
+    command -v npm &>/dev/null || return 0
     npm outdated --global 2>/dev/null | grep -q . && npm install --global npm@latest pnpm@latest @antfu/ni eslint taze npkill || true
   }
   _upgrade_claude() {
@@ -265,11 +266,10 @@ upgrade() {
     [[ -n "$only_tools" ]] && printf "Selected tools: %s\n\n" "$only_tools"
   fi
 
-  # Go is upgraded by brew (installed via `brew install go`)
   (( $+commands[brew] )) && _launch_job brew _upgrade_brew
   _launch_job zinit _upgrade_zinit
   _launch_job rust _upgrade_rust
-  _launch_job node _upgrade_node
+  _launch_job mise _upgrade_mise   # node, go, … + global npm packages
   _launch_job claude _upgrade_claude
 
   [[ ${#names[@]} -eq 0 ]] && { printf "No tools to upgrade\n" >&2; rm -rf "$tmpdir"; return 0; }
@@ -357,6 +357,7 @@ upgrade() {
   _ver 'Go:'     sh -c 'go version 2>/dev/null | awk "{print \$3}"'
   _ver 'Rust:'   sh -c 'rustc --version 2>/dev/null | awk "{print \$2}"'
   _ver 'Cargo:'  sh -c 'cargo --version 2>/dev/null | awk "{print \$2}"'
+  _ver 'mise:'   sh -c 'mise --version 2>/dev/null | awk "{print \$1}"'
   _ver 'Node:'   node --version
   _ver 'npm:'    npm --version
   _ver 'pnpm:'   pnpm --version
@@ -366,7 +367,7 @@ upgrade() {
   printf '\n'
 
   trap - INT TERM
-  unfunction _job_start _job_end _launch_job _upgrade_{brew,zinit,rust,node,claude} _ver 2>/dev/null
+  unfunction _job_start _job_end _launch_job _upgrade_{brew,zinit,rust,mise,claude} _ver 2>/dev/null
   rm -rf "$tmpdir"
 
   if (( has_failure )); then
@@ -513,7 +514,7 @@ tmpcd() {
 zsh-cache-clear() {
   local cache_dir="$(_zcache_dir)"
   local removed=0
-  for f in starship.zsh zoxide.zsh fnm.zsh direnv.zsh fzf.zsh; do
+  for f in starship.zsh zoxide.zsh mise.zsh direnv.zsh fzf.zsh; do
     if [[ -f "$cache_dir/$f" ]]; then
       rm "$cache_dir/$f"
       (( removed++ ))
@@ -579,21 +580,22 @@ freespace() {
   printf "${_COLOR_YELLOW}Analyzing disk usage...${_COLOR_RESET}\n\n"
 
   # === Project cleanup (always safe) ===
-  printf "Project directories (~/code):\n"
+  local code_dir="${CODE_DIR:-$HOME/Development/code}"
+  printf "Project directories (%s):\n" "${code_dir/#$HOME/~}"
 
   # Node modules
-  local nm_count=$(command find "$HOME/code" -maxdepth 4 -type d -name node_modules 2>/dev/null | wc -l | tr -d ' ')
+  local nm_count=$(command find "$code_dir" -maxdepth 4 -type d -name node_modules 2>/dev/null | wc -l | tr -d ' ')
   if (( nm_count > 0 )); then
-    local nm_size=$(command find "$HOME/code" -maxdepth 4 -type d -name node_modules -exec du -sk {} + 2>/dev/null | awk '{s+=$1} END {print s+0}')
+    local nm_size=$(command find "$code_dir" -maxdepth 4 -type d -name node_modules -exec du -sk {} + 2>/dev/null | awk '{s+=$1} END {print s+0}')
     printf "  ${_COLOR_YELLOW}→${_COLOR_RESET} node_modules (%d dirs, %s MB)\n" "$nm_count" "$(( nm_size / 1024 ))"
     actions+=(node_modules)
     (( removed_kb += nm_size ))
   fi
 
   # Vendor directories
-  local vendor_count=$(command find "$HOME/code" -maxdepth 4 -type d -name vendor 2>/dev/null | wc -l | tr -d ' ')
+  local vendor_count=$(command find "$code_dir" -maxdepth 4 -type d -name vendor 2>/dev/null | wc -l | tr -d ' ')
   if (( vendor_count > 0 )); then
-    local vendor_size=$(command find "$HOME/code" -maxdepth 4 -type d -name vendor -exec du -sk {} + 2>/dev/null | awk '{s+=$1} END {print s+0}')
+    local vendor_size=$(command find "$code_dir" -maxdepth 4 -type d -name vendor -exec du -sk {} + 2>/dev/null | awk '{s+=$1} END {print s+0}')
     printf "  ${_COLOR_YELLOW}→${_COLOR_RESET} vendor (%d dirs, %s MB)\n" "$vendor_count" "$(( vendor_size / 1024 ))"
     actions+=(vendor)
     (( removed_kb += vendor_size ))
@@ -654,8 +656,8 @@ freespace() {
 
   _freespace_run() {
     case "$1" in
-      node_modules) command find "$HOME/code" -maxdepth 4 -type d -name node_modules -exec rm -rf {} + 2>/dev/null ;;
-      vendor)       command find "$HOME/code" -maxdepth 4 -type d -name vendor -exec rm -rf {} + 2>/dev/null ;;
+      node_modules) command find "$code_dir" -maxdepth 4 -type d -name node_modules -exec rm -rf {} + 2>/dev/null ;;
+      vendor)       command find "$code_dir" -maxdepth 4 -type d -name vendor -exec rm -rf {} + 2>/dev/null ;;
       npm_cache)    npm cache clean --force 2>/dev/null ;;
       pip_cache)    rm -rf "$HOME/.cache/pip" 2>/dev/null ;;
       go_cache)     go clean -cache 2>/dev/null; rm -rf "$HOME/.cache/go-build" 2>/dev/null ;;

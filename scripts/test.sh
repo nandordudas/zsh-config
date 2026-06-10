@@ -37,7 +37,7 @@ capture() { "$@" 2>&1 || true; }
 # -----------------------------------------------------------------------------
 section "Syntax"
 
-for f in "$REPO_DIR"/scripts/*.sh "$REPO_DIR"/install.sh; do
+for f in "$REPO_DIR"/scripts/*.sh "$REPO_DIR"/install.sh "$REPO_DIR"/uninstall.sh; do
   check "bash -n $(basename "$f")" bash -n "$f"
 done
 
@@ -61,6 +61,7 @@ required_files=(
   .zprofile
   .gitignore
   install.sh
+  uninstall.sh
   Brewfile
   Brewfile.dev
   modules/options.zsh
@@ -209,6 +210,52 @@ if [[ -f "$GIT_DIR/allowed_signers" ]]; then
   else
     fail "allowed_signers missing email"
   fi
+fi
+
+# -----------------------------------------------------------------------------
+# 6. install → uninstall round-trip (config files only, isolated temp home)
+# -----------------------------------------------------------------------------
+section "install/uninstall round-trip (isolated temp home)"
+
+RT_HOME="$(mktemp -d)"
+trap 'rm -rf "$TMP_HOME" "$RT_HOME"' EXIT
+
+# Pre-existing user files that must survive the round-trip
+printf '# my original zshenv\n' > "$RT_HOME/.zshenv"
+mkdir -p "$RT_HOME/.config/tmux"
+printf '# my original tmux.conf\n' > "$RT_HOME/.config/tmux/tmux.conf"
+
+# Install (config-only — no packages, no network beyond the local repo copy)
+mkdir -p "$RT_HOME/.config"
+cp -r "$REPO_DIR" "$RT_HOME/.config/zsh"
+if HOME="$RT_HOME" XDG_CONFIG_HOME="$RT_HOME/.config" SHELL=/bin/zsh \
+   bash "$RT_HOME/.config/zsh/install.sh" --config-only -y &>/dev/null; then
+  ok "install.sh --config-only exited 0"
+else
+  fail "install.sh --config-only exited non-zero"
+fi
+
+check "~/.zshenv written"                grep -q ZDOTDIR "$RT_HOME/.zshenv"
+check "original ~/.zshenv backed up"     grep -q "my original zshenv" "$RT_HOME/.zshenv.bak"
+check "original tmux.conf backed up"     grep -q "my original tmux.conf" "$RT_HOME/.config/tmux/tmux.conf.bak"
+check "tmux.conf is now a symlink"       test -L "$RT_HOME/.config/tmux/tmux.conf"
+check "local.zsh created"                test -f "$RT_HOME/.config/zsh/modules/local.zsh"
+
+# Uninstall
+if HOME="$RT_HOME" XDG_CONFIG_HOME="$RT_HOME/.config" \
+   bash "$RT_HOME/.config/zsh/uninstall.sh" -y &>/dev/null; then
+  ok "uninstall.sh exited 0"
+else
+  fail "uninstall.sh exited non-zero"
+fi
+
+check "original ~/.zshenv restored"      grep -q "my original zshenv" "$RT_HOME/.zshenv"
+check "original tmux.conf restored"      grep -q "my original tmux.conf" "$RT_HOME/.config/tmux/tmux.conf"
+check "config moved to .uninstalled"     test -d "$RT_HOME/.config/zsh.uninstalled"
+if [[ -d "$RT_HOME/.config/zsh" ]]; then
+  fail "~/.config/zsh still present after uninstall"
+else
+  ok "~/.config/zsh removed"
 fi
 
 # -----------------------------------------------------------------------------

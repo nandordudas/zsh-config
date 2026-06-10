@@ -127,6 +127,13 @@ export GOPATH="${GOPATH:-$HOME/go}"
 export GIT_CONFIG_GLOBAL="$HOME/.config/git/config"
 
 # =============================================================================
+# PROJECT ROOT
+# Used by the gg/gb navigation aliases and freespace cleanup.
+# Override in modules/local.zsh if your projects live elsewhere.
+# =============================================================================
+export CODE_DIR="${CODE_DIR:-$HOME/Development/code}"
+
+# =============================================================================
 # RUST / CARGO
 # Sources ~/.cargo/env which exports CARGO_HOME etc.
 # ~/.cargo/bin is already in PATH above, but this also sets other Cargo vars.

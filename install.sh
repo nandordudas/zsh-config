@@ -152,8 +152,8 @@ if (( ! CONFIG_ONLY )); then
       rustup-init -y --no-modify-path || warn "rustup-init failed — run it manually later"
     fi
 
-    info "Installing Node.js LTS via fnm..."
-    fnm install --lts && fnm default lts-latest || warn "fnm install failed — run 'fnm install --lts' later"
+    info "Installing Node.js LTS and Go via mise..."
+    mise use --global node@lts go@latest || warn "mise install failed — run 'mise use -g node@lts go@latest' later"
   fi
 fi
 
@@ -209,12 +209,21 @@ else
   info "modules/local.zsh already exists — kept"
 fi
 
-# 4. tmux config symlink
+# 4. tmux config symlink (back up an existing real file first)
 mkdir -p "$XDG_CONFIG_HOME/tmux"
-ln -sf "$ZSH_DIR/tmux/tmux.conf" "$XDG_CONFIG_HOME/tmux/tmux.conf"
+TMUX_CONF="$XDG_CONFIG_HOME/tmux/tmux.conf"
+if [[ -f "$TMUX_CONF" && ! -L "$TMUX_CONF" ]]; then
+  warn "Existing tmux.conf backed up to tmux.conf.bak"
+  mv "$TMUX_CONF" "$TMUX_CONF.bak"
+fi
+ln -sf "$ZSH_DIR/tmux/tmux.conf" "$TMUX_CONF"
 info "Linked tmux config"
 
-# 5. Git identity + SSH signing (optional)
+# 5. Project root for gg/gb aliases and freespace
+mkdir -p "$HOME/Development/code"
+info "Project root: ~/Development/code (override CODE_DIR in modules/local.zsh)"
+
+# 6. Git identity + SSH signing (optional)
 if [[ -n "$GIT_NAME" && -n "$GIT_EMAIL" ]]; then
   step "Git setup (SSH signing)"
   bash "$ZSH_DIR/scripts/git-setup.sh" --name "$GIT_NAME" --email "$GIT_EMAIL"
@@ -247,7 +256,9 @@ ${GREEN}✓ zsh-config installed${RESET}
 Next steps:
   1. Open a NEW terminal (first start downloads Zinit plugins, ~1-2 min)
   2. Run ${BOLD}zsh-health${RESET} to verify everything works
-  3. Edit ${BOLD}$ZSH_DIR/modules/local.zsh${RESET} for machine-specific settings"
+  3. Edit ${BOLD}$ZSH_DIR/modules/local.zsh${RESET} for machine-specific settings
+
+To undo everything later: ${BOLD}$ZSH_DIR/uninstall.sh${RESET} (one confirmation, restores backups)"
 
 if [[ -z "$GIT_NAME" ]]; then
   printf '%s\n' "  4. Optional — git identity + SSH commit signing:
