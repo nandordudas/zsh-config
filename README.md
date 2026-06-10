@@ -97,10 +97,10 @@ git clone https://github.com/nandordudas/zsh-config ~/.config/zsh
 brew bundle --file=~/.config/zsh/Brewfile       # core tools
 brew bundle --file=~/.config/zsh/Brewfile.dev   # dev toolchains: mise, rustup, fastfetch
 
-# 4. Node (global) via mise, Rust via rustup — other runtimes are per-project
+# 4. Node (global) via mise; rustup manager only — all other runtimes per-project
 printf 'pnpm\n@antfu/ni\ntaze\nnpkill\nccstatusline\neslint\n' > ~/.default-npm-packages
 mise use -g node@lts
-rustup-init -y --no-modify-path
+rustup-init -y --no-modify-path --default-toolchain none
 
 # 5. Create ~/.zshenv (required — points zsh at the config)
 cat > ~/.zshenv << 'EOF'
@@ -219,7 +219,11 @@ mise ls                        # what's active here
 
 Global npm tools live in `~/.default-npm-packages` — mise re-installs them
 automatically into every new node version, so they survive node upgrades.
-Rust is per-project too: commit a `rust-toolchain.toml` and rustup obeys it.
+
+Rust is per-project too, via its own manager: commit a `rust-toolchain.toml`
+and rustup auto-installs/uses that toolchain on the first build. No global
+toolchain is installed; for ad-hoc rust outside a project, run
+`rustup default stable` once.
 
 **brew or mise? The rule of thumb:**
 

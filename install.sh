@@ -147,9 +147,13 @@ if (( ! CONFIG_ONLY )); then
     step "Dev toolchains (Brewfile.dev)"
     brew bundle --file="$SCRIPT_DIR/Brewfile.dev"
 
-    if ! command -v rustc &>/dev/null && command -v rustup-init &>/dev/null; then
-      info "Initializing Rust toolchain..."
-      rustup-init -y --no-modify-path || warn "rustup-init failed — run it manually later"
+    # Set up the rustup MANAGER only — no global toolchain. A project with a
+    # rust-toolchain.toml auto-installs its pinned toolchain on first build.
+    # For ad-hoc rust outside projects: `rustup default stable` (one-time).
+    if command -v rustup-init &>/dev/null && [[ ! -d "$HOME/.rustup" ]]; then
+      info "Initializing rustup (no global toolchain — rust is per-project)..."
+      rustup-init -y --no-modify-path --default-toolchain none \
+        || warn "rustup-init failed — run it manually later"
     fi
 
     # Node is the only GLOBAL runtime — always-on tools (ccstatusline, taze, …)

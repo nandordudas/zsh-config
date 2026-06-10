@@ -1,6 +1,7 @@
 # Brewfile.dev — development toolchains (skipped with install.sh --minimal)
 # Install with: brew bundle --file=~/.config/zsh/Brewfile.dev
 
-brew "mise"       # runtime version manager — node, go, python, … (one tool for all)
-brew "rustup"     # Rust toolchain manager (run `rustup-init` once)
+# Both entries below are MANAGERS, not runtimes — no global toolchains here.
+brew "mise"       # node, go, python, … — per-project via .mise.toml (node pinned globally)
+brew "rustup"     # rust — per-project via rust-toolchain.toml (no global toolchain)
 brew "fastfetch"  # system info
