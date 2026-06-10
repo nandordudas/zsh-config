@@ -15,11 +15,6 @@ _zcache_dir() {
   echo "${XDG_CACHE_HOME:-$HOME/.cache}/zsh"
 }
 
-# Centralized XDG data directory with fallback
-_zdata_dir() {
-  echo "${XDG_DATA_HOME:-$HOME/.local/share}/zsh"
-}
-
 # Get interactive mode state file
 _zinteractive_state_file() {
   echo "${XDG_STATE_HOME:-$HOME/.local/state}/zsh/interactive-mode"
@@ -139,7 +134,7 @@ bootstrap() {
   fi
   local folder_name="${1:-$(LC_ALL=C tr -dc 'a-z0-9' </dev/urandom | head -c 13)}"
   mkcd "${folder_name}" && git bootstrap || return 1
-  cr
+  (( $+commands[code] )) && cr || printf "→ %s (VS Code not found — open manually)\n" "$PWD"
 }
 
 # =============================================================================

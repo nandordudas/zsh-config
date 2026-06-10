@@ -219,8 +219,9 @@ Exit code 0 if all critical checks pass, 1 if issues detected.
 
 ## gcb
 
-fzf git branch checkout helper. Lists local and remote branches, lets you
-pick one interactively, and checks it out.
+fzf git branch checkout helper (provided by the **forgit** plugin, not
+`functions.zsh`). Lists local and remote branches, lets you pick one
+interactively, and checks it out.
 
 Remote branches (`remotes/origin/...`) automatically create a local tracking
 branch instead of leaving you in detached HEAD.

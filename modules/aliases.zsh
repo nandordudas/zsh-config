@@ -77,7 +77,12 @@ alias qfind='find . -name'
 alias rand='openssl rand -base64 32'
 alias zshconfig='${VISUAL:-${EDITOR:-vi}} "$ZDOTDIR" && exec zsh'
 alias reload='exec zsh'
-alias json='python3 -m json.tool'
+# jq comes from the Brewfile; python3 fallback needs Xcode CLT
+if (( $+commands[jq] )); then
+  alias json='jq .'
+else
+  alias json='python3 -m json.tool'
+fi
 
 # =============================================================================
 # SYSTEM (macOS)

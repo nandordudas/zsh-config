@@ -157,8 +157,8 @@ cat > "$GIT_DIR/config" << 'CONFIG_EOF'
 [core]
 	abbrev = 12
 	autocrlf = input
-	checkStat = minimal
-	editor = code --wait
+	# editor intentionally NOT set — git falls back to $VISUAL/$EDITOR,
+	# which .zprofile resolves with fallbacks (code → nvim → vim → nano)
 	excludesFile = ~/.config/git/ignore
 	filemode = true
 	# Native FSEvents monitoring on APFS — big speedup for `git status` in large repos
@@ -262,8 +262,6 @@ cat > "$GIT_DIR/config" << 'CONFIG_EOF'
 	followTags = true
 	gpgSign = if-asked
 	useForceIfIncludes = true
-[sequence]
-	editor = code --wait
 [rerere]
 	autoUpdate = true
 	enabled = true
@@ -307,11 +305,8 @@ cat > "$GIT_DIR/config" << 'CONFIG_EOF'
 	cmd = code --wait --diff $LOCAL $REMOTE
 [mergetool "code"]
 	cmd = code --wait --merge $REMOTE $LOCAL $BASE $MERGED
-# includeIf activates the matching per-host config only for repos under the
-# given path. This lets you keep separate identities (signingKey, name, email)
-# per host without any manual switching — git selects the right one based on
-# where the repo lives. Add more blocks here for other hosts (e.g. GitLab,
-# work Bitbucket) following the same pattern.
+# Per-host identity selection happens via the [includeIf] blocks at the
+# BOTTOM of this file (they must come after [user] to override it).
 [alias]
 	# ━━━━━━ CONFIG ━━━━━━
 	alias = "!f() { git config --get-regexp '^alias\\.' | sed 's/alias\\.//' | sort; }; f"
@@ -431,6 +426,14 @@ cat > "$GIT_DIR/config" << 'CONFIG_EOF'
 	process = git-lfs filter-process
 	required = true
 	smudge = git-lfs smudge -- %f
+# Per-host identities: repos under $CODE_DIR/<host>/ pick up the matching
+# config (name/email/signingKey overrides). Trailing / matches recursively.
+# These come LAST so they override the [user] defaults above.
+# If you change CODE_DIR in modules/local.zsh, update these paths to match.
+[includeIf "gitdir:~/Developer/github/"]
+	path = ~/.config/git/github/.gitconfig
+[includeIf "gitdir:~/Developer/bitbucket/"]
+	path = ~/.config/git/bitbucket/.gitconfig
 CONFIG_EOF
 
 # Inject personal values and CPU core count

@@ -191,6 +191,18 @@ if [[ -f "$GIT_DIR/config" ]]; then
     fail "fetch.parallel not a valid number: '$cores_val'"
   fi
 
+  # Per-host identities only work if includeIf directives actually exist
+  if [[ "$(git config --file "$GIT_DIR/config" --get 'includeif.gitdir:~/Developer/github/.path')" == *"github/.gitconfig" ]]; then
+    ok "includeIf for github identity present"
+  else
+    fail "includeIf for github identity missing — per-host config never loads"
+  fi
+  if [[ "$(git config --file "$GIT_DIR/config" --get 'includeif.gitdir:~/Developer/bitbucket/.path')" == *"bitbucket/.gitconfig" ]]; then
+    ok "includeIf for bitbucket identity present"
+  else
+    fail "includeIf for bitbucket identity missing — per-host config never loads"
+  fi
+
   if grep -q "__GIT_NAME__\|__GIT_EMAIL__\|__CORES__" "$GIT_DIR/config"; then
     fail "Unreplaced placeholders left in config"
   else

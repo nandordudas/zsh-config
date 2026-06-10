@@ -21,9 +21,9 @@ _ztool_init() {
   [[ -x "$bin" ]] || return 0
   local cache="$_ztool_cache/${name}.zsh"
   if [[ ! -s "$cache" || "$bin" -nt "$cache" ]]; then
-    # Write to a temp file first so a failed init never leaves a truncated
-    # cache behind (which would be silently sourced on every future start).
-    if ! eval "$init_cmd" >"$cache.tmp" 2>/dev/null; then
+    # Write to a temp file first so a failed or empty init never leaves a
+    # bad cache behind (which would be silently sourced on every future start).
+    if ! eval "$init_cmd" >"$cache.tmp" 2>/dev/null || [[ ! -s "$cache.tmp" ]]; then
       rm -f "$cache.tmp"
       return 1
     fi
