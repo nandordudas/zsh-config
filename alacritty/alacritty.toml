@@ -29,6 +29,6 @@ bindings = [
 ]
 
 [keyboard]
-# macOS Alt key handling: send Esc prefix (e.g., Alt+C → Esc+C)
-# Required for fzf shortcuts (Ctrl+T, Alt+C, Ctrl+R) and other alt-key bindings
+# macOS Option key (⌥) handling: send Esc prefix (e.g., Option+C → Esc+C)
+# Required for fzf shortcuts (Ctrl+T, Option+C, Ctrl+R) and other Option key bindings
 bindings = []

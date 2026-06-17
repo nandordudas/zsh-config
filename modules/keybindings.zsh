@@ -60,7 +60,7 @@ bindkey '^H' backward-kill-word
 # Ctrl+W = kill previous word (standard Unix)
 bindkey '^W' backward-kill-word
 
-# Alt+D = kill next word
+# Option+D (⌥D) = kill next word
 bindkey '^[d' kill-word
 
 # =============================================================================
@@ -97,7 +97,7 @@ autoload -Uz edit-command-line
 zle -N edit-command-line
 bindkey '^X^E' edit-command-line
 
-# Alt+M: copy previous shell word (useful for: mv foo.txt [Alt+M].bak)
+# Option+M (⌥M): copy previous shell word (useful for: mv foo.txt [Option+M].bak)
 bindkey '^[m' copy-prev-shell-word
 
 # PageUp/PageDown: navigate history
@@ -105,8 +105,8 @@ bindkey '^[m' copy-prev-shell-word
 [[ -n "${terminfo[knp]}" ]] && bindkey "${terminfo[knp]}" down-line-or-history
 
 # =============================================================================
-# MACOS ALT KEY HANDLING
-# On macOS in Alacritty, Alt key sends Esc prefix (Alt+C → Esc+C → ^[c).
+# MACOS OPTION KEY HANDLING
+# On macOS in Alacritty, Option key (⌥) sends Esc prefix (Option+C → Esc+C → ^[c).
 # This is standard macOS terminal behavior. fzf's `fzf --zsh` automatically
-# sets up Alt+C, Ctrl+T, and Ctrl+R bindings using this escape sequence.
+# sets up Option+C (⌥C), Ctrl+T, and Ctrl+R bindings using this escape sequence.
 # =============================================================================

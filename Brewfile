@@ -5,7 +5,7 @@
 # Shell essentials
 brew "git"
 brew "tmux"
-brew "fzf"        # fuzzy finder (Ctrl+R / Ctrl+T / Alt+C)
+brew "fzf"        # fuzzy finder (Ctrl+R / Ctrl+T / Option+C)
 brew "zoxide"     # smart cd (z)
 brew "starship"   # prompt
 # direnv intentionally absent: mise replaces it ([env] in mise.toml, `mise set`)

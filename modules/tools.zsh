@@ -94,7 +94,7 @@ _ztool_init mise "$(command -v mise)" "mise activate zsh"
     --preview-window right:55%:wrap
   '
 
-  # Alt+C preview: directory listing via eza
+  # Option+C (⌥C) preview: directory listing via eza
   export FZF_ALT_C_OPTS='
     --preview "eza -1 --icons --color=always {} 2>/dev/null || ls {}"
     --preview-window right:55%:wrap
