@@ -204,7 +204,7 @@ git alias              # list all 80+ git aliases
 
 - `Ctrl+R` → fuzzy history search
 - `Ctrl+T` → fuzzy file finder (with bat preview)
-- `Alt+C` → fuzzy directory jump
+- `Option+C` (⌥C) → fuzzy directory jump
 
 ### Per-project runtimes (mise)
 
