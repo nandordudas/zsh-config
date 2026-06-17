@@ -37,7 +37,7 @@ $ git commit -m "fix: |correct parser"
 | `Delete` | Delete character to the right |
 | `Ctrl+Backspace` | Delete word to the left |
 | `Ctrl+W` | Delete word to the left (standard Unix) |
-| `Alt+D` | Delete word to the right |
+| `Option+D` (⌥D) | Delete word to the right |
 
 ```
 $ git checkout feat/my-feature|
@@ -45,7 +45,7 @@ $ git checkout feat/my-feature|
 $ git checkout |
 
 $ git checkout |feat/my-feature
-  Alt+D →
+  Option+D →
 $ git checkout |/my-feature
 ```
 
@@ -108,7 +108,7 @@ $ echo previous-argument   (history expansion happens inline)
 | Key | Action |
 |-----|--------|
 | `Ctrl+X Ctrl+E` | Open current command in `$EDITOR` (VS Code) |
-| `Alt+M` | Copy the previous word onto the cursor |
+| `Option+M` (⌥M) | Copy the previous word onto the cursor |
 | `PageUp` | Navigate history up |
 | `PageDown` | Navigate history down |
 
@@ -119,9 +119,9 @@ $ docker run --rm -it -v $(pwd):/work -w /work -e FOO=bar ubuntu:24.04|
 # opens the full command in VS Code for editing
 # saving and closing VS Code executes the edited command
 
-# Alt+M — "copy previous shell word"
+# Option+M — "copy previous shell word"
 $ mv config.toml |
-  Alt+M →
+  Option+M →
 $ mv config.toml config.toml|
 # now append: $ mv config.toml config.toml.bak
 ```
@@ -140,7 +140,7 @@ Deletion
   Delete             delete char right
   Ctrl+W             delete word left
   Ctrl+Backspace     delete word left (VS Code)
-  Alt+D              delete word right
+  Option+D (⌥D)      delete word right
 
 History
   Up / Ctrl+P        search backward by prefix
@@ -154,6 +154,6 @@ Completion
 
 Editing
   Ctrl+X Ctrl+E      open in $EDITOR
-  Alt+M              copy previous word
+  Option+M (⌥M)      copy previous word
   PageUp / PageDown  scroll history
 ```
