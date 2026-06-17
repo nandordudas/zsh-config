@@ -32,6 +32,9 @@ fi
 # Once a day: compare against the already-fetched upstream (instant, no
 # network), then refresh the remote refs in a detached background job.
 # Login is never blocked by the network; a new update shows up one check late.
+#
+# Auto-pull is opt-in. Set in modules/local.zsh to enable:
+#   ZSH_CONFIG_AUTO_UPDATE=1
 # =============================================================================
 _check_zsh_config_updates() {
   zmodload zsh/datetime 2>/dev/null || return 0
@@ -57,18 +60,25 @@ _check_zsh_config_updates() {
   behind=$(git -C "$zsh_dir" rev-list --count HEAD..@{u} 2>/dev/null)
 
   if [[ -n "$behind" && "$behind" -gt 0 ]]; then
-    local before_hash
-    before_hash=$(git -C "$zsh_dir" rev-parse --short HEAD 2>/dev/null)
+    if [[ "${ZSH_CONFIG_AUTO_UPDATE:-0}" == "1" ]]; then
+      local before_hash
+      before_hash=$(git -C "$zsh_dir" rev-parse --short HEAD 2>/dev/null)
 
-    if git -C "$zsh_dir" pull --quiet --ff-only 2>/dev/null; then
-      local after_hash
-      after_hash=$(git -C "$zsh_dir" rev-parse --short HEAD 2>/dev/null)
-      printf '\n%s\n' "╭─ ✅ zsh-config updated to $after_hash ($behind new commit(s))"
-      printf '%s\n' "├─ Was: $before_hash — run \`exec zsh\` to reload"
-      printf '%s\n' "╰─────────────────────────────────────────"
+      if git -C "$zsh_dir" pull --quiet --ff-only 2>/dev/null; then
+        local after_hash
+        after_hash=$(git -C "$zsh_dir" rev-parse --short HEAD 2>/dev/null)
+        printf '\n%s\n' "╭─ ✅ zsh-config updated to $after_hash ($behind new commit(s))"
+        git -C "$zsh_dir" log --oneline --no-decorate "$before_hash..HEAD" 2>/dev/null \
+          | while IFS= read -r line; do printf '%s\n' "├─ $line"; done
+        printf '%s\n' "╰─ run \`exec zsh\` to reload"
+      else
+        printf '\n%s\n' "╭─ 🔄 zsh-config has $behind new commit(s) upstream"
+        printf '%s\n' "├─ Auto-pull skipped (local changes) — run: git -C \$ZDOTDIR pull"
+        printf '%s\n' "╰─────────────────────────────────────────"
+      fi
     else
       printf '\n%s\n' "╭─ 🔄 zsh-config has $behind new commit(s) upstream"
-      printf '%s\n' "├─ Auto-pull skipped (local changes) — run: git -C \$ZDOTDIR pull"
+      printf '%s\n' "├─ Run: git -C \$ZDOTDIR pull && exec zsh"
       printf '%s\n' "╰─────────────────────────────────────────"
     fi
   fi

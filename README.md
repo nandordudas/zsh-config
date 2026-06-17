@@ -142,6 +142,17 @@ export BITBUCKET_USER="your-bitbucket-username"
 # ~/.config/git/config so per-host git identities keep working.
 # export CODE_DIR="$HOME/Developer"
 
+# Auto-pull zsh-config updates on login and show what changed (opt-in).
+# When enabled, the daily update check pulls automatically (fast-forward only)
+# and prints the new commits so you know exactly what arrived:
+#
+#   ╭─ ✅ zsh-config updated to abc1234 (2 new commit(s))
+#   ├─ feat: add fzf git log preview
+#   ├─ fix: correct mise hook timing
+#   ╰─ run `exec zsh` to reload
+#
+# ZSH_CONFIG_AUTO_UPDATE=1
+
 # Custom aliases / functions / overrides
 alias myproject="cd ~/projects/myproject"
 ```

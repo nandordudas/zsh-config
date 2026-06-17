@@ -242,6 +242,9 @@ if [[ ! -f "$ZSH_DIR/modules/local.zsh" ]]; then
 # Machine-local zsh config (gitignored — safe for secrets and machine quirks)
 # export GITHUB_USER="yourname"
 # export BITBUCKET_USER="yourname"
+
+# Auto-pull zsh-config updates on login and show what changed (opt-in).
+# ZSH_CONFIG_AUTO_UPDATE=1
 EOF
   info "Created modules/local.zsh"
 else
