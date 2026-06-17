@@ -57,9 +57,20 @@ _check_zsh_config_updates() {
   behind=$(git -C "$zsh_dir" rev-list --count HEAD..@{u} 2>/dev/null)
 
   if [[ -n "$behind" && "$behind" -gt 0 ]]; then
-    printf '\n%s\n' "╭─ 🔄 zsh-config has $behind new commit(s) upstream"
-    printf '%s\n' "├─ Run: git -C \$ZDOTDIR pull && exec zsh"
-    printf '%s\n' "╰─────────────────────────────────────────"
+    local before_hash
+    before_hash=$(git -C "$zsh_dir" rev-parse --short HEAD 2>/dev/null)
+
+    if git -C "$zsh_dir" pull --quiet --ff-only 2>/dev/null; then
+      local after_hash
+      after_hash=$(git -C "$zsh_dir" rev-parse --short HEAD 2>/dev/null)
+      printf '\n%s\n' "╭─ ✅ zsh-config updated to $after_hash ($behind new commit(s))"
+      printf '%s\n' "├─ Was: $before_hash — run \`exec zsh\` to reload"
+      printf '%s\n' "╰─────────────────────────────────────────"
+    else
+      printf '\n%s\n' "╭─ 🔄 zsh-config has $behind new commit(s) upstream"
+      printf '%s\n' "├─ Auto-pull skipped (local changes) — run: git -C \$ZDOTDIR pull"
+      printf '%s\n' "╰─────────────────────────────────────────"
+    fi
   fi
 
   # Refresh remote refs for the next check — detached, silent, never prompts
