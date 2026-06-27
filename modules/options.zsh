@@ -23,6 +23,7 @@ setopt SHARE_HISTORY            # Import new history entries from other sessions
 setopt AUTO_CD           # Type a directory name to cd into it
 setopt AUTO_PUSHD        # cd pushes the old directory onto the dir stack
 setopt PUSHD_IGNORE_DUPS # Don't push duplicate directories
+setopt PUSHD_SILENT      # Suppress directory stack output on pushd/popd
 setopt CDABLE_VARS       # Allow cd to expand named directories
 
 # =============================================================================

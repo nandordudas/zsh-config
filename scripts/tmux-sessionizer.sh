@@ -31,7 +31,7 @@ choice="$(printf '%s\n' "$menu" | "$FZF_BIN" \
 if [ "$choice" = "$NEW_LABEL" ]; then
     # Capture exit code separately so Escape (130) is distinguishable from
     # "typed a name and pressed Enter" (1 = no item selected from empty list).
-    _fzf_out="$(mktemp)"
+    _fzf_out="$(mktemp -t tmux-sessionizer.XXXXXX)"
     "$FZF_BIN" --print-query --prompt='New session name: ' < /dev/null > "$_fzf_out" 2>/dev/null \
         || _fzf_rc=$?
     _fzf_rc="${_fzf_rc:-0}"

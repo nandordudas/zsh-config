@@ -287,7 +287,7 @@ upgrade() {
     local -a spinner=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
     local spin_i=1 n=${#names[@]}
     for name in $names; do
-      printf "  ${_COLOR_YELLOW}${spinner[1]}${_COLOR_RESET} [%-8s] starting...\n" "$name"
+      printf "  ${_COLOR_YELLOW}${spinner[1]}${_COLOR_RESET} %-10s starting...\n" "$name"
     done
     typeset -A done_line
     local all_done=0 s start_t end_t elapsed now
@@ -306,16 +306,16 @@ upgrade() {
         if [[ "$s" == 'done' ]]; then
           end_t=$(<"$tmpdir/${name}.end" 2>/dev/null)
           elapsed=$(( ${end_t:-$now} - start_t ))
-          done_line[$name]=$(printf "\033[2K\r  ${_COLOR_GREEN}✓${_COLOR_RESET} [%-8s] done     ${_COLOR_DIM}%3ds${_COLOR_RESET}" "$name" "$elapsed")
+          done_line[$name]=$(printf "\033[2K\r  ${_COLOR_GREEN}✓${_COLOR_RESET} %-10s done      ${_COLOR_DIM}%3ds${_COLOR_RESET}" "$name" "$elapsed")
           printf '%s\n' "${done_line[$name]}"
         elif [[ "$s" == 'failed' ]]; then
           end_t=$(<"$tmpdir/${name}.end" 2>/dev/null)
           elapsed=$(( ${end_t:-$now} - start_t ))
-          done_line[$name]=$(printf "\033[2K\r  ${_COLOR_RED}✗${_COLOR_RESET} [%-8s] FAILED   ${_COLOR_DIM}%3ds${_COLOR_RESET}" "$name" "$elapsed")
+          done_line[$name]=$(printf "\033[2K\r  ${_COLOR_RED}✗${_COLOR_RESET} %-10s FAILED    ${_COLOR_DIM}%3ds${_COLOR_RESET}" "$name" "$elapsed")
           printf '%s\n' "${done_line[$name]}"
         else
           elapsed=$(( now - start_t ))
-          printf "\033[2K\r  ${_COLOR_YELLOW}%s${_COLOR_RESET} [%-8s] running  ${_COLOR_DIM}%3ds${_COLOR_RESET}\n" "${spinner[$spin_i]}" "$name" "$elapsed"
+          printf "\033[2K\r  ${_COLOR_YELLOW}%s${_COLOR_RESET} %-10s running   ${_COLOR_DIM}%3ds${_COLOR_RESET}\n" "${spinner[$spin_i]}" "$name" "$elapsed"
           all_done=0
         fi
       done
@@ -335,18 +335,19 @@ upgrade() {
     [[ $(<"$tmpdir/${name}.status") == 'failed' ]] || continue
     has_failure=1
     log=$(<"$tmpdir/${name}.log")
-    printf "${_COLOR_RED}=== %s FAILED ===${_COLOR_RESET}\n%s\n\n" "$name" "$log"
+    printf "${_COLOR_RED}── %s ──${_COLOR_RESET}\n%s\n\n" "$name" "$log"
   done
   for name in $names; do
     [[ $(<"$tmpdir/${name}.status") == 'failed' ]] && continue
     log=$(<"$tmpdir/${name}.log")
-    [[ -n "$log" ]] && printf '=== %s ===\n%s\n\n' "$name" "$log"
+    [[ -n "$log" ]] && printf "${_COLOR_DIM}── %s ──${_COLOR_RESET}\n%s\n\n" "$name" "$log"
   done
 
   # Version summary — data-driven
   _ver() {
-    local label=$1; shift
-    printf '  %-12s %s\n' "$label" "$("$@" 2>/dev/null || echo 'not found')"
+    local label=$1 val; shift
+    val=$("$@" 2>/dev/null) || true
+    [[ -n "$val" ]] && printf '  %-12s %s\n' "$label" "$val"
   }
   _ver 'OS:'     sh -c 'echo "$(sw_vers -productName 2>/dev/null) $(sw_vers -productVersion 2>/dev/null) ($(uname -m))"'
   _ver 'Kernel:' uname -r

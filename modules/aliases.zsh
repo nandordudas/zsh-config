@@ -20,6 +20,7 @@ if (( $+commands[eza] )); then
   alias ll='eza -laF --icons --git --group-directories-first'
   alias lt='eza -T --icons --git-ignore'
 else
+  alias l='ls -l'
   alias ll='ls -la'
   alias la='ls -la'
 fi
