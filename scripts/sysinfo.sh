@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# One-line GPU/CPU/MEM/BAT summary. Formerly a tmux status-bar segment (hence
+# the 5s-refresh comment below); herdr has no scriptable status-bar hook to
+# feed, so this now runs standalone via the `sysinfo` alias.
+#
 # GPU via IOKit IOAccelerator PerformanceStatistics — same source btop uses, no sudo needed
 gpu=$(ioreg -r -d 2 -c IOAccelerator 2>/dev/null \
   | grep '"PerformanceStatistics"' \
@@ -22,9 +26,6 @@ mem=$(vm_stat | awk '
 batt=$(pmset -g batt 2>/dev/null \
   | awk -F'[;\t ]' '/InternalBattery/{for(i=1;i<=NF;i++) if($i~/^[0-9]+%$/) {print $i; exit}}')
 
-if [ -n "$batt" ]; then
-  bat_seg="#[fg=#6c7086] │ #[fg=#f9e2af]BAT ${batt}"
-fi
+[ -n "$batt" ] && bat_seg=" │ BAT ${batt}"
 
-printf "#[fg=#a6e3a1]GPU %s#[fg=#6c7086] │ #[fg=#89b4fa]CPU %s#[fg=#6c7086] │ #[fg=#cdd6f4]MEM %s%s" \
-  "$gpu" "$cpu" "$mem" "$bat_seg"
+printf "GPU %s │ CPU %s │ MEM %s%s\n" "$gpu" "$cpu" "$mem" "$bat_seg"

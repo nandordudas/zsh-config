@@ -115,10 +115,11 @@ alias gocover='go test -coverprofile=/tmp/cover.out ./... && go tool cover -html
 (( $+commands[taze] )) && alias taze='taze -r'  # Check all workspaces for outdated deps
 
 # =============================================================================
-# TMUX
+# HERDR
 # =============================================================================
-alias tm='tmux new-session -A -s main'   # attach to 'main' or create it
-alias ta='tmux attach-session -t'        # attach to named session
-alias tl='tmux list-sessions'
-alias tn='tmux new-session -s'           # new named session
-alias tk='tmux kill-session -t'
+alias tm='herdr --session main'          # attach to 'main' or create it
+alias ta='herdr session attach'          # attach to named session
+alias tl='herdr session list'
+alias tn='herdr --session'               # new/attach named session
+alias tk='herdr session stop'            # stop named session
+alias sysinfo="$ZDOTDIR/scripts/sysinfo.sh"   # GPU/CPU/MEM/BAT one-liner

@@ -30,7 +30,9 @@ The test suite covers: bash/zsh syntax, required file presence, no personal data
     keybindings → aliases → functions → tools → local (gitignored)
 ```
 
-`~/.config/alacritty/alacritty.toml` and `~/.config/tmux/tmux.conf` are **not** in this repo — they are created/linked by `install.sh`. The alacritty one is a real file (not a symlink) that imports `alacritty/alacritty.toml` from this repo plus `~/.config/alacritty/theme.toml` (the live theme file). The tmux one is a symlink to `tmux/tmux.conf`.
+`~/.config/alacritty/alacritty.toml` and `~/.config/herdr/config.toml` are **not** in this repo — they are created/linked by `install.sh`. The alacritty one is a real file (not a symlink) that imports `alacritty/alacritty.toml` from this repo plus `~/.config/alacritty/theme.toml` (the live theme file). The herdr one is a symlink to `herdr/config.toml`.
+
+`herdr` (https://herdr.dev) is the terminal multiplexer used in place of tmux — same prefix-driven model (`Ctrl+a`), plus native agent-state detection for Claude Code and other coding agents. `install.sh` also runs `herdr integration install claude` when both CLIs are present, wiring up a Claude Code hook so herdr can label panes, prioritize the agent panel, and resume sessions after a restart. See `docs/herdr-guide.md`.
 
 
 ### Performance pattern (tools.zsh)
@@ -58,14 +60,16 @@ Plugin config vars (`ZSH_AUTOSUGGEST_*`, `ZSH_HIGHLIGHT_*`, etc.) must be set **
 | `zsh-cache-clear` | Deletes `$XDG_CACHE_HOME/zsh/*.zsh` eval caches |
 | `freespace` | Cleans `node_modules`/vendor under `$CODE_DIR`; `--aggressive` also clears package manager caches |
 | `toggle_interactive` | Enables/disables Zinit + Starship for headless use |
-| `tmux` | Wrapper: auto-creates a default session if no server is running |
 | `extract` | Universal archive extractor (zip, tar, gz, bz2, 7z, rar, …) |
+
+No `tmux`-style wrapper function exists anymore: bare `herdr` already attaches-or-creates the default session, and herdr's own nested-launch guard prevents `herdr`-inside-`herdr`.
 
 ### Machine-local files (gitignored)
 
 | Path | Purpose |
 |------|---------|
 | `modules/local.zsh` | Per-machine zsh overrides, secrets, `ZSH_CONFIG_AUTO_UPDATE=1` opt-in |
-| `tmux/local.conf` | Per-machine tmux overrides, sourced last by `tmux.conf` |
 | `~/.config/alacritty/alacritty.toml` | Local Alacritty wrapper with imports + per-machine overrides |
+
+`herdr/config.toml` has no per-machine override file — herdr's TOML config has no `source-file`/include directive (unlike tmux), and the file holds no secrets, so machine-specific tweaks go directly into the tracked file.
 

@@ -234,8 +234,8 @@ trap 'rm -rf "$TMP_HOME" "$RT_HOME"' EXIT
 
 # Pre-existing user files that must survive the round-trip
 printf '# my original zshenv\n' > "$RT_HOME/.zshenv"
-mkdir -p "$RT_HOME/.config/tmux"
-printf '# my original tmux.conf\n' > "$RT_HOME/.config/tmux/tmux.conf"
+mkdir -p "$RT_HOME/.config/herdr"
+printf '# my original herdr config.toml\n' > "$RT_HOME/.config/herdr/config.toml"
 
 # Install (config-only — no packages, no network beyond the local repo copy)
 mkdir -p "$RT_HOME/.config"
@@ -249,8 +249,8 @@ fi
 
 check "$HOME/.zshenv written"                grep -q ZDOTDIR "$RT_HOME/.zshenv"
 check "original ~/.zshenv backed up"     grep -q "my original zshenv" "$RT_HOME/.zshenv.bak"
-check "original tmux.conf backed up"     grep -q "my original tmux.conf" "$RT_HOME/.config/tmux/tmux.conf.bak"
-check "tmux.conf is now a symlink"       test -L "$RT_HOME/.config/tmux/tmux.conf"
+check "original herdr config backed up"  grep -q "my original herdr config.toml" "$RT_HOME/.config/herdr/config.toml.bak"
+check "herdr config.toml is now a symlink" test -L "$RT_HOME/.config/herdr/config.toml"
 check "local.zsh created"                test -f "$RT_HOME/.config/zsh/modules/local.zsh"
 
 # Uninstall
@@ -262,7 +262,7 @@ else
 fi
 
 check "original ~/.zshenv restored"      grep -q "my original zshenv" "$RT_HOME/.zshenv"
-check "original tmux.conf restored"      grep -q "my original tmux.conf" "$RT_HOME/.config/tmux/tmux.conf"
+check "original herdr config restored"   grep -q "my original herdr config.toml" "$RT_HOME/.config/herdr/config.toml"
 check "config moved to .uninstalled"     test -d "$RT_HOME/.config/zsh.uninstalled"
 if [[ -d "$RT_HOME/.config/zsh" ]]; then
   fail "$HOME/.config/zsh still present after uninstall"

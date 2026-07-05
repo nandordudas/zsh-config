@@ -251,15 +251,26 @@ else
   info "modules/local.zsh already exists — kept"
 fi
 
-# 5. tmux config symlink (back up an existing real file first)
-mkdir -p "$XDG_CONFIG_HOME/tmux"
-TMUX_CONF="$XDG_CONFIG_HOME/tmux/tmux.conf"
-if [[ -f "$TMUX_CONF" && ! -L "$TMUX_CONF" ]]; then
-  warn "Existing tmux.conf backed up to tmux.conf.bak"
-  mv "$TMUX_CONF" "$TMUX_CONF.bak"
+# 5. herdr config symlink (back up an existing real file first)
+mkdir -p "$XDG_CONFIG_HOME/herdr"
+HERDR_CONF="$XDG_CONFIG_HOME/herdr/config.toml"
+if [[ -f "$HERDR_CONF" && ! -L "$HERDR_CONF" ]]; then
+  warn "Existing herdr config.toml backed up to config.toml.bak"
+  mv "$HERDR_CONF" "$HERDR_CONF.bak"
 fi
-ln -sf "$ZSH_DIR/tmux/tmux.conf" "$TMUX_CONF"
-info "Linked tmux config"
+ln -sf "$ZSH_DIR/herdr/config.toml" "$HERDR_CONF"
+info "Linked herdr config"
+
+# 5a. Claude Code <-> herdr native integration (agent state hook).
+# Requires both CLIs present; ~/.claude must exist before `herdr integration install`.
+if command -v herdr &>/dev/null && command -v claude &>/dev/null; then
+  mkdir -p "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+  if herdr integration install claude &>/dev/null; then
+    info "Installed herdr's Claude Code integration (agent state hook)"
+  else
+    warn "herdr integration install claude failed — run it manually later"
+  fi
+fi
 
 # 5b. alacritty config — create a local wrapper that imports the versioned base.
 #     A real file (not a symlink) so local overrides placed after the import win.

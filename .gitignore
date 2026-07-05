@@ -8,7 +8,6 @@ Brewfile.lock.json
 
 # Machine-local overrides — gitignored by design
 modules/local.zsh
-tmux/local.conf
 
 # Claude Code session data and worktrees
 .claude/

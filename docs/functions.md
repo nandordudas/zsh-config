@@ -329,22 +329,21 @@ $ toggle_interactive        # show current state
 
 ---
 
-## tmux-sessionizer
+## sysinfo
 
-fzf-powered tmux session manager. Invoked via `prefix+g` inside tmux as a
-floating popup. Lists existing sessions and offers to create a new one.
+One-line GPU / CPU / MEM / battery summary (macOS). Formerly a tmux
+status-bar segment; herdr has no scriptable status-bar hook, so it now runs
+standalone.
 
 ```
-C-a g          # open the picker inside tmux
+$ sysinfo
+GPU 12% │ CPU 12% │ MEM 8.4G
 ```
 
-**Pick an existing session** — highlights the current one, switches on Enter.
-
-**Create a new session** — select "Create new session…", type a name, press Enter.
-If you press Escape or leave the name blank, nothing happens.
-
-The script lives at `scripts/tmux-sessionizer.sh` and is called via
-`display-popup` so it never interrupts your current pane.
+The script lives at `scripts/sysinfo.sh`. See [docs/herdr-guide.md](herdr-guide.md)
+for the multiplexer this config uses instead of tmux — session/workspace
+switching (`C-a w`, `C-a g`) is now handled natively by herdr, with no
+custom picker script needed.
 
 ---
 

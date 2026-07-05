@@ -1,0 +1,83 @@
+# ~/.config/herdr/config.toml
+# Opinionated herdr configuration — replaces tmux (see docs/herdr-guide.md).
+# Reference: https://herdr.dev/docs/configuration/
+#
+# Deliberately minimal: herdr's *default* keymap already matches almost all of
+# the old tmux setup (pane nav = prefix+h/j/k/l, zoom = prefix+z, close_pane =
+# prefix+x, tabs/workspaces = prefix+c/w/shift+n/shift+w/shift+d, goto =
+# prefix+g, reload = prefix+shift+r, copy mode = vi-style out of the box). The
+# only thing that carries over unchanged from the old config is the prefix
+# key, so that's the only [keys] override below — no point re-declaring
+# defaults just to look busy.
+#
+# herdr's config.toml has no tmux-style `source-file`/include directive, so
+# there is no per-machine "local.toml" layered on top of this file (unlike
+# tmux/local.conf in the old setup). This file holds no secrets — it's UI and
+# keybindings only — so machine-specific tweaks go directly below. If a
+# machine ever needs a genuinely different profile, point HERDR_CONFIG_PATH at
+# a separate file instead (see modules/local.zsh).
+
+onboarding = false
+
+# =============================================================================
+# PREFIX  (Ctrl+a — same ergonomic choice as the old tmux config)
+# =============================================================================
+[keys]
+prefix = "ctrl+a"
+
+# =============================================================================
+# CUSTOM COMMANDS  (no native herdr equivalent)
+# =============================================================================
+
+# Scratch terminal — was tmux `bind t display-popup ... new-session -A -s scratch`
+[[keys.command]]
+key = "prefix+t"
+type = "pane"
+command = "zsh"
+description = "scratch terminal"
+
+# System monitor — was tmux `bind B display-popup ... btop`
+[[keys.command]]
+key = "prefix+shift+b"
+type = "pane"
+command = "btop"
+description = "system monitor (btop)"
+
+# =============================================================================
+# THEME — auto light/dark switching (the old tmux config only had a
+# hand-commented Light variant; herdr does this natively)
+# =============================================================================
+[theme]
+name        = "gruvbox"
+auto_switch = true
+light_name  = "gruvbox-light"
+dark_name   = "gruvbox"
+
+# =============================================================================
+# UI — tuned for running Claude Code (and friends) as visible, labeled panes
+# =============================================================================
+[ui]
+accent                             = "green"
+show_agent_labels_on_pane_borders  = true
+agent_panel_sort                   = "priority"   # blocked > done > working > idle
+
+# =============================================================================
+# NOTIFICATIONS — replaces tmux's `monitor-activity` (which only recolored the
+# window list); herdr can tell you WHICH agent needs you and WHY
+# =============================================================================
+[ui.toast]
+delivery      = "herdr"
+delay_seconds = 1
+
+[ui.toast.herdr]
+position = "bottom-right"
+
+[ui.sound]
+enabled = false   # quiet by default, matching the old visual-only activity monitor
+
+# =============================================================================
+# SESSION — resume Claude Code (and other supported agents) in their native
+# conversation after a full herdr server restart, instead of a bare shell
+# =============================================================================
+[session]
+resume_agents_on_restore = true

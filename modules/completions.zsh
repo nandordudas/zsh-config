@@ -45,7 +45,8 @@ zstyle ':completion:*:git-checkout:*' sort false
 
 # =============================================================================
 # FZF-TAB CONFIGURATION
-# ftb-tmux-popup is NOT used — requires an active tmux session.
+# ftb-tmux-popup is NOT used — it requires an active tmux session, and this
+# config uses herdr instead of tmux, so that popup renderer never applies.
 # Default fzf rendering works in VS Code terminal and any other terminal.
 # =============================================================================
 

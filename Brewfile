@@ -4,7 +4,7 @@
 
 # Shell essentials
 brew "git"
-brew "tmux"
+brew "herdr"      # terminal multiplexer, agent-aware (replaces tmux)
 brew "fzf"        # fuzzy finder (Ctrl+R / Ctrl+T / Option+C)
 brew "zoxide"     # smart cd (z)
 brew "starship"   # prompt

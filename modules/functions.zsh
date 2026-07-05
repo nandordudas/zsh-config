@@ -675,15 +675,3 @@ freespace() {
   local freed=$(( (end_kb - start_kb) / 1024 ))
   printf "\n${_COLOR_GREEN}✓ Done!${_COLOR_RESET} Freed ~${_COLOR_GREEN}%s MB${_COLOR_RESET}\n" "$freed"
 }
-
-tmux() {
-    if [ -n "${TMUX-}" ]; then
-        command tmux "$@"   # already inside tmux, don't touch nested calls
-        return
-    fi
-    if [ $# -eq 0 ]; then
-        command tmux attach || command tmux new-session
-    else
-        command tmux "$@"   # tmux kill-server, tmux ls, etc. pass through untouched
-    fi
-}

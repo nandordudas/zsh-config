@@ -23,7 +23,7 @@ That's it. The installer:
 
 - Installs **Homebrew** if missing (`/opt/homebrew` on Apple Silicon — all bottles native arm64)
 - Installs every tool the config uses via **`brew bundle`** — the package list is declared in [`Brewfile`](Brewfile) (core) and [`Brewfile.dev`](Brewfile.dev) (dev toolchains: mise, rustup, fastfetch)
-- Writes `~/.zshenv`, creates `modules/local.zsh`, links the tmux config, creates the Alacritty local wrapper
+- Writes `~/.zshenv`, creates `modules/local.zsh`, links the herdr config (and installs its Claude Code integration), creates the Alacritty local wrapper
 - Is **idempotent** — safe to re-run anytime; existing files are backed up, never silently overwritten
 
 ### Installer options
@@ -72,7 +72,7 @@ A **fully-featured zsh configuration** built with:
 | **Git integration** | SSH commit signing, per-host identities, delta diffs, 80+ git aliases |
 | **macOS-tuned git** | FSEvents `fsmonitor`, fetch/index parallelism = CPU cores |
 | **Tool auto-updates** | `upgrade` updates brew, zinit, rust, mise and claude in parallel |
-| **tmux session management** | fzf session picker (`C-a g`), auto-attach wrapper, rename binding |
+| **herdr session management** | agent-aware terminal multiplexer, native fuzzy pickers (`C-a g`/`C-a w`), Claude Code state hook |
 | **Fuzzy finder** | fzf for file/history search, fzf-tab completion menus, forgit |
 | **Diagnostics** | `zsh-health` checks tools, PATH, and config |
 | **XDG compliant** | All config in `~/.config`, cache in `~/.cache` |
@@ -115,9 +115,10 @@ EOF
 # 6. Machine-local config (gitignored, safe for secrets)
 touch ~/.config/zsh/modules/local.zsh
 
-# 7. Link tmux config
-mkdir -p ~/.config/tmux
-ln -sf ~/.config/zsh/tmux/tmux.conf ~/.config/tmux/tmux.conf
+# 7. Link herdr config, then install its Claude Code integration
+mkdir -p ~/.config/herdr
+ln -sf ~/.config/zsh/herdr/config.toml ~/.config/herdr/config.toml
+herdr integration install claude   # requires herdr + claude on PATH, and ~/.claude to exist
 
 # 8. Alacritty local wrapper (real file, not a symlink — lets you add local overrides after the import)
 mkdir -p ~/.config/alacritty
@@ -146,43 +147,19 @@ File: `~/.config/zsh/modules/local.zsh` (gitignored — safe for secrets)
 ```bash
 # Machine-local zsh config (gitignored — safe for secrets and machine quirks)
 
-# Auto-attach to a tmux session when opening VS Code's integrated terminal.
+# Auto-attach to a herdr session when opening VS Code's integrated terminal.
 # Session name = workspace folder basename (PWD is set to workspace root by VS Code).
-# -A: attach if session exists, create new otherwise.
-# exec replaces this shell process; tmux then starts a fresh zsh inside.
-# TERM_PROGRAM would be "tmux" if this shell were really inside tmux, so a set
-# $TMUX here is always stale (inherited from launching `code` inside tmux).
+# exec replaces this shell process; herdr then starts a fresh zsh inside.
+# `herdr --session NAME` attaches if it exists, creates it otherwise.
 if [[ "$TERM_PROGRAM" == "vscode" || "$TERM_PROGRAM" == "zed" ]]; then
-  unset TMUX TMUX_PANE
-
-  # session exists + client attached  → new independent session (avoid shared view)
-  # session exists + no client        → reattach (recover running work after VS Code closes)
-  # no session                        → create fresh
-  _session="${PWD:t}"
-
-  if tmux has-session -t "=${_session}" 2>/dev/null \
-     && tmux list-clients -t "=${_session}" 2>/dev/null | grep -q .; then
-    exec tmux new-session -s "${_session}-$$"
-  else
-    exec tmux new-session -A -s "${_session}"
-  fi
+  exec herdr --session "${PWD:t}"
 fi
 
-# Auto-attach to a tmux session when opening Alacritty.
+# Auto-attach to a herdr session when opening Alacritty.
 # Uses a fixed "main" session (no workspace context like VS Code).
 # Detected via $TERM=alacritty set in alacritty.toml [env].
-# $TERM would be tmux-256color inside tmux, so a set $TMUX here is stale too.
 if [[ "$TERM" == "alacritty" ]]; then
-  unset TMUX TMUX_PANE
-
-  _session="main"
-
-  if tmux has-session -t "=${_session}" 2>/dev/null \
-     && tmux list-clients -t "=${_session}" 2>/dev/null | grep -q .; then
-    exec tmux new-session -s "${_session}-$$"
-  else
-    exec tmux new-session -A -s "${_session}"
-  fi
+  exec herdr --session main
 fi
 
 # GitHub and BitBucket usernames (for gg/gb navigation aliases)
@@ -212,13 +189,12 @@ alias myproject="cd ~/projects/myproject"
 
 The installer creates this wrapper automatically. To add per-machine Alacritty overrides, append settings after the `import` block — they take precedence over everything imported.
 
-**tmux local overrides** (`tmux/local.conf`, gitignored):
-
-Sourced last by `tmux.conf`, so anything here wins. Created empty by the installer:
-
-```bash
-# set -g status-interval 10   # slower refresh on slow machines
-```
+**herdr local overrides:** unlike Alacritty's `import` or tmux's `source-file`,
+herdr's `config.toml` has no include directive, so there's no layered
+`local.toml`. It holds no secrets (just UI/keybindings), so machine-specific
+tweaks go directly into [`herdr/config.toml`](herdr/config.toml). For a
+genuinely different per-machine profile, point `HERDR_CONFIG_PATH` at a
+separate file instead. See [docs/herdr-guide.md](docs/herdr-guide.md).
 
 ### Customize plugins
 
@@ -227,7 +203,7 @@ Edit `modules/zinit.zsh` and restart the shell. See [awesome-zsh-plugins](https:
 ### Customize keybindings / aliases
 
 - `modules/keybindings.zsh` — `Ctrl+R` history, `Ctrl+T` files, word navigation
-- `modules/aliases.zsh` — `ll` (eza), `gs`/`gco`/`gcm` (git), `tm` (tmux), …
+- `modules/aliases.zsh` — `ll` (eza), `gs`/`gco`/`gcm` (git), `tm` (herdr), …
 
 Full reference: [docs/aliases.md](docs/aliases.md), [docs/keybindings.md](docs/keybindings.md), [docs/functions.md](docs/functions.md)
 
@@ -312,7 +288,7 @@ toolchain is installed; for ad-hoc rust outside a project, run
 | brew | mise |
 |------|------|
 | Apps & daemons (Docker Desktop, etc. — casks) | Language runtimes: node, go, python, java, … |
-| System CLI tools, one version forever: git, tmux, fzf, bat, ripgrep, jq, gh, delta, … | Anything pinned in a project's `.mise.toml` |
+| System CLI tools, one version forever: git, herdr, fzf, bat, ripgrep, jq, gh, delta, … | Anything pinned in a project's `.mise.toml` |
 | mise itself | |
 
 ### Per-project env vars (replaces direnv)
@@ -447,12 +423,12 @@ One command, one confirmation — the mirror image of install:
 ~/.config/zsh/uninstall.sh
 ```
 
-It restores your original `~/.zshenv` and `tmux.conf` from the backups
-install.sh made, moves the config to `~/.config/zsh.uninstalled` (kept, in
-case `local.zsh` holds secrets), and clears caches/plugins. Brew packages,
-mise runtimes, git config, SSH keys, and shell history are left untouched —
-the script prints the `brew bundle cleanup` command if you want packages
-gone too.
+It restores your original `~/.zshenv` and herdr `config.toml` from the
+backups install.sh made, uninstalls herdr's Claude Code integration, moves
+the config to `~/.config/zsh.uninstalled` (kept, in case `local.zsh` holds
+secrets), and clears caches/plugins. Brew packages, mise runtimes, git
+config, SSH keys, and shell history are left untouched — the script prints
+the `brew bundle cleanup` command if you want packages gone too.
 
 To disable plugins temporarily without uninstalling: `toggle_interactive off`.
 
@@ -478,15 +454,13 @@ To disable plugins temporarily without uninstalling: `toggle_interactive off`.
 │   ├── functions.zsh         # upgrade, zsh-health, freespace, …
 │   ├── tools.zsh             # cached tool init (starship, zoxide, mise, …)
 │   └── local.zsh             # machine-local overrides (gitignored)
-├── tmux/
-│   ├── tmux.conf             # tmux config (linked to ~/.config/tmux/)
-│   └── local.conf            # machine-local tmux overrides (gitignored)
+├── herdr/
+│   └── config.toml           # herdr config (linked to ~/.config/herdr/)
 ├── alacritty/
 │   └── alacritty.toml        # shared base config
 ├── scripts/
 │   ├── git-setup.sh          # git identity + SSH signing factory
-│   ├── tmux-sessionizer.sh   # fzf session picker (C-a g)
-│   ├── tmux-sys-info.sh      # status bar: CPU / MEM / GPU
+│   ├── sysinfo.sh            # one-liner: CPU / MEM / GPU / battery
 │   └── test.sh               # test suite
 └── docs/                     # aliases, functions, keybindings, plugins
 ```

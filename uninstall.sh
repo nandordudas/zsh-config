@@ -2,9 +2,10 @@
 # uninstall.sh — undo what install.sh did, restoring backed-up originals.
 #
 # One confirmation, then:
-#   - dark-notify process → stopped
-#   - ~/.zshenv           → restored from ~/.zshenv.bak if present, else removed
-#   - tmux.conf symlink   → removed; tmux.conf.bak restored if present
+#   - dark-notify process   → stopped
+#   - ~/.zshenv             → restored from ~/.zshenv.bak if present, else removed
+#   - herdr config symlink  → removed; config.toml.bak restored if present
+#   - herdr Claude Code integration → uninstalled if herdr is present
 #   - alacritty wrapper   → removed (or restored from .bak); theme.toml removed
 #   - ~/.config/zsh       → moved to ~/.config/zsh.uninstalled (kept, not deleted)
 #   - zsh caches/state    → removed (~/.cache/zsh, zinit plugins)
@@ -31,12 +32,13 @@ XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
 XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
 XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 ZSH_DIR="$XDG_CONFIG_HOME/zsh"
-TMUX_CONF="$XDG_CONFIG_HOME/tmux/tmux.conf"
+HERDR_CONF="$XDG_CONFIG_HOME/herdr/config.toml"
 
 printf "%s━━ zsh-config uninstaller ━━%s\n\n" "$BOLD" "$RESET"
 printf "This will:\n"
 printf "  • restore ~/.zshenv from backup (or remove it)\n"
-printf "  • remove the tmux config symlink (restore backup if present)\n"
+printf "  • remove the herdr config symlink (restore backup if present)\n"
+printf "  • uninstall herdr's Claude Code integration, if herdr is present\n"
 printf "  • remove the alacritty local wrapper (restore backup if present)\n"
 printf "  • move %s to %s.uninstalled (kept as backup)\n" "$ZSH_DIR" "$ZSH_DIR"
 printf "  • clear zsh caches and zinit plugins\n"
@@ -57,16 +59,21 @@ elif [[ -f "$HOME/.zshenv" ]]; then
   info "Removed ~/.zshenv"
 fi
 
-# 2. tmux config — only remove the symlink if it points into this repo
-if [[ -L "$TMUX_CONF" && "$(readlink "$TMUX_CONF")" == "$ZSH_DIR"* ]]; then
-  rm "$TMUX_CONF"
-  info "Removed tmux config symlink"
-  if [[ -f "$TMUX_CONF.bak" ]]; then
-    mv "$TMUX_CONF.bak" "$TMUX_CONF"
-    info "Restored original tmux.conf from backup"
+# 2. herdr config — only remove the symlink if it points into this repo
+if [[ -L "$HERDR_CONF" && "$(readlink "$HERDR_CONF")" == "$ZSH_DIR"* ]]; then
+  rm "$HERDR_CONF"
+  info "Removed herdr config symlink"
+  if [[ -f "$HERDR_CONF.bak" ]]; then
+    mv "$HERDR_CONF.bak" "$HERDR_CONF"
+    info "Restored original config.toml from backup"
   fi
-elif [[ -e "$TMUX_CONF" ]]; then
-  warn "$TMUX_CONF is not this repo's symlink — left untouched"
+elif [[ -e "$HERDR_CONF" ]]; then
+  warn "$HERDR_CONF is not this repo's symlink — left untouched"
+fi
+
+# 2b. herdr's Claude Code integration (agent state hook) — uninstall if herdr is present
+if command -v herdr &>/dev/null && herdr integration uninstall claude &>/dev/null; then
+  info "Uninstalled herdr's Claude Code integration"
 fi
 
 # 3. alacritty wrapper — remove if install.sh created it (imports this repo's base)
