@@ -37,3 +37,11 @@ source "$ZDOTDIR/modules/tools.zsh"
 [[ -f "$ZDOTDIR/modules/local.zsh" ]] && source "$ZDOTDIR/modules/local.zsh"
 
 # zprof  # uncomment when profiling
+
+
+# >>> headroom:managed_rtk >>>
+export PATH="/Users/nandordudas/Library/Application Support/Headroom/headroom/bin:$PATH"
+# <<< headroom:managed_rtk <<<
+# >>> headroom:claude_code >>>
+export ANTHROPIC_BASE_URL=http://127.0.0.1:6767
+# <<< headroom:claude_code <<<

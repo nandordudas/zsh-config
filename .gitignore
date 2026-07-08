@@ -11,3 +11,5 @@ modules/local.zsh
 
 # Claude Code session data and worktrees
 .claude/
+
+acme/.local

@@ -29,7 +29,8 @@ _ztool_init() {
     fi
     mv -f "$cache.tmp" "$cache"
   fi
-  source "$cache"
+  # Suppress "can't change option: zle" errors from starship init when zle isn't ready
+  source "$cache" 2>/dev/null || source "$cache"
 }
 
 # =============================================================================
@@ -41,7 +42,9 @@ _zinteractive_mode_file="${XDG_STATE_HOME:-$HOME/.local/state}/zsh/interactive-m
 _zinteractive_mode=$([[ -r "$_zinteractive_mode_file" ]] && <"$_zinteractive_mode_file" || echo "on")
 
 if [[ "$_zinteractive_mode" == "on" ]]; then
-  _ztool_init starship "$(command -v starship)" "starship init zsh"
+  # Suppress zle initialization errors: starship tries to register zle widgets
+  # before zle is fully initialized, causing "can't change option: zle" errors in fresh shells
+  { _ztool_init starship "$(command -v starship)" "starship init zsh" } 2>/dev/null || true
 fi
 unset _zinteractive_mode _zinteractive_mode_file
 
