@@ -34,9 +34,6 @@ if (( $+commands[code] )); then
 fi
 export VISUAL="$EDITOR"
 
-export GITHUB_USER="nandordudas"
-export BITBUCKET_USER="nandordudas"
-
 export PNPM_HOME="$HOME/.local/share/pnpm"
 export ANDROID_HOME="$(brew --prefix)/share/android-commandlinetools"
 export ADB_MDNS_OPENSCREEN=1

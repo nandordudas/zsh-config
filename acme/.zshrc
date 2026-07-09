@@ -1,20 +1,14 @@
-# acme/.zshrc — sources the shared modules in $ZDOTDIR:h/modules so this
-# profile stays in sync with the canonical config (keybindings, aliases,
-# functions, tool init) instead of hand-duplicating a stale copy.
-
 _zconfig_root="$ZDOTDIR:h"
 
-source "$_zconfig_root/modules/options.zsh"
-source "$_zconfig_root/modules/zinit.zsh"
-source "$_zconfig_root/modules/completions.zsh"
-source "$_zconfig_root/modules/keybindings.zsh"
-source "$_zconfig_root/modules/aliases.zsh"
-source "$_zconfig_root/modules/functions.zsh"
-source "$_zconfig_root/modules/tools.zsh"
+source "$_zconfig_root/modules/options.zsh"      # Core zsh settings
+source "$_zconfig_root/modules/zinit.zsh"        # Plugin manager
+source "$_zconfig_root/modules/completions.zsh"  # Completions
+source "$_zconfig_root/modules/keybindings.zsh"  # Keybindings
+source "$_zconfig_root/modules/aliases.zsh"      # Aliases
+source "$_zconfig_root/modules/functions.zsh"    # Functions
+source "$_zconfig_root/modules/tools.zsh"        # Tool inits (starship, mise, fzf, etc.)
+[[ -f "$_zconfig_root/modules/local.zsh" ]] && source "$_zconfig_root/modules/local.zsh"
 
-unset _zconfig_root
-
-# acme-specific overrides (after modules so these win)
 alias reload='exec -l zsh'
 
 # >>> headroom:managed_rtk >>>
