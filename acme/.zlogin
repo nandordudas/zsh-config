@@ -1,4 +1,6 @@
-if [[ -z "$HERDR_SESSION" && ( -n "$FORCE_HERDR" || ( -t 0 && -z "$TERM_PROGRAM" ) ) ]]; then
+echo "Loading herdr..."
+
+if [[ -z "$HERDR_SESSION" && ( -n "$FORCE_HERDR" || ( -t 0 && ( -z "$TERM_PROGRAM" || -n "$VSCODE_INJECTION" ) ) ) ]]; then
   if [[ -n "$VSCODE_INJECTION" ]]; then
     _session="vscode-$PPID"
   else
