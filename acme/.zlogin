@@ -1,6 +1,6 @@
 echo "Loading herdr..."
 
-[[ -n "$VSCODE_INJECTION" && "$HERDR_SESSION" == "main" ]] && unset HERDR_SESSION
+[[ -n "$VSCODE_INJECTION" && "$HERDR_SESSION" != vscode-$$ ]] && unset HERDR_SESSION
 
 if [[ -z "$HERDR_SESSION" && ( -n "$FORCE_HERDR" || ( -t 0 && ( -z "$TERM_PROGRAM" || -n "$VSCODE_INJECTION" ) ) ) ]]; then
   if [[ -n "$VSCODE_INJECTION" ]]; then
