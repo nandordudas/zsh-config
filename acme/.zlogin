@@ -1,5 +1,10 @@
 echo "Loading herdr..."
 
+# ponytail: skip herdr startup if already running (e.g., in VS Code inside herdr)
+if herdr session list &>/dev/null; then
+  return
+fi
+
 [[ -n "$VSCODE_INJECTION" && "$HERDR_SESSION" != vscode-$$ ]] && unset HERDR_SESSION
 
 if [[ -z "$HERDR_SESSION" && ( -n "$FORCE_HERDR" || ( -t 0 && ( -z "$TERM_PROGRAM" || -n "$VSCODE_INJECTION" ) ) ) ]]; then
