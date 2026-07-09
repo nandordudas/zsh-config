@@ -1,5 +1,9 @@
-if [[ -z "$HERDR_SESSION" && ( -n "$FORCE_HERDR" || ( -t 0 && -z "$VSCODE_INJECTION" && -z "$TERM_PROGRAM" ) ) ]]; then
-  _session="main"
+if [[ -z "$HERDR_SESSION" && ( -n "$FORCE_HERDR" || ( -t 0 && -z "$TERM_PROGRAM" ) ) ]]; then
+  if [[ -n "$VSCODE_INJECTION" ]]; then
+    _session="vscode-$PPID"
+  else
+    _session="main"
+  fi
   _cwd="$PWD"
   _line="$(herdr session list 2>/dev/null | grep "^${_session}[[:space:]]")"
   if [[ -n "$_line" ]]; then
