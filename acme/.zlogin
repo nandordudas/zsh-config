@@ -1,6 +1,4 @@
-echo "3. Sourcing .zlogin"
-
-if [[ -z "$HERDR_SESSION" ]]; then
+if [[ -z "$HERDR_SESSION" && ( -n "$FORCE_HERDR" || ( -t 0 && -z "$VSCODE_INJECTION" && -z "$TERM_PROGRAM" ) ) ]]; then
   _session="main"
   _line="$(herdr session list 2>/dev/null | grep "^${_session}[[:space:]]")"
   if [[ -n "$_line" && "$_line" == *"clients:"*[1-9]* ]]; then
@@ -12,9 +10,11 @@ if [[ -z "$HERDR_SESSION" ]]; then
 fi
 
 update() {
-  brew update
-  brew upgrade
-  brew cleanup -s
-  zinit self-update
-  zinit update --all
+  set -e  # fail fast if anything breaks
+  echo "Updating brew..." && brew update
+  echo "Upgrading packages..." && brew upgrade
+  echo "Cleaning up..." && brew cleanup -s
+  echo "Updating zinit..." && zinit self-update
+  echo "Updating plugins..." && zinit update --all
+  echo "✓ All updates done"
 }

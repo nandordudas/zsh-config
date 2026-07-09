@@ -1,1 +1,1 @@
-echo "4. Sourcing .zlogout"
+[[ -f "$ZDOTDIR/.zcompdump" ]] && rm -f "$ZDOTDIR/.zcompdump"

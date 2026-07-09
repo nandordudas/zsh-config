@@ -2,6 +2,8 @@
 # Interactive shell configuration. Sources modules in dependency order.
 # To profile startup time: uncomment zprof lines, then run: time zsh -i -c exit
 
+echo "2. Sourcing .zshrc"
+
 [[ -o interactive ]] || return
 
 # History — here (not .zprofile) so non-login interactive shells share the same file
@@ -45,3 +47,5 @@ export PATH="/Users/nandordudas/Library/Application Support/Headroom/headroom/bi
 # >>> headroom:claude_code >>>
 export ANTHROPIC_BASE_URL=http://127.0.0.1:6767
 # <<< headroom:claude_code <<<
+
+echo "2. Sourcing .zshrc done"
