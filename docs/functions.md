@@ -303,6 +303,16 @@ mise, fzf). Forces them to regenerate on the next shell start.
 Useful when auto-invalidation via `mtime` doesn't trigger — for example after
 a manual config edit that doesn't touch the binary.
 
+**mise is the sharp edge here.** `mise env -s zsh` bakes a literal
+`export PATH='...'` (a snapshot, not a recomputation) into its output. The
+cache only invalidates on the `mise` binary's mtime, so any `.zprofile` /
+`.zshrc` PATH edit — new tool dir, reordered entries — leaves the *old*
+PATH baked into `~/.cache/zsh/mise.zsh` until you clear it. Symptom: a
+newly-added PATH entry works in one-off test shells but a real new
+terminal still can't find the command. Always run `zsh-cache-clear` (then
+`reload` or open a fresh terminal) after editing PATH in `.zprofile` or
+`.zshrc`.
+
 ```
 $ zsh-cache-clear
 Removed: /home/user/.cache/zsh/starship.zsh

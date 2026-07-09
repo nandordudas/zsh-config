@@ -41,6 +41,8 @@ Every external tool that produces init code (starship, zoxide, mise, fzf) is cac
 
 Cache files are deleted by `zsh-cache-clear` (defined in `modules/functions.zsh`). Run `exec zsh` after clearing to regenerate.
 
+**When developing `.zprofile`/`.zshrc` PATH changes, run `zsh-cache-clear` after every edit.** The mise cache is the trap: `mise env -s zsh` bakes a literal `export PATH='...'` snapshot into `$XDG_CACHE_HOME/zsh/mise.zsh`, and that cache only invalidates on the `mise` binary's mtime — not on your config edits. A stale cache silently overwrites your freshly-built PATH on every shell start, so a new PATH entry can appear to work in an isolated test shell while still failing in every real terminal.
+
 ### Plugin loading (zinit.zsh)
 
 All plugins load in **turbo mode** (`wait` + `lucid`) so the prompt appears before plugins finish loading. Completion init order is critical: `zsh-completions` loads first via `blockf` (registers functions in `$fpath`), then `zicompinit` runs once via `atload`, then `zicdreplay` replays compdef calls from turbo-loaded plugins.
