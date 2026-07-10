@@ -71,6 +71,7 @@ bindkey '^[d' kill-word
 # =============================================================================
 [[ -n "${terminfo[kcuu1]}" ]] && bindkey "${terminfo[kcuu1]}" history-substring-search-up
 [[ -n "${terminfo[kcud1]}" ]] && bindkey "${terminfo[kcud1]}" history-substring-search-down
+
 bindkey '^[[A' history-substring-search-up    # xterm Up
 bindkey '^[[B' history-substring-search-down  # xterm Down
 bindkey '^P'   history-substring-search-up    # Emacs Ctrl+P

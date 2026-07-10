@@ -29,9 +29,11 @@ path=(
 )
 export PATH
 
-if (( $+commands[code] )); then
-  export EDITOR='code --wait'
-fi
+export LANG="${LANG:-en_US.UTF-8}"
+export GIT_CONFIG_GLOBAL="$HOME/.config/git/config"
+
+(( $+commands[code] )) && export EDITOR='code --wait'
+
 export VISUAL="$EDITOR"
 
 export PNPM_HOME="$HOME/.local/share/pnpm"
