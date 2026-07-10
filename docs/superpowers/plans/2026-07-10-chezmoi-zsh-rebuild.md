@@ -360,8 +360,8 @@ git -C ~/.local/share/chezmoi commit -m "feat: add herdr config (config file onl
 mkdir -p ~/.config/chezmoi
 cat > ~/.config/chezmoi/chezmoi.toml <<'EOF'
 [data]
-    email = "nandor.dudas@gmail.com"
-    name = "Nandor Dudas"
+    email = "you@example.com"
+    name = "Your Name"
 EOF
 ```
 
@@ -393,8 +393,8 @@ Run: `chezmoi execute-template < ~/.local/share/chezmoi/private_dot_config/git/c
 Expected output:
 ```
 [user]
-	name = Nandor Dudas
-	email = nandor.dudas@gmail.com
+	name = Your Name
+	email = you@example.com
 	signingKey = ~/.ssh/id_ed25519.pub
 
 [gpg]
