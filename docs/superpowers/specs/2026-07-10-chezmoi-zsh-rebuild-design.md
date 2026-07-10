@@ -61,8 +61,28 @@ verify with a throwaway shell:
 ZDOTDIR=~/.config/zsh-acme zsh -i
 ```
 
+## GitHub repo
+
+The chezmoi source becomes its own new public GitHub repo, `dotfiles`,
+independent of this zsh repo. Chezmoi's default model — source repo separate
+from target files.
+
+## App configs folded in (added step by step, not all at once)
+
+- `~/.config/alacritty/alacritty.toml` — as-is, no personal data.
+- `~/.config/herdr/config.toml` only — **not** the sibling runtime files in
+  that directory (`sessions/`, `*.log`, `*.sock`, `session*.json`), which are
+  local state, not config.
+- `~/.config/git/config` — templated (`.tmpl`), since it hardcodes email and
+  local absolute paths. Real values come from a local, gitignored chezmoi
+  data file (`~/.local/share/chezmoi/.chezmoidata.yaml` or `chezmoi init`
+  prompts), keeping the public repo free of personal data — matching this
+  repo's existing "no personal data leaks" convention.
+
 ## Non-goals (for this spec)
 
 - Deleting or migrating old root-level files, `install.sh`, `uninstall.sh`.
 - Deciding the final cutover mechanism.
-- Multi-machine/OS templating (macOS only, single machine today).
+- Multi-machine/OS templating beyond what's needed to de-personalize git config.
+- Migrating anything beyond zsh dotfiles + alacritty + herdr + git config in
+  this first pass.
