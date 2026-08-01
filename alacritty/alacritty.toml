@@ -93,3 +93,8 @@ white   = "#fafafa"
 # magenta = "#a853ba"
 # cyan    = "#3aa9a8"
 # white   = "#64748b"
+
+[[keyboard.bindings]]
+key = "Return"
+mods = "Shift"
+chars = "\n"

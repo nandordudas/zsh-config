@@ -30,7 +30,7 @@ The test suite covers: bash/zsh syntax, required file presence, no personal data
     keybindings → aliases → functions → tools → local (gitignored)
 ```
 
-`~/.config/alacritty/alacritty.toml` and `~/.config/herdr/config.toml` are **not** in this repo — they are created/linked by `install.sh`. The alacritty one is a real file (not a symlink) that imports `alacritty/alacritty.toml` from this repo plus `~/.config/alacritty/theme.toml` (the live theme file). The herdr one is a symlink to `herdr/config.toml`.
+`~/.config/alacritty/alacritty.toml` and `~/.config/herdr/config.toml` are **not** in this repo — they are created/linked by `install.sh`. The alacritty one is a real file (not a symlink) that imports `alacritty/alacritty.toml` from this repo, so machine-local overrides can be added below the import and still win. Theme is Dark/Light via commented-out blocks in the repo file itself — no auto-switch, toggle by hand. The herdr one is a symlink to `herdr/config.toml`.
 
 `herdr` (https://herdr.dev) is the terminal multiplexer used in place of tmux — same prefix-driven model (`Ctrl+a`), plus native agent-state detection for Claude Code and other coding agents. `install.sh` also runs `herdr integration install claude` when both CLIs are present, wiring up a Claude Code hook so herdr can label panes, prioritize the agent panel, and resume sessions after a restart. See `docs/herdr-guide.md`.
 

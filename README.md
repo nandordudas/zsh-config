@@ -126,7 +126,6 @@ cat > ~/.config/alacritty/alacritty.toml << EOF
 [general]
 import = [
   "$HOME/.config/zsh/alacritty/alacritty.toml",
-  "$HOME/.config/alacritty/theme.toml",
 ]
 EOF
 
