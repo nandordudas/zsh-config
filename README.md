@@ -23,7 +23,7 @@ That's it. The installer:
 
 - Installs **Homebrew** if missing (`/opt/homebrew` on Apple Silicon — all bottles native arm64)
 - Installs every tool the config uses via **`brew bundle`** — the package list is declared in [`Brewfile`](Brewfile) (core) and [`Brewfile.dev`](Brewfile.dev) (dev toolchains: mise, rustup, fastfetch)
-- Writes `~/.zshenv`, creates `modules/local.zsh`, links the herdr config (and installs its Claude Code integration), creates the Alacritty local wrapper
+- Writes `~/.zshenv`, creates `modules/local.zsh`, links the herdr config (and installs its Claude Code integration), creates the Alacritty local wrapper, links the starship config
 - Is **idempotent** — safe to re-run anytime; existing files are backed up, never silently overwritten
 
 ### Installer options
@@ -458,6 +458,8 @@ To disable plugins temporarily without uninstalling: `toggle_interactive off`.
 │   └── config.toml           # herdr config (linked to ~/.config/herdr/)
 ├── alacritty/
 │   └── alacritty.toml        # shared base config
+├── starship/
+│   └── starship.toml         # prompt config (linked to ~/.config/starship.toml)
 ├── scripts/
 │   ├── git-setup.sh          # git identity + SSH signing factory
 │   ├── sysinfo.sh            # one-liner: CPU / MEM / GPU / battery
@@ -900,7 +902,7 @@ A: No — this config targets macOS only. Fork an older revision (pre-macOS-only
 A: Yes — that's the recommendation. Put machine-specific bits in `modules/local.zsh`, structural changes in your fork.
 
 **Q: Does this include a prompt theme?**
-A: Yes, [Starship](https://starship.rs/). Customize in `~/.config/starship.toml`.
+A: Yes, [Starship](https://starship.rs/). Customize in [`starship/starship.toml`](starship/starship.toml) (linked to `~/.config/starship.toml` by `install.sh`).
 
 **Q: Can I use this with Oh My Zsh or Prezto?**
 A: No, it's built around Zinit. Fork and adapt if you prefer another manager.

@@ -305,6 +305,16 @@ else
   info "alacritty local wrapper already exists — kept"
 fi
 
+# 5c. starship config symlink (back up an existing real file first)
+mkdir -p "$XDG_CONFIG_HOME"
+STARSHIP_CONF="$XDG_CONFIG_HOME/starship.toml"
+if [[ -f "$STARSHIP_CONF" && ! -L "$STARSHIP_CONF" ]]; then
+  warn "Existing starship.toml backed up to starship.toml.bak"
+  mv "$STARSHIP_CONF" "$STARSHIP_CONF.bak"
+fi
+ln -sf "$ZSH_DIR/starship/starship.toml" "$STARSHIP_CONF"
+info "Linked starship config"
+
 # 6. Project root for gg/gb aliases and freespace
 mkdir -p "$HOME/Development/code"
 touch "$HOME/Development/.metadata_never_index"

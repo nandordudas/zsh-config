@@ -7,6 +7,7 @@
 #   - herdr config symlink  → removed; config.toml.bak restored if present
 #   - herdr Claude Code integration → uninstalled if herdr is present
 #   - alacritty wrapper   → removed (or restored from .bak); theme.toml removed
+#   - starship config symlink → removed; starship.toml.bak restored if present
 #   - ~/.config/zsh       → moved to ~/.config/zsh.uninstalled (kept, not deleted)
 #   - zsh caches/state    → removed (~/.cache/zsh, zinit plugins)
 #
@@ -33,6 +34,7 @@ XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
 XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 ZSH_DIR="$XDG_CONFIG_HOME/zsh"
 HERDR_CONF="$XDG_CONFIG_HOME/herdr/config.toml"
+STARSHIP_CONF="$XDG_CONFIG_HOME/starship.toml"
 
 printf "%s━━ zsh-config uninstaller ━━%s\n\n" "$BOLD" "$RESET"
 printf "This will:\n"
@@ -40,6 +42,7 @@ printf "  • restore ~/.zshenv from backup (or remove it)\n"
 printf "  • remove the herdr config symlink (restore backup if present)\n"
 printf "  • uninstall herdr's Claude Code integration, if herdr is present\n"
 printf "  • remove the alacritty local wrapper (restore backup if present)\n"
+printf "  • remove the starship config symlink (restore backup if present)\n"
 printf "  • move %s to %s.uninstalled (kept as backup)\n" "$ZSH_DIR" "$ZSH_DIR"
 printf "  • clear zsh caches and zinit plugins\n"
 printf "\nKept untouched: brew packages, mise runtimes, npm globals, git config, SSH keys, shell history.\n\n"
@@ -86,6 +89,18 @@ if [[ -f "$ALACRITTY_CONF" ]] && grep -q "zsh/alacritty/alacritty.toml" "$ALACRI
     rm "$ALACRITTY_CONF"
     info "Removed alacritty local wrapper"
   fi
+fi
+
+# 4. starship config — only remove the symlink if it points into this repo
+if [[ -L "$STARSHIP_CONF" && "$(readlink "$STARSHIP_CONF")" == "$ZSH_DIR"* ]]; then
+  rm "$STARSHIP_CONF"
+  info "Removed starship config symlink"
+  if [[ -f "$STARSHIP_CONF.bak" ]]; then
+    mv "$STARSHIP_CONF.bak" "$STARSHIP_CONF"
+    info "Restored original starship.toml from backup"
+  fi
+elif [[ -e "$STARSHIP_CONF" ]]; then
+  warn "$STARSHIP_CONF is not this repo's symlink — left untouched"
 fi
 
 # 5. Config repo — keep as a backup instead of deleting (local.zsh may hold secrets)
