@@ -86,8 +86,19 @@ list_repos_only() {
   done < <(discover_repos)
 }
 
+phase_maintenance() {
+  while IFS= read -r repo; do
+    printf "==> maintenance: %s\n" "$repo"
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      printf "    (dry-run) git maintenance run --auto\n"
+    else
+      git -C "$repo" maintenance run --auto
+    fi
+  done < <(discover_repos)
+}
+
 case "$SUBCOMMAND" in
-  maintenance) list_repos_only ;;
+  maintenance) phase_maintenance ;;
   branches)    list_repos_only ;;
   clean)       list_repos_only ;;
   caches)      list_repos_only ;;

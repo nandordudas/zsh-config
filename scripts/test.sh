@@ -322,6 +322,37 @@ else
 fi
 
 # -----------------------------------------------------------------------------
+# 8. repo-maintenance.sh: maintenance phase
+# -----------------------------------------------------------------------------
+section "repo-maintenance.sh: maintenance phase"
+
+MAINT_ROOT="$(mktemp -d)"
+trap 'rm -rf "$TMP_HOME" "$RT_HOME" "$DISCOVER_ROOT" "$MAINT_ROOT"' EXIT
+
+MAINT_REPO="$MAINT_ROOT/github/testuser/maint-repo"
+mkdir -p "$MAINT_REPO"
+git init -q "$MAINT_REPO"
+(
+  cd "$MAINT_REPO"
+  git config user.email "test@example.com"
+  git config user.name "Test User"
+  git commit -q --allow-empty -m "init"
+)
+
+if bash "$RM" maintenance --root "$MAINT_ROOT" --yes &>/dev/null; then
+  ok "maintenance subcommand exits 0"
+else
+  fail "maintenance subcommand exited non-zero"
+fi
+
+DRYRUN_OUT=$(capture bash "$RM" maintenance --root "$MAINT_ROOT" --dry-run)
+if echo "$DRYRUN_OUT" | grep -q "(dry-run) git maintenance run --auto"; then
+  ok "maintenance --dry-run prints without executing"
+else
+  fail "maintenance --dry-run did not print expected line"
+fi
+
+# -----------------------------------------------------------------------------
 # Summary
 # -----------------------------------------------------------------------------
 printf "\n\033[1m%s passed, %s failed\033[0m\n" "$PASS" "$FAIL"
