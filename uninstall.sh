@@ -2,11 +2,10 @@
 # uninstall.sh — undo what install.sh did, restoring backed-up originals.
 #
 # One confirmation, then:
-#   - dark-notify process   → stopped
 #   - ~/.zshenv             → restored from ~/.zshenv.bak if present, else removed
 #   - herdr config symlink  → removed; config.toml.bak restored if present
 #   - herdr Claude Code integration → uninstalled if herdr is present
-#   - alacritty wrapper   → removed (or restored from .bak); theme.toml removed
+#   - alacritty wrapper   → removed (or restored from .bak)
 #   - starship config symlink → removed; starship.toml.bak restored if present
 #   - ~/.config/zsh       → moved to ~/.config/zsh.uninstalled (kept, not deleted)
 #   - zsh caches/state    → removed (~/.cache/zsh, zinit plugins)

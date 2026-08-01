@@ -70,7 +70,7 @@ No `tmux`-style wrapper function exists anymore: bare `herdr` already attaches-o
 
 | Path | Purpose |
 |------|---------|
-| `modules/local.zsh` | Per-machine zsh overrides, secrets, `ZSH_CONFIG_AUTO_UPDATE=1` opt-in |
+| `modules/local.zsh` | Per-machine zsh overrides, secrets, machine-specific `PATH`/env vars |
 | `~/.config/alacritty/alacritty.toml` | Local Alacritty wrapper with imports + per-machine overrides |
 
 `herdr/config.toml` has no per-machine override file — herdr's TOML config has no `source-file`/include directive (unlike tmux), and the file holds no secrets, so machine-specific tweaks go directly into the tracked file.

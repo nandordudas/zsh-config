@@ -193,9 +193,16 @@ upgrade() {
 
   local tmpdir
   tmpdir=$(mktemp -d)
+  # MONITOR is unset above, so background jobs stay in this shell's process
+  # group — `kill -- -$pid` would find no such group and silently do nothing.
+  # Kill the job's children first (brew, mise, …), then the job itself.
   trap '
-    for _pid in $pids; do kill -- -$_pid 2>/dev/null; done
+    for _pid in $pids; do
+      pkill -P "$_pid" 2>/dev/null
+      kill "$_pid" 2>/dev/null
+    done
     wait 2>/dev/null  # Reap all jobs silently
+    _upgrade_cleanup
     rm -rf "$tmpdir"
     printf "\n[upgrade] cancelled\n"
     trap - INT TERM
@@ -203,6 +210,14 @@ upgrade() {
 
   local -a names=() pids=()
   local total_start=$EPOCHSECONDS
+
+  # Drop every helper defined below. zsh scopes nested function definitions
+  # globally, so without this they outlive the call — including on the early
+  # returns for --dry-run and "nothing to upgrade".
+  _upgrade_cleanup() {
+    unfunction _job_start _job_end _launch_job _brew_lock _ver \
+      ${(k)functions[(I)_upgrade_*]} 2>/dev/null
+  }
 
   # Job control helpers
   _job_start() { printf 'running' >"$tmpdir/$1.status"; printf '%s' $EPOCHSECONDS >"$tmpdir/$1.start" }
@@ -213,15 +228,35 @@ upgrade() {
   _launch_job() {
     local tool=$1 fn=$2
     [[ -n "$only_tools" ]] && [[ ! "$only_tools" =~ (^|,)$tool(,|$) ]] && return
+    # Register the name either way so --dry-run can list it, but only fork the
+    # real work when this is not a dry run.
+    names+=($tool)
+    (( dry_run )) && return
     { _job_start $tool; ( set -e; $fn ); _job_end $tool $? } >"$tmpdir/$tool.log" 2>&1 &
-    pids+=($!) names+=($tool)
+    pids+=($!)
+  }
+
+  # Homebrew takes a global lock, so two concurrent `brew` processes fail with
+  # "Another active Homebrew process is already in progress". The brew and
+  # claude jobs both shell out to brew, so every invocation goes through here.
+  # `"$@" || rc=$?` keeps errexit from skipping the rmdir.
+  _brew_lock() {
+    local lock="$tmpdir/brew.lock" rc=0 waited=0
+    until mkdir "$lock" 2>/dev/null; do
+      sleep 0.2
+      (( waited += 1 ))
+      (( waited > 3000 )) && { printf 'timed out waiting for the brew lock\n' >&2; return 1; }
+    done
+    "$@" || rc=$?
+    rmdir "$lock" 2>/dev/null
+    return $rc
   }
 
   # Per-tool upgrade functions
   _upgrade_brew() {
-    brew update --quiet
-    brew upgrade
-    brew cleanup --prune=7
+    _brew_lock brew update --quiet
+    _brew_lock brew upgrade
+    _brew_lock brew cleanup --prune=7
   }
   _upgrade_zinit() {
     (( ${+functions[zinit]} )) || return 0
@@ -262,7 +297,7 @@ upgrade() {
   }
   _upgrade_claude() {
     command -v claude &>/dev/null || return 0
-    brew upgrade --cask claude-code@latest 2>/dev/null || true
+    _brew_lock brew upgrade --cask claude-code@latest 2>/dev/null || true
   }
 
   # Launch jobs (or show dry-run)
@@ -277,7 +312,11 @@ upgrade() {
   _launch_job mise _upgrade_mise   # node, go, … + global npm packages
   _launch_job claude _upgrade_claude
 
-  [[ ${#names[@]} -eq 0 ]] && { printf "No tools to upgrade\n" >&2; rm -rf "$tmpdir"; return 0; }
+  [[ ${#names[@]} -eq 0 ]] && {
+    printf "No tools to upgrade\n" >&2
+    trap - INT TERM; _upgrade_cleanup; rm -rf "$tmpdir"
+    return 0
+  }
 
   if (( dry_run )); then
     printf "Jobs that would run:\n"
@@ -285,7 +324,7 @@ upgrade() {
       printf "  • %s\n" "$name"
     done
     printf "\nDry-run complete — no changes made.\n"
-    rm -rf "$tmpdir"
+    trap - INT TERM; _upgrade_cleanup; rm -rf "$tmpdir"
     return 0
   fi
 
@@ -373,7 +412,7 @@ upgrade() {
   printf '\n'
 
   trap - INT TERM
-  unfunction _job_start _job_end _launch_job ${(k)functions[(I)_upgrade_*]} _ver 2>/dev/null
+  _upgrade_cleanup
   rm -rf "$tmpdir"
 
   if (( has_failure )); then

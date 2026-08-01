@@ -12,18 +12,20 @@ DRY_RUN=0
 ASSUME_YES=0
 
 usage() {
-  cat <<'USAGE'
+  cat <<USAGE
 Usage: repo-maintenance.sh <branches|maintenance|clean|caches|all> [--root PATH] [--dry-run] [--yes]
 
 Subcommands:
-  branches     delete local branches whose remote tracking ref is gone
   maintenance  run 'git maintenance run --auto' in each repo
+
+Not yet implemented — these list the repos they would act on, then exit 2:
+  branches     delete local branches whose remote tracking ref is gone
   clean        run each ecosystem's native clean command / remove build dirs
   caches       report (and optionally delete) global tool caches
   all          run maintenance, branches, clean, then caches, in that order
 
 Options:
-  --root PATH  scan root (default: ${CODE_DIR:-$HOME/Development/code})
+  --root PATH  scan root (default: ${CODE_DIR:-\$HOME/Development/code})
   --dry-run    print actions without mutating anything
   --yes        skip confirmation prompts
 USAGE
@@ -80,10 +82,16 @@ discover_repos() {
     | sed 's|/\.git$||'
 }
 
+# Placeholder for the subcommands that are still specified but unwritten. It
+# lists the repos the real phase would visit, then exits 2 so no caller (or
+# cron job) mistakes a no-op for a completed run.
 list_repos_only() {
   while IFS= read -r repo; do
     printf "==> %s: %s\n" "$SUBCOMMAND" "$repo"
   done < <(discover_repos)
+  printf "\n'%s' is not implemented yet — nothing above was modified.\n" "$SUBCOMMAND" >&2
+  printf "See docs/superpowers/specs/2026-08-01-repo-maintenance-design.md\n" >&2
+  return 2
 }
 
 phase_maintenance() {

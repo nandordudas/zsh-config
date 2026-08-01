@@ -2,8 +2,6 @@
 # Interactive shell configuration. Sources modules in dependency order.
 # To profile startup time: uncomment zprof lines, then run: time zsh -i -c exit
 
-echo "2. Sourcing .zshrc"
-
 [[ -o interactive ]] || return
 
 # History — here (not .zprofile) so non-login interactive shells share the same file
@@ -41,15 +39,10 @@ source "$_zconfig_root/modules/functions.zsh"
 source "$_zconfig_root/modules/tools.zsh"
 
 # 8. Machine-local overrides (gitignored)
+# Machine-specific PATH entries and tool env vars (Headroom, per-host API
+# endpoints, …) belong in local.zsh, not here — this file is committed.
 [[ -f "$_zconfig_root/modules/local.zsh" ]] && source "$_zconfig_root/modules/local.zsh"
 
 # zprof  # uncomment when profiling
 
-# >>> headroom:managed_rtk >>>
-export PATH="/Users/nandordudas/Library/Application Support/Headroom/headroom/bin:$PATH"
-# <<< headroom:managed_rtk <<<
-# >>> headroom:claude_code >>>
-export ANTHROPIC_BASE_URL=http://127.0.0.1:6767
-# <<< headroom:claude_code <<<
-
-echo "2. Sourcing .zshrc done"
+unset _zconfig_root
