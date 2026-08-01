@@ -5,5 +5,7 @@ update() {
   echo "Cleaning up..." && brew cleanup -s
   echo "Updating zinit..." && zinit self-update
   echo "Updating plugins..." && zinit update --all
+  echo "Checking macOS updates..."
+  softwareupdate -l | tail +5 # sudo softwareupdate -i -a
   echo "✓ All updates done"
 }

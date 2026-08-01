@@ -39,3 +39,13 @@ export VISUAL="$EDITOR"
 export PNPM_HOME="$HOME/.local/share/pnpm"
 export ANDROID_HOME="$(brew --prefix)/share/android-commandlinetools"
 export ADB_MDNS_OPENSCREEN=1
+
+[[ -f "$HOME/.local/bin/env" ]] && . "$HOME/.local/bin/env"
+
+if _libpq_prefix="$(brew --prefix libpq 2>/dev/null)" && [[ -d "$_libpq_prefix" ]]; then
+  path=("$_libpq_prefix/bin" $path)
+  export LDFLAGS="-L$_libpq_prefix/lib"
+  export CPPFLAGS="-I$_libpq_prefix/include"
+  export PKG_CONFIG_PATH="$_libpq_prefix/lib/pkgconfig"
+fi
+unset _libpq_prefix

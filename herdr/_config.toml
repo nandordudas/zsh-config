@@ -60,6 +60,7 @@ dark_name   = "gruvbox"
 accent                             = "green"
 show_agent_labels_on_pane_borders  = true
 agent_panel_sort                   = "priority"   # blocked > done > working > idle
+mouse_capture                      = false
 
 # =============================================================================
 # NOTIFICATIONS — replaces tmux's `monitor-activity` (which only recolored the
