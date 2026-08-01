@@ -8,7 +8,10 @@
 # Helper function _ztool_init() centralizes cache logic and reduces duplication.
 # FZF additionally exports its FZF_* config vars inside an anonymous function.
 
-_ztool_cache="$XDG_CACHE_HOME/zsh"
+# Fallback rather than bare $XDG_CACHE_HOME: ~/.zshenv sets it, but zsh reads
+# $ZDOTDIR/.zshenv — not ~/.zshenv — so anything launched with ZDOTDIR pointed
+# elsewhere gets an empty value and this would resolve to "/zsh".
+_ztool_cache="${XDG_CACHE_HOME:-$HOME/.cache}/zsh"
 mkdir -p "$_ztool_cache"
 chmod 700 "$_ztool_cache" 2>/dev/null  # Prevent cache injection vulnerability
 
@@ -20,7 +23,26 @@ _ztool_init() {
   local name="$1" bin="$2" init_cmd="$3"
   [[ -x "$bin" ]] || return 0
   local cache="$_ztool_cache/${name}.zsh"
-  if [[ ! -s "$cache" || "$bin" -nt "$cache" ]]; then
+
+  # Staleness is NOT just "is the binary newer". `mise activate zsh` bakes a
+  # literal `export PATH='<snapshot>'` into its cache, so a PATH edit in
+  # .zprofile/.zshrc must invalidate it too — otherwise the stale snapshot
+  # silently overwrites the freshly built PATH on every shell start, and the
+  # new entry appears to work in a test shell while failing in every terminal.
+  # $ZDOTDIR holds the startup files actually being sourced (which is acme/ when
+  # running that profile); $_zconfig_root is the repo root. Check both, since
+  # either can define PATH. Listing the same file twice is harmless.
+  local -a _zt_inputs=("$bin")
+  [[ -n "$ZDOTDIR" ]] && _zt_inputs+=("$ZDOTDIR/.zprofile" "$ZDOTDIR/.zshrc")
+  [[ -n "$_zconfig_root" ]] && _zt_inputs+=("$_zconfig_root/.zprofile" "$_zconfig_root/.zshrc")
+
+  local _zt_stale=0 _zt_f
+  [[ -s "$cache" ]] || _zt_stale=1
+  for _zt_f in "${_zt_inputs[@]}"; do
+    [[ -f "$_zt_f" && "$_zt_f" -nt "$cache" ]] && _zt_stale=1
+  done
+
+  if (( _zt_stale )); then
     # Write to a temp file first so a failed or empty init never leaves a
     # bad cache behind (which would be silently sourced on every future start).
     if ! eval "$init_cmd" >"$cache.tmp" 2>/dev/null || [[ ! -s "$cache.tmp" ]]; then

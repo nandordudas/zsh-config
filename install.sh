@@ -124,7 +124,12 @@ fi
 brew_env() {
   local b
   for b in /opt/homebrew/bin/brew /usr/local/bin/brew; do
-    [[ -x "$b" ]] && eval "$("$b" shellenv)" && return 0
+    [[ -x "$b" ]] || continue
+    # Confirm brew is really callable afterwards. If `shellenv` fails the
+    # command substitution is empty, `eval ""` succeeds, and a bare
+    # `&& return 0` would report success with brew still absent from PATH.
+    eval "$("$b" shellenv)" 2>/dev/null
+    command -v brew &>/dev/null && return 0
   done
   return 1
 }
@@ -141,11 +146,18 @@ if (( ! CONFIG_ONLY )); then
   step "Core packages (Brewfile)"
   # Declarative package list — see Brewfile for the annotated set.
   # All bottles are native arm64 on Apple Silicon.
-  brew bundle --file="$SCRIPT_DIR/Brewfile"
+  #
+  # Non-fatal on purpose. Under `set -e` a single renamed cask or transient
+  # download failure here would abort the installer before ANY config file is
+  # written, which on a fresh machine is the worst possible outcome: no shell
+  # config and no ~/.zshenv. Warn and carry on to the config step instead.
+  brew bundle --file="$SCRIPT_DIR/Brewfile" \
+    || warn "some core packages failed — re-run: brew bundle --file=$SCRIPT_DIR/Brewfile"
 
   if (( ! MINIMAL )); then
     step "Dev toolchains (Brewfile.dev)"
-    brew bundle --file="$SCRIPT_DIR/Brewfile.dev"
+    brew bundle --file="$SCRIPT_DIR/Brewfile.dev" \
+      || warn "some dev toolchains failed — re-run: brew bundle --file=$SCRIPT_DIR/Brewfile.dev"
 
     # Set up the rustup MANAGER only — no global toolchain. A project with a
     # rust-toolchain.toml auto-installs its pinned toolchain on first build.
@@ -296,18 +308,22 @@ if [[ ! -f "$ALACRITTY_CONF" ]]; then
   cat > "$ALACRITTY_CONF" << EOF
 # ~/.config/alacritty/alacritty.toml — local, not committed to the repo
 # Imports the shared base config; settings added below override the base.
+#
+# The import path below is ABSOLUTE and was baked in when install.sh ran.
+# Moving or renaming the config repo breaks alacritty (it starts with defaults
+# and no error) until you re-run install.sh or edit the path by hand.
 
 [general]
 import = [
   "$ALACRITTY_BASE",
 ]
 
-# Example machine-local overrides:
+# Example machine-local overrides — anything here wins over the base:
 # [font]
 # size = 14.0
 #
 # [window]
-# opacity = 1.0
+# opacity = 0.95
 EOF
   info "Created alacritty local wrapper (imports base config)"
 else

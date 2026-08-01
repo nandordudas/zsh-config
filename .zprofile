@@ -4,6 +4,19 @@
 # required directories. This config targets macOS.
 
 # =============================================================================
+# XDG BASE DIRECTORIES
+# ~/.zshenv normally sets these, but zsh reads $ZDOTDIR/.zshenv — NOT
+# ~/.zshenv — so any shell started with ZDOTDIR pointed at a directory
+# without its own .zshenv arrives here with them unset, and every path below
+# would resolve to "/zsh/...". Default them rather than assume.
+# =============================================================================
+: "${XDG_CONFIG_HOME:=$HOME/.config}"
+: "${XDG_CACHE_HOME:=$HOME/.cache}"
+: "${XDG_DATA_HOME:=$HOME/.local/share}"
+: "${XDG_STATE_HOME:=$HOME/.local/state}"
+export XDG_CONFIG_HOME XDG_CACHE_HOME XDG_DATA_HOME XDG_STATE_HOME
+
+# =============================================================================
 # ONE-TIME DIRECTORY SETUP
 # Create directories that tools expect to exist. Safe to run at every login.
 # =============================================================================

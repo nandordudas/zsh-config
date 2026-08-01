@@ -5,7 +5,12 @@
 live_config_reload = true
 
 [env]
-# Set the TERM environment variable for this terminal
+# Set the TERM environment variable for this terminal.
+# Requires the `alacritty` terminfo entry to exist on whatever host is reading
+# it. It ships with macOS and with the cask, but a remote host you ssh into may
+# not have it — there you get a degraded terminal. Fixes, in order of
+# preference: `infocmp -x alacritty | ssh host tic -x -`, or set
+# TERM = "xterm-256color" here and give up alacritty-specific capabilities.
 TERM = "alacritty"
 
 [window]
@@ -33,7 +38,14 @@ bindings = [
 
 # =============================================================================
 # MAPLE THEME — Dark (default) & Light
-# Switch by commenting/uncommenting the sections below
+# Switch by commenting/uncommenting the sections below.
+#
+# This is a MANUAL toggle, and herdr is configured to match: herdr's
+# [theme] auto_switch is off in herdr/config.toml for exactly this reason.
+# With it on, the multiplexer flipped to its light palette on a system
+# appearance change while the terminal underneath stayed dark.
+# If you want real auto-switching, both sides have to do it — see the note in
+# herdr/config.toml.
 # =============================================================================
 
 # Maple Dark

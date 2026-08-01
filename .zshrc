@@ -4,11 +4,21 @@
 
 [[ -o interactive ]] || return
 
+# XDG defaults — a non-login interactive shell never runs .zprofile, and zsh
+# reads $ZDOTDIR/.zshenv rather than ~/.zshenv, so neither is guaranteed to
+# have set these. Without the fallbacks HISTFILE becomes "/zsh/history".
+: "${XDG_CONFIG_HOME:=$HOME/.config}"
+: "${XDG_CACHE_HOME:=$HOME/.cache}"
+: "${XDG_DATA_HOME:=$HOME/.local/share}"
+: "${XDG_STATE_HOME:=$HOME/.local/state}"
+export XDG_CONFIG_HOME XDG_CACHE_HOME XDG_DATA_HOME XDG_STATE_HOME
+
 # History — here (not .zprofile) so non-login interactive shells share the same file
-export HISTFILE="${XDG_DATA_HOME}/zsh/history"
+[[ -d "$XDG_DATA_HOME/zsh" ]] || mkdir -p "$XDG_DATA_HOME/zsh"
+export HISTFILE="$XDG_DATA_HOME/zsh/history"
 export HISTSIZE=50000
 export SAVEHIST=50000
-export LESSHISTFILE="${XDG_CACHE_HOME}/lesshst"
+export LESSHISTFILE="$XDG_CACHE_HOME/lesshst"
 
 # zmodload zsh/zprof  # uncomment to profile
 
