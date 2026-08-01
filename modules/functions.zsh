@@ -3,6 +3,22 @@
 [[ -n "$__functions_zsh_loaded" ]] && return
 __functions_zsh_loaded=1
 
+# Parse the rest of this file with alias expansion OFF.
+#
+# zsh expands aliases when a function body is PARSED, not when it runs, and
+# .zshrc sources modules/aliases.zsh before this file. So every interactive
+# convenience alias leaked into these function bodies:
+#   mkdir -p   → broke the brew mutex (mkdir -p never fails, so it stopped
+#                being atomic and both jobs ran brew at once)
+#   rm -i      → made `rm` inside zsh-cache-clear prompt per file, and turned
+#                freespace's `rm -rf` into `rm -i -rf` (harmless only because
+#                -f happens to win)
+#   ls/df/du   → would silently become eza/duf/dust
+# Restored at the bottom of the file. Commands that genuinely want an alias's
+# behaviour should spell out the flags.
+_zf_aliases_were_on=0
+[[ -o aliases ]] && { _zf_aliases_were_on=1; unsetopt ALIASES }
+
 # $EPOCHSECONDS (used by upgrade) requires the datetime module
 zmodload zsh/datetime 2>/dev/null
 
@@ -220,7 +236,7 @@ upgrade() {
   # globally, so without this they outlive the call — including on the early
   # returns for --dry-run and "nothing to upgrade".
   _upgrade_cleanup() {
-    unfunction _job_start _job_end _launch_job _brew_lock _ver \
+    unfunction _job_start _job_end _launch_job _brew_lock _step _ver \
       ${(k)functions[(I)_upgrade_*]} 2>/dev/null
   }
 
@@ -241,29 +257,53 @@ upgrade() {
     pids+=($!)
   }
 
+  # Echo each command before running it, and name it again with its exit code
+  # if it fails. Without this a job that dies under `set -e` shows up as a bare
+  # "✗ FAILED" and the log gives no clue which of several commands died —
+  # especially when the failing one produced no output of its own.
+  _step() {
+    print -r -- "+ $*"
+    "$@" || { local rc=$?; print -r -- "! '$*' exited $rc"; return $rc }
+  }
+
   # Homebrew takes a global lock, so two concurrent `brew` processes fail with
   # "Another active Homebrew process is already in progress". The brew and
   # claude jobs both shell out to brew, so every invocation goes through here.
   # `"$@" || rc=$?` keeps errexit from skipping the rmdir.
   _brew_lock() {
     local lock="$tmpdir/brew.lock" rc=0 waited=0
-    until mkdir "$lock" 2>/dev/null; do
+    # `command mkdir`, NOT bare mkdir. modules/aliases.zsh defines
+    # `alias mkdir='mkdir -p'`, and aliases are expanded when a function body is
+    # PARSED — aliases.zsh is sourced before this file, so a bare `mkdir` here
+    # silently became `mkdir -p`, which never fails on an existing directory.
+    # That destroyed the atomicity this mutex depends on: both jobs "acquired"
+    # the lock, ran brew concurrently, and the loser's rmdir then failed.
+    #
+    # The loop body must also end on a command that succeeds — a loop's exit
+    # status is that of the last command run in its body, so ending on a false
+    # `(( ))` test made the whole `until` return 1 under contention.
+    until command mkdir "$lock" 2>/dev/null; do
+      (( ++waited > 3000 )) && { printf 'timed out waiting for the brew lock\n' >&2; return 1; }
       sleep 0.2
-      (( waited += 1 ))
-      (( waited > 3000 )) && { printf 'timed out waiting for the brew lock\n' >&2; return 1; }
     done
-    "$@" || rc=$?
-    rmdir "$lock" 2>/dev/null
+    _step "$@" || rc=$?
+    # Releasing must never fail the job: `|| true` because errexit is active in
+    # the caller and a failed rmdir killed the job before it reached `return`.
+    command rmdir "$lock" 2>/dev/null || true
     return $rc
   }
 
   # Per-tool upgrade functions
   _upgrade_brew() {
-    _brew_lock brew update --quiet
+    # No --quiet: this output is the only diagnostic when the job fails.
+    _brew_lock brew update
     _brew_lock brew upgrade
-    # --greedy also upgrades casks that mark themselves auto-updating, which
-    # plain `brew upgrade` skips entirely — they otherwise never move.
-    _brew_lock brew upgrade --cask --greedy
+    # Deliberately NOT `--cask --greedy`. --greedy means "also casks with
+    # version :latest and auto_updates true". On this machine no cask uses
+    # :latest, and the auto_updates ones (1password, chrome, vscode, …) keep
+    # themselves updated — so --greedy re-downloads hundreds of MB of apps for
+    # no benefit, and fails the whole job if any of them is running.
+    # Need it for one specific cask? `brew upgrade --cask --greedy <name>`.
     _brew_lock brew cleanup --prune=7
   }
   # macOS system updates. Reported only, never installed: `softwareupdate -i`
@@ -309,7 +349,7 @@ upgrade() {
   _upgrade_mise() {
     command -v mise &>/dev/null || return 0
     # Upgrade managed runtimes (node + any per-project pins) within their ranges
-    mise upgrade --yes 2>/dev/null || mise upgrade || true
+    _step mise upgrade --yes 2>/dev/null || mise upgrade || true
     # Refresh global npm packages; ~/.default-npm-packages is the source of truth
     command -v npm &>/dev/null || return 0
     local pkgs
@@ -746,3 +786,8 @@ freespace() {
   local freed=$(( (end_kb - start_kb) / 1024 ))
   printf "\n${_COLOR_GREEN}✓ Done!${_COLOR_RESET} Freed ~${_COLOR_GREEN}%s MB${_COLOR_RESET}\n" "$freed"
 }
+
+# Restore alias expansion for whatever is sourced after this file (see the
+# NO_ALIASES note at the top).
+(( _zf_aliases_were_on )) && setopt ALIASES
+unset _zf_aliases_were_on
