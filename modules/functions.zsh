@@ -236,15 +236,22 @@ upgrade() {
   # globally, so without this they outlive the call — including on the early
   # returns for --dry-run and "nothing to upgrade".
   _upgrade_cleanup() {
-    unfunction _job_start _job_end _launch_job _brew_lock _step _ver \
-      ${(k)functions[(I)_upgrade_*]} 2>/dev/null
+    unfunction _job_start _job_end _launch_job _brew_lock _step _warn_step \
+      _job_warn _ver ${(k)functions[(I)_upgrade_*]} 2>/dev/null
   }
 
   # Job control helpers
   _job_start() { printf 'running' >"$tmpdir/$1.status"; printf '%s' $EPOCHSECONDS >"$tmpdir/$1.start" }
+  # Three states, not two. A job that finished but had to skip or retry
+  # something reports 'warned' — previously every best-effort failure was
+  # swallowed by `|| true` and displayed as a plain ✓, so the table said the
+  # work succeeded when it had not even run.
   _job_end()   {
-    (( $2 == 0 )) && printf 'done' >"$tmpdir/$1.status" || printf 'failed' >"$tmpdir/$1.status"
-    printf '%s' $EPOCHSECONDS >"$tmpdir/$1.end"
+    local tool=$1 rc=$2 st=done
+    (( rc != 0 )) && st=failed
+    [[ $st == done && -s "$tmpdir/$tool.warn" ]] && st=warned
+    printf '%s' "$st" >"$tmpdir/$tool.status"
+    printf '%s' $EPOCHSECONDS >"$tmpdir/$tool.end"
   }
   _launch_job() {
     local tool=$1 fn=$2
@@ -253,8 +260,26 @@ upgrade() {
     # real work when this is not a dry run.
     names+=($tool)
     (( dry_run )) && return
-    { _job_start $tool; ( set -e; $fn ); _job_end $tool $? } >"$tmpdir/$tool.log" 2>&1 &
+    # _job_tool lets _job_warn find this job's warn file from inside the subshell.
+    { _job_start $tool; ( set -e; _job_tool=$tool; $fn ); _job_end $tool $? } \
+      >"$tmpdir/$tool.log" 2>&1 &
     pids+=($!)
+  }
+
+  # Record a non-fatal problem: shows in the log and flips the job to 'warned'.
+  _job_warn() {
+    print -r -- "! WARNING: $*"
+    [[ -n "$_job_tool" ]] && print -r -- "$*" >>"$tmpdir/$_job_tool.warn"
+    return 0
+  }
+
+  # Like _step, but a failure warns instead of failing the job. For optional or
+  # best-effort work (the claude cask, npm globals, cargo-update).
+  _warn_step() {
+    print -r -- "+ $*"
+    "$@" && return 0
+    local rc=$?
+    _job_warn "'$*' exited $rc — continuing"
   }
 
   # Echo each command before running it, and name it again with its exit code
@@ -322,20 +347,55 @@ upgrade() {
   }
   _upgrade_zinit() {
     (( ${+functions[zinit]} )) || return 0
-    local zinit_dir="${ZINIT[HOME_DIR]:-${XDG_DATA_HOME:-$HOME/.local/share}/zinit/zinit.git}"
-    git -C "$zinit_dir" fetch origin --quiet 2>/dev/null || true
-    local behind=$(git -C "$zinit_dir" rev-list HEAD..FETCH_HEAD --count 2>/dev/null || echo 0)
-    (( behind > 0 )) && zinit self-update --quiet || true
-    local stamp="$(_zcache_dir)/zinit-plugins-updated"
-    if [[ ! -f "$stamp" ]] || (( EPOCHSECONDS - $(<"$stamp") > 86400 )); then
-      zinit update --all --quiet || true
-      printf '%s' $EPOCHSECONDS >"$stamp"
+    # BIN_DIR, not HOME_DIR. HOME_DIR is the parent (…/zinit) and is not a git
+    # repo at all; the checkout lives in …/zinit/zinit.git. Because HOME_DIR is
+    # always set, the `:-` fallback never applied, every fetch failed, `behind`
+    # was always 0, and `zinit self-update` had in fact never run once. The
+    # failure was invisible until the fetch stopped being `|| true`.
+    local zinit_dir="${ZINIT[BIN_DIR]:-${XDG_DATA_HOME:-$HOME/.local/share}/zinit/zinit.git}"
+
+    # Decide on self-update ONLY if the fetch succeeded. This used to be
+    # `fetch ... || true` followed by an unconditional read of FETCH_HEAD, so
+    # after a failed fetch the ref was stale or absent, `behind` came out 0, and
+    # zinit silently stopped self-updating for good.
+    if git -C "$zinit_dir" fetch origin --quiet 2>/dev/null; then
+      local behind
+      behind=$(git -C "$zinit_dir" rev-list HEAD..FETCH_HEAD --count 2>/dev/null || echo 0)
+      if (( behind > 0 )); then
+        _warn_step zinit self-update --quiet
+      else
+        echo "zinit itself is up to date"
+      fi
+    else
+      _job_warn "could not fetch $zinit_dir — skipped zinit self-update"
     fi
+
+    # Plugin and snippet updates are throttled to once a day. Say so out loud:
+    # a silent skip is indistinguishable from a successful update, which is
+    # exactly how "✓ zinit done 0s" came to mean "did nothing".
+    local stamp="$(_zcache_dir)/zinit-plugins-updated" last=0 age
+    [[ -f "$stamp" ]] && last=$(<"$stamp")
+    age=$(( EPOCHSECONDS - last ))
+    if (( age < 86400 )); then
+      printf 'plugins updated %dh ago — skipping (next in %dh, or rm %s to force)\n' \
+        $(( age / 3600 )) $(( (86400 - age + 3599) / 3600 )) "$stamp"
+      return 0
+    fi
+
+    # --no-pager: a pager inside a backgrounded job whose stdout is a file can
+    # hang. --parallel: update all objects concurrently.
+    # Stamp ONLY on success — stamping after a failure hid the failure AND
+    # pushed the next attempt out another 24h.
+    if _step zinit update --all --quiet --no-pager --parallel; then
+      printf '%s' $EPOCHSECONDS >"$stamp"
+    else
+      _job_warn "plugin update failed — stamp not written, will retry next run"
+    fi
+    return 0
   }
   _upgrade_rust() {
     if command -v rustup &>/dev/null; then
-      echo "updating rustup..."
-      rustup update || echo "rustup update failed"
+      _warn_step rustup update
     else
       echo "rustup not installed"
       return 0
@@ -343,23 +403,35 @@ upgrade() {
     # cargo-update plugin updates cargo-installed binaries from source.
     # On macOS most CLI tools come from brew instead, so this is usually a no-op.
     if command -v cargo-install-update &>/dev/null; then
-      cargo install-update -a || echo "cargo package update failed"
+      _warn_step cargo install-update -a
     fi
+    return 0
   }
   _upgrade_mise() {
     command -v mise &>/dev/null || return 0
     # Upgrade managed runtimes (node + any per-project pins) within their ranges
-    _step mise upgrade --yes 2>/dev/null || mise upgrade || true
+    _warn_step mise upgrade --yes
     # Refresh global npm packages; ~/.default-npm-packages is the source of truth
     command -v npm &>/dev/null || return 0
     local pkgs
     pkgs=$(xargs < "$HOME/.default-npm-packages" 2>/dev/null)
     [[ -z "$pkgs" ]] && pkgs="pnpm @antfu/ni taze npkill ccstatusline eslint"
-    npm outdated --global 2>/dev/null | grep -q . && npm install --global npm@latest ${=pkgs} || true
+    if npm outdated --global 2>/dev/null | grep -q .; then
+      _warn_step npm install --global npm@latest ${=pkgs}
+    else
+      echo "global npm packages are up to date"
+    fi
+    return 0
   }
   _upgrade_claude() {
     command -v claude &>/dev/null || return 0
-    _brew_lock brew upgrade --cask claude-code@latest 2>/dev/null || true
+    # Optional app, so a failure warns rather than failing the run. stderr is
+    # NOT discarded any more — it used to be `2>/dev/null || true`, which meant
+    # a broken cask upgrade showed a clean ✓ with no evidence anywhere.
+    if ! _brew_lock brew upgrade --cask claude-code@latest; then
+      _job_warn "claude cask upgrade failed — continuing"
+    fi
+    return 0
   }
 
   # Launch jobs (or show dry-run)
@@ -419,6 +491,11 @@ upgrade() {
           elapsed=$(( ${end_t:-$now} - start_t ))
           done_line[$name]=$(printf "\033[2K\r  ${_COLOR_GREEN}✓${_COLOR_RESET} %-10s done      ${_COLOR_DIM}%3ds${_COLOR_RESET}" "$name" "$elapsed")
           printf '%s\n' "${done_line[$name]}"
+        elif [[ "$s" == 'warned' ]]; then
+          end_t=$(<"$tmpdir/${name}.end" 2>/dev/null)
+          elapsed=$(( ${end_t:-$now} - start_t ))
+          done_line[$name]=$(printf "\033[2K\r  ${_COLOR_YELLOW}!${_COLOR_RESET} %-10s warnings  ${_COLOR_DIM}%3ds${_COLOR_RESET}" "$name" "$elapsed")
+          printf '%s\n' "${done_line[$name]}"
         elif [[ "$s" == 'failed' ]]; then
           end_t=$(<"$tmpdir/${name}.end" 2>/dev/null)
           elapsed=$(( ${end_t:-$now} - start_t ))
@@ -440,8 +517,9 @@ upgrade() {
   local total_elapsed=$(( EPOCHSECONDS - total_start ))
   printf "\n${_COLOR_DIM}Finished in %ds${_COLOR_RESET}\n\n" "$total_elapsed"
 
-  # Print logs: failed first, then successful
-  local log has_failure=0
+  # Print logs: failed first, then warned, then the rest — most important last
+  # to scroll off, and colour-matched to the status table.
+  local log st has_failure=0 has_warning=0
   for name in $names; do
     [[ $(<"$tmpdir/${name}.status") == 'failed' ]] || continue
     has_failure=1
@@ -449,7 +527,14 @@ upgrade() {
     printf "${_COLOR_RED}── %s ──${_COLOR_RESET}\n%s\n\n" "$name" "$log"
   done
   for name in $names; do
-    [[ $(<"$tmpdir/${name}.status") == 'failed' ]] && continue
+    [[ $(<"$tmpdir/${name}.status") == 'warned' ]] || continue
+    has_warning=1
+    log=$(<"$tmpdir/${name}.log")
+    printf "${_COLOR_YELLOW}── %s ──${_COLOR_RESET}\n%s\n\n" "$name" "$log"
+  done
+  for name in $names; do
+    st=$(<"$tmpdir/${name}.status")
+    [[ $st == 'failed' || $st == 'warned' ]] && continue
     log=$(<"$tmpdir/${name}.log")
     [[ -n "$log" ]] && printf "${_COLOR_DIM}── %s ──${_COLOR_RESET}\n%s\n\n" "$name" "$log"
   done
@@ -485,6 +570,17 @@ upgrade() {
       printf "${_COLOR_RED}✗ Some jobs failed — check logs above.${_COLOR_RESET}\n"
     fi
     return 1
+  fi
+  # Warnings do NOT fail the run — they cover optional work (the claude cask,
+  # npm globals) and the once-a-day plugin throttle. Exit stays 0 so `upgrade`
+  # is still usable in a chain, but the run never silently claims success.
+  if (( has_warning )); then
+    if (( quiet_mode )); then
+      printf "[WARN] Done, with warnings — check logs above.\n"
+    else
+      printf "${_COLOR_YELLOW}! Done, with warnings — check logs above.${_COLOR_RESET}\n"
+    fi
+    return 0
   fi
   if (( quiet_mode )); then
     printf "[OK] All done!\n"
