@@ -23,24 +23,32 @@ onboarding = false
 # PREFIX  (Ctrl+a — same ergonomic choice as the old tmux config)
 # =============================================================================
 [keys]
-prefix = "ctrl+a"
+prefix         = "ctrl+a"
+next_agent     = "prefix+alt+j"
+previous_agent = "prefix+alt+k"
 
 # =============================================================================
 # CUSTOM COMMANDS  (no native herdr equivalent)
 # =============================================================================
 
-# Scratch terminal — was tmux `bind t display-popup ... new-session -A -s scratch`
+# Scratch terminal — was tmux `bind t display-popup -w 80% -h 70% -E
+# "tmux new-session -A -s scratch"`. Nested herdr session gives the same
+# attach-or-create persistence (state/history survives closing the popup).
 [[keys.command]]
 key = "prefix+t"
-type = "pane"
-command = "zsh"
+type = "popup"
+command = "herdr --session scratch"
+width = "80%"
+height = "70%"
 description = "scratch terminal"
 
-# System monitor — was tmux `bind B display-popup ... btop`
+# System monitor — was tmux `bind B display-popup -w 95% -h 95% -E "btop"`
 [[keys.command]]
 key = "prefix+shift+b"
-type = "pane"
+type = "popup"
 command = "btop"
+width = "95%"
+height = "95%"
 description = "system monitor (btop)"
 
 # =============================================================================
@@ -62,6 +70,12 @@ show_agent_labels_on_pane_borders  = true
 agent_panel_sort                   = "priority"   # blocked > done > working > idle
 mouse_capture                      = false
 
+[ui.sidebar.agents]
+rows_by_agent.claude = [["state_icon", "workspace", "tab"], ["terminal_title_stripped"]]
+
+[ui.sidebar.spaces]
+rows = [["state_icon", "workspace"], ["branch", "git_status"]]
+
 # =============================================================================
 # NOTIFICATIONS — replaces tmux's `monitor-activity` (which only recolored the
 # window list); herdr can tell you WHICH agent needs you and WHY
@@ -82,3 +96,10 @@ enabled = false   # quiet by default, matching the old visual-only activity moni
 # =============================================================================
 [session]
 resume_agents_on_restore = true
+
+# =============================================================================
+# EXPERIMENTAL — allow_nested needed for the `scratch` popup above, which
+# runs a named herdr session (`herdr --session scratch`) inside itself.
+# =============================================================================
+[experimental]
+allow_nested = true

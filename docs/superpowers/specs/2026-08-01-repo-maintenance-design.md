@@ -31,13 +31,15 @@ scripts/repo-maintenance.sh <branches|maintenance|clean|caches|all> [--root PATH
 ## Repo discovery
 
 ```
-find "$root" -maxdepth 3 -type d -name .git
+find "$root" -maxdepth 4 -type d -name .git
 ```
 
-Depth 3 covers `$CODE_DIR/<repo>`, `$CODE_DIR/github/<user>/<repo>`,
-`$CODE_DIR/bitbucket/<user>/<repo>` — matches the `gg`/`gb` alias layout in
-`modules/aliases.zsh`. Prune `node_modules` and `vendor` while walking so the scan
-doesn't descend into dependency trees.
+Depth 4 counts path segments below root: `.git` itself is one segment, so
+`$CODE_DIR/<repo>/.git` is depth 2 and `$CODE_DIR/github/<user>/<repo>/.git` is depth
+4 — matches the `gg`/`gb` alias layout in `modules/aliases.zsh`
+(`$CODE_DIR/github/$GITHUB_USER/<repo>`, `$CODE_DIR/bitbucket/$BITBUCKET_USER/<repo>`).
+Prune `node_modules` and `vendor` while walking so the scan doesn't descend into
+dependency trees.
 
 ## Phase: `branches`
 
