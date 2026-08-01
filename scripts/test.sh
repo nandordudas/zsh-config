@@ -270,6 +270,58 @@ else
   ok "$HOME/.config/zsh removed"
 fi
 
+
+# -----------------------------------------------------------------------------
+# 7. repo-maintenance.sh
+# -----------------------------------------------------------------------------
+section "repo-maintenance.sh: argument parsing"
+
+RM="$REPO_DIR/scripts/repo-maintenance.sh"
+
+out=$(capture bash "$RM")
+if echo "$out" | grep -q "Usage"; then
+  ok "no subcommand prints usage"
+else
+  fail "no subcommand should print usage"
+fi
+
+out=$(capture bash "$RM" bogus)
+if echo "$out" | grep -q "Unknown subcommand"; then
+  ok "unknown subcommand rejected"
+else
+  fail "unknown subcommand not rejected"
+fi
+
+out=$(capture bash "$RM" branches --bogus-flag)
+if echo "$out" | grep -q "Unknown option"; then
+  ok "unknown option rejected"
+else
+  fail "unknown option not rejected"
+fi
+
+section "repo-maintenance.sh: repo discovery"
+
+DISCOVER_ROOT="$(mktemp -d)"
+trap 'rm -rf "$TMP_HOME" "$RT_HOME" "$DISCOVER_ROOT"' EXIT
+
+mkdir -p "$DISCOVER_ROOT/github/testuser/repo-a/.git"
+mkdir -p "$DISCOVER_ROOT/github/testuser/repo-b/.git"
+mkdir -p "$DISCOVER_ROOT/github/testuser/repo-b/node_modules/some-dep/.git"
+
+DISCOVER_OUT=$(capture bash "$RM" branches --root "$DISCOVER_ROOT" --dry-run --yes)
+
+if echo "$DISCOVER_OUT" | grep -q "repo-a"; then
+  ok "discovers nested repo at depth 4"
+else
+  fail "did not discover repo-a"
+fi
+
+if echo "$DISCOVER_OUT" | grep -q "some-dep"; then
+  fail "descended into node_modules (should be pruned)"
+else
+  ok "node_modules pruned during discovery"
+fi
+
 # -----------------------------------------------------------------------------
 # Summary
 # -----------------------------------------------------------------------------
