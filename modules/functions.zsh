@@ -175,6 +175,7 @@ tka() {
 # =============================================================================
 
 # Comprehensive system upgrade — parallel execution with selective tool support
+# Tools: brew, zinit, rust, mise, claude, macos
 # Usage: upgrade [--only tool1,tool2,...] [--dry-run]
 upgrade() {
   setopt LOCAL_OPTIONS
@@ -183,11 +184,15 @@ upgrade() {
   local only_tools dry_run quiet_mode=0
   [[ ! -t 1 ]] && quiet_mode=1
 
+  local _u_usage="Usage: upgrade [--only brew,zinit,rust,mise,claude,macos] [--dry-run]"
   while [[ -n "$1" ]]; do
     case "$1" in
-      --only)   only_tools="$2"; shift 2 ;;
+      # Guard the shift: `upgrade --only` with no value would otherwise make
+      # `shift 2` fail with "shift count must be <= $#".
+      --only)   [[ $# -ge 2 ]] || { printf "%s\n" "$_u_usage" >&2; return 1; }
+                only_tools="$2"; shift 2 ;;
       --dry-run) dry_run=1; shift ;;
-      *)        printf "Usage: upgrade [--only tool1,tool2,...] [--dry-run]\n" >&2; return 1 ;;
+      *)        printf "%s\n" "$_u_usage" >&2; return 1 ;;
     esac
   done
 
@@ -256,7 +261,24 @@ upgrade() {
   _upgrade_brew() {
     _brew_lock brew update --quiet
     _brew_lock brew upgrade
+    # --greedy also upgrades casks that mark themselves auto-updating, which
+    # plain `brew upgrade` skips entirely — they otherwise never move.
+    _brew_lock brew upgrade --cask --greedy
     _brew_lock brew cleanup --prune=7
+  }
+  # macOS system updates. Reported only, never installed: `softwareupdate -i`
+  # needs sudo and can force a reboot, which has no business happening inside a
+  # backgrounded job. Install them yourself with `sudo softwareupdate -i -a`.
+  _upgrade_macos() {
+    command -v softwareupdate &>/dev/null || return 0
+    local out
+    out=$(softwareupdate --list 2>&1) || true
+    if print -r -- "$out" | grep -q 'No new software available'; then
+      echo "no macOS updates available"
+    else
+      print -r -- "$out" | sed -n '/Label:/s/^[[:space:]]*/  /p'
+      echo "install with: sudo softwareupdate -i -a"
+    fi
   }
   _upgrade_zinit() {
     (( ${+functions[zinit]} )) || return 0
@@ -311,6 +333,7 @@ upgrade() {
   _launch_job rust _upgrade_rust
   _launch_job mise _upgrade_mise   # node, go, … + global npm packages
   _launch_job claude _upgrade_claude
+  [[ "$(uname -s)" == "Darwin" ]] && _launch_job macos _upgrade_macos
 
   [[ ${#names[@]} -eq 0 ]] && {
     printf "No tools to upgrade\n" >&2

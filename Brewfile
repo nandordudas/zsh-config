@@ -28,6 +28,7 @@ brew "wget"       # download tool
 brew "gh"         # GitHub CLI (auth, PRs, SSH key registration)
 brew "git-delta"  # diff pager (configured by git-setup.sh)
 brew "git-lfs"    # large file storage
+brew "exiftool"   # required by git-setup.sh's [diff "exif"] textconv
 
 # Archives — sevenzip provides `7zz`, used by extract() for .7z and .rar
 brew "sevenzip"

@@ -24,6 +24,9 @@ brew "mkcert"     # local HTTPS certificates
 
 # Apps
 cask "claude"
+# Version-suffixed cask name — brittle by nature. If `brew bundle` ever reports
+# it as missing, check `brew search claude-code` for the current name rather
+# than assuming the install is broken.
 cask "claude-code@latest"
 cask "visual-studio-code"
 # cask "zed"

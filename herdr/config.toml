@@ -55,12 +55,19 @@ height = "95%"
 description = "system monitor (btop)"
 
 # =============================================================================
-# THEME — auto light/dark switching (the old tmux config only had a
-# hand-commented Light variant; herdr does this natively)
+# THEME
+# auto_switch is OFF deliberately. herdr can follow the system appearance, but
+# alacritty/alacritty.toml cannot — its Maple Dark/Light palettes are a manual
+# comment toggle. With auto_switch on, a system appearance change repainted the
+# multiplexer light while the terminal underneath stayed dark.
+#
+# To get real auto-switching, fix the terminal side first (two colour files plus
+# `import` swapped by a switcher), then set auto_switch = true here again. The
+# light_name/dark_name values below are kept ready for that.
 # =============================================================================
 [theme]
 name        = "gruvbox"
-auto_switch = true
+auto_switch = false
 light_name  = "gruvbox-light"
 dark_name   = "gruvbox"
 
@@ -101,8 +108,14 @@ enabled = false   # quiet by default, matching the old visual-only activity moni
 resume_agents_on_restore = true
 
 # =============================================================================
-# EXPERIMENTAL — allow_nested needed for the `scratch` popup above, which
+# EXPERIMENTAL — allow_nested is needed for the `scratch` popup above, which
 # runs a named herdr session (`herdr --session scratch`) inside itself.
+#
+# This is a HARD dependency, not a nicety: without it herdr's nested-launch
+# guard refuses the inner session and `prefix+t` opens an empty popup with no
+# error message. Being under [experimental], the key can be renamed or removed
+# in any herdr release — if prefix+t ever stops working, check this first
+# against `herdr --version` (known good: 0.4.x).
 # =============================================================================
 [experimental]
 allow_nested = true

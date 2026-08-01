@@ -42,13 +42,41 @@ for f in "$REPO_DIR"/scripts/*.sh "$REPO_DIR"/install.sh "$REPO_DIR"/uninstall.s
 done
 
 if command -v zsh &>/dev/null; then
+  # acme/ is a real profile (~/.zshenv can point ZDOTDIR at it), not a scratch
+  # dir — its startup files need checking just like the top-level ones.
   for f in "$REPO_DIR"/modules/*.zsh \
             "$REPO_DIR"/.zshrc \
-            "$REPO_DIR"/.zprofile; do
-    check "zsh -n $(basename "$f")" zsh -n "$f"
+            "$REPO_DIR"/.zprofile \
+            "$REPO_DIR"/acme/.zshenv \
+            "$REPO_DIR"/acme/.zshrc \
+            "$REPO_DIR"/acme/.zprofile \
+            "$REPO_DIR"/acme/.zlogin \
+            "$REPO_DIR"/acme/.zlogout; do
+    [[ -f "$f" ]] || continue
+    check "zsh -n ${f#"$REPO_DIR"/}" zsh -n "$f"
   done
 else
   skip "zsh not found — skipping zsh syntax checks (install zsh to enable)"
+fi
+
+# A typo in any of these ships silently — nothing else parses them.
+# tomllib is stdlib only from Python 3.11; macOS ships 3.9 as `python3`, so
+# search for any interpreter that actually has it (Homebrew's is 3.14).
+TOML_PY=""
+for _py in python3 python3.14 python3.13 python3.12 python3.11 \
+           /opt/homebrew/bin/python3 /usr/local/bin/python3; do
+  if command -v "$_py" &>/dev/null && "$_py" -c 'import tomllib' &>/dev/null; then
+    TOML_PY="$_py"; break
+  fi
+done
+
+if [[ -n "$TOML_PY" ]]; then
+  for t in alacritty/alacritty.toml herdr/config.toml starship/starship.toml; do
+    check "$t parses as TOML" \
+      "$TOML_PY" -c 'import tomllib,sys; tomllib.load(open(sys.argv[1],"rb"))' "$REPO_DIR/$t"
+  done
+else
+  skip "no python3 with tomllib (needs 3.11+) — skipping TOML parse checks"
 fi
 
 # -----------------------------------------------------------------------------

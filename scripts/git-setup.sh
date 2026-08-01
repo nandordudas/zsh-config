@@ -170,7 +170,11 @@ cat > "$GIT_DIR/config" << 'CONFIG_EOF'
 	preloadindex = true
 	quotePath = false
 	safeCRLF = warn
-	sparseCheckout = true
+	# core.sparseCheckout is deliberately NOT set here. Globally it adds a
+	# "sparse checkout enabled" line to every `git status`, and it arms any
+	# stray .git/info/sparse-checkout file to silently delete worktree files.
+	# Sparse checkout is per-repo: `git sparse-checkout init` in the one repo
+	# that needs it, which sets core.sparseCheckout locally for you.
 	untrackedCache = true
 	whitespace = fix,-indent-with-non-tab,trailing-space,cr-at-eol
 [branch]
@@ -414,7 +418,9 @@ cat > "$GIT_DIR/config" << 'CONFIG_EOF'
 	bootstrap = "!f() { echo \"🚀 Bootstrapping new Git repository...\"; git init || return 1; git maintenance register || return 1; git maintenance start || return 1; git commit --allow-empty --message 'chore: initial commit' $(git config --get commit.gpgsign | grep -q true && echo '-S') || return 1; echo \"✅ Repository bootstrap complete!\"; }; f"
 	# ━━━━━━ STATISTICS ━━━━━━
 	stats = log --stat --oneline
-	authors = log --format='%aN' | sort | uniq -c | sort -rn
+	# Needs the ! prefix: without it git treats the pipe as an argument to
+	# `git log` and dies with "ambiguous argument '|'".
+	authors = "!git log --format='%aN' | sort | uniq -c | sort -rn"
 	top-authors = "!git shortlog -sn --all | head -10"
 	contributors = shortlog -sn
 	lines-changed = log --format=medium --numstat
