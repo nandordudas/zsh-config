@@ -34,6 +34,9 @@ previous_agent = "prefix+alt+k"
 # Scratch terminal — was tmux `bind t display-popup -w 80% -h 70% -E
 # "tmux new-session -A -s scratch"`. Nested herdr session gives the same
 # attach-or-create persistence (state/history survives closing the popup).
+# Control the nested session with Ctrl+b (herdr's factory-default prefix),
+# not Ctrl+a — nested instances don't inherit the outer prefix override,
+# so they can't collide with it. `Ctrl+b q` detaches and closes the popup.
 [[keys.command]]
 key = "prefix+t"
 type = "popup"

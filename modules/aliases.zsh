@@ -122,4 +122,5 @@ alias ta='herdr session attach'          # attach to named session
 alias tl='herdr session list'
 alias tn='herdr --session'               # new/attach named session
 alias tk='herdr session stop'            # stop named session
-alias sysinfo="$ZDOTDIR/scripts/sysinfo.sh"   # GPU/CPU/MEM/BAT one-liner
+# tka(): stop+delete every session except 'default' — see modules/functions.zsh
+alias sysinfo="$_zconfig_root/scripts/sysinfo.sh"   # GPU/CPU/MEM/BAT one-liner

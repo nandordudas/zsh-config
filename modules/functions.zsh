@@ -161,6 +161,15 @@ interactive_kill() {
   printf "✓ Killed PIDs: %s\n" "${pids//$'\n'/ }"
 }
 
+# Stop and delete every herdr session except 'default'
+tka() {
+  local s
+  herdr session list --json | jq -r '.sessions[] | select(.default == false) | .name' | while read -r s; do
+    herdr session stop "$s" 2>/dev/null
+    herdr session delete "$s"
+  done
+}
+
 # =============================================================================
 # SYSTEM UPGRADES & MAINTENANCE
 # =============================================================================

@@ -14,32 +14,36 @@ export LESSHISTFILE="${XDG_CACHE_HOME}/lesshst"
 
 # zmodload zsh/zprof  # uncomment to profile
 
+# Repo root — same as $ZDOTDIR here, but modules/*.zsh use $_zconfig_root
+# (not $ZDOTDIR) for repo-relative paths so they also work under acme/,
+# where $ZDOTDIR points at the acme/ subdir instead of the repo root.
+_zconfig_root="$ZDOTDIR"
+
 # 1. Shell options (setopt only, no external deps)
-source "$ZDOTDIR/modules/options.zsh"
+source "$_zconfig_root/modules/options.zsh"
 
 # 2. Zinit bootstrap + all plugins
-source "$ZDOTDIR/modules/zinit.zsh"
+source "$_zconfig_root/modules/zinit.zsh"
 
 # 3. Completion zstyle config (compinit is triggered by zinit above)
-source "$ZDOTDIR/modules/completions.zsh"
+source "$_zconfig_root/modules/completions.zsh"
 
 # 4. Key bindings (after plugins so we can override)
-source "$ZDOTDIR/modules/keybindings.zsh"
+source "$_zconfig_root/modules/keybindings.zsh"
 
 # 5. Aliases
-source "$ZDOTDIR/modules/aliases.zsh"
+source "$_zconfig_root/modules/aliases.zsh"
 
 # 6. Functions
-source "$ZDOTDIR/modules/functions.zsh"
+source "$_zconfig_root/modules/functions.zsh"
 
 # 7. External tool init (cached evals: starship, zoxide, mise, fzf)
-source "$ZDOTDIR/modules/tools.zsh"
+source "$_zconfig_root/modules/tools.zsh"
 
 # 8. Machine-local overrides (gitignored)
-[[ -f "$ZDOTDIR/modules/local.zsh" ]] && source "$ZDOTDIR/modules/local.zsh"
+[[ -f "$_zconfig_root/modules/local.zsh" ]] && source "$_zconfig_root/modules/local.zsh"
 
 # zprof  # uncomment when profiling
-
 
 # >>> headroom:managed_rtk >>>
 export PATH="/Users/nandordudas/Library/Application Support/Headroom/headroom/bin:$PATH"
