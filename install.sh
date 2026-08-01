@@ -177,9 +177,17 @@ EOF
     info "Installing Node.js LTS via mise..."
     if mise use --global node@lts; then
       # Ensure globals exist even when node was already installed before
-      # the default-packages file was created (re-runs, upgrades)
-      mise exec -- npm install --global "$(xargs < "$HOME/.default-npm-packages")" \
-        || warn "npm globals failed — run: npm i -g \$(xargs < ~/.default-npm-packages)"
+      # the default-packages file was created (re-runs, upgrades).
+      # Read into an array — quoting the whole xargs output would pass all
+      # packages to npm as a single argument.
+      NPM_GLOBALS=()
+      while IFS= read -r pkg; do
+        [[ -n "$pkg" ]] && NPM_GLOBALS+=("$pkg")
+      done < "$HOME/.default-npm-packages"
+      if (( ${#NPM_GLOBALS[@]} )); then
+        mise exec -- npm install --global "${NPM_GLOBALS[@]}" \
+          || warn "npm globals failed — run: npm i -g \$(xargs < ~/.default-npm-packages)"
+      fi
     else
       warn "mise install failed — run 'mise use -g node@lts' later"
     fi
@@ -243,8 +251,9 @@ if [[ ! -f "$ZSH_DIR/modules/local.zsh" ]]; then
 # export GITHUB_USER="yourname"
 # export BITBUCKET_USER="yourname"
 
-# Auto-pull zsh-config updates on login and show what changed (opt-in).
-# ZSH_CONFIG_AUTO_UPDATE=1
+# Machine-specific PATH entries and tool env vars go here, not in the
+# committed .zshrc:
+# export PATH="$HOME/some/local/bin:$PATH"
 EOF
   info "Created modules/local.zsh"
 else

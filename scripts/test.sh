@@ -97,6 +97,18 @@ else
   ok "No personal email leaked"
 fi
 
+# Hardcoded /Users/<name> paths belong in the gitignored modules/local.zsh.
+# This caught the committed Headroom PATH block in .zshrc.
+if git -C "$REPO_DIR" grep -nI -- '/Users/[a-z]' -- \
+     '*.sh' '*.zsh' '.zshrc' '.zprofile' '*.toml' \
+     ':!scripts/test.sh' &>/dev/null; then
+  fail "Hardcoded /Users/<name> path in a tracked config file"
+  git -C "$REPO_DIR" grep -nI -- '/Users/[a-z]' -- \
+    '*.sh' '*.zsh' '.zshrc' '.zprofile' '*.toml' ':!scripts/test.sh' | sed 's/^/    /'
+else
+  ok "No hardcoded home paths in tracked config"
+fi
+
 if grep -q -- "--github\|--bitbucket" "$REPO_DIR/scripts/git-setup.sh"; then
   fail "--github/--bitbucket flags still present in git-setup.sh"
 else
@@ -232,6 +244,33 @@ section "install/uninstall round-trip (isolated temp home)"
 RT_HOME="$(mktemp -d)"
 trap 'rm -rf "$TMP_HOME" "$RT_HOME"' EXIT
 
+# install.sh and uninstall.sh both resolve XDG dirs as "${XDG_DATA_HOME:-$HOME/...}".
+# Overriding only HOME is NOT enough: whoever runs the tests almost certainly has
+# XDG_DATA_HOME/XDG_CACHE_HOME/XDG_STATE_HOME exported by their own ~/.zshenv, and
+# uninstall.sh does `rm -rf "$XDG_DATA_HOME/zinit"` — which wiped the real zinit
+# install, eval caches, and interactive-mode toggle. Pin all four to the temp home.
+# Stand-ins for the caller's real XDG dirs. They are exported around the
+# round-trip so that anything reading the ambient XDG_* vars hits these instead
+# of the developer's actual ~/.local/share; the checks below assert they survive.
+DECOY_XDG="$(mktemp -d)"
+mkdir -p "$DECOY_XDG"/{share/zinit,cache/zsh,state/zsh}
+touch "$DECOY_XDG"/share/zinit/sentinel \
+      "$DECOY_XDG"/cache/zsh/sentinel \
+      "$DECOY_XDG"/state/zsh/sentinel
+export XDG_DATA_HOME="$DECOY_XDG/share"
+export XDG_CACHE_HOME="$DECOY_XDG/cache"
+export XDG_STATE_HOME="$DECOY_XDG/state"
+trap 'rm -rf "$TMP_HOME" "$RT_HOME" "$DECOY_XDG"' EXIT
+
+rt_env() {
+  env HOME="$RT_HOME" \
+      XDG_CONFIG_HOME="$RT_HOME/.config" \
+      XDG_CACHE_HOME="$RT_HOME/.cache" \
+      XDG_DATA_HOME="$RT_HOME/.local/share" \
+      XDG_STATE_HOME="$RT_HOME/.local/state" \
+      "$@"
+}
+
 # Pre-existing user files that must survive the round-trip
 printf '# my original zshenv\n' > "$RT_HOME/.zshenv"
 mkdir -p "$RT_HOME/.config/herdr"
@@ -240,7 +279,7 @@ printf '# my original herdr config.toml\n' > "$RT_HOME/.config/herdr/config.toml
 # Install (config-only — no packages, no network beyond the local repo copy)
 mkdir -p "$RT_HOME/.config"
 cp -r "$REPO_DIR" "$RT_HOME/.config/zsh"
-if HOME="$RT_HOME" XDG_CONFIG_HOME="$RT_HOME/.config" SHELL=/bin/zsh \
+if rt_env SHELL=/bin/zsh \
    bash "$RT_HOME/.config/zsh/install.sh" --config-only -y &>/dev/null; then
   ok "install.sh --config-only exited 0"
 else
@@ -254,12 +293,15 @@ check "herdr config.toml is now a symlink" test -L "$RT_HOME/.config/herdr/confi
 check "local.zsh created"                test -f "$RT_HOME/.config/zsh/modules/local.zsh"
 
 # Uninstall
-if HOME="$RT_HOME" XDG_CONFIG_HOME="$RT_HOME/.config" \
-   bash "$RT_HOME/.config/zsh/uninstall.sh" -y &>/dev/null; then
+if rt_env bash "$RT_HOME/.config/zsh/uninstall.sh" -y &>/dev/null; then
   ok "uninstall.sh exited 0"
 else
   fail "uninstall.sh exited non-zero"
 fi
+
+check "outer XDG_DATA_HOME/zinit untouched"   test -e "$DECOY_XDG/share/zinit/sentinel"
+check "outer XDG_CACHE_HOME/zsh untouched"    test -e "$DECOY_XDG/cache/zsh/sentinel"
+check "outer XDG_STATE_HOME/zsh untouched"    test -e "$DECOY_XDG/state/zsh/sentinel"
 
 check "original ~/.zshenv restored"      grep -q "my original zshenv" "$RT_HOME/.zshenv"
 check "original herdr config restored"   grep -q "my original herdr config.toml" "$RT_HOME/.config/herdr/config.toml"
@@ -301,7 +343,7 @@ fi
 section "repo-maintenance.sh: repo discovery"
 
 DISCOVER_ROOT="$(mktemp -d)"
-trap 'rm -rf "$TMP_HOME" "$RT_HOME" "$DISCOVER_ROOT"' EXIT
+trap 'rm -rf "$TMP_HOME" "$RT_HOME" "$DECOY_XDG" "$DISCOVER_ROOT"' EXIT
 
 mkdir -p "$DISCOVER_ROOT/github/testuser/repo-a/.git"
 mkdir -p "$DISCOVER_ROOT/github/testuser/repo-b/.git"
@@ -327,7 +369,7 @@ fi
 section "repo-maintenance.sh: maintenance phase"
 
 MAINT_ROOT="$(mktemp -d)"
-trap 'rm -rf "$TMP_HOME" "$RT_HOME" "$DISCOVER_ROOT" "$MAINT_ROOT"' EXIT
+trap 'rm -rf "$TMP_HOME" "$RT_HOME" "$DECOY_XDG" "$DISCOVER_ROOT" "$MAINT_ROOT"' EXIT
 
 MAINT_REPO="$MAINT_ROOT/github/testuser/maint-repo"
 mkdir -p "$MAINT_REPO"
@@ -350,6 +392,41 @@ if echo "$DRYRUN_OUT" | grep -q "(dry-run) git maintenance run --auto"; then
   ok "maintenance --dry-run prints without executing"
 else
   fail "maintenance --dry-run did not print expected line"
+fi
+
+# -----------------------------------------------------------------------------
+# 9. upgrade --dry-run must not touch anything
+# -----------------------------------------------------------------------------
+section "upgrade --dry-run is side-effect free"
+
+if command -v zsh &>/dev/null; then
+  DRY_LOG="$(mktemp)"
+  DRY_SCRIPT="$(mktemp)"
+  trap 'rm -rf "$TMP_HOME" "$RT_HOME" "$DECOY_XDG" "$DISCOVER_ROOT" "$MAINT_ROOT" "$DRY_LOG" "$DRY_SCRIPT"' EXIT
+
+  # Shadow every external command the upgrade jobs shell out to, so a job that
+  # actually runs leaves a trace instead of upgrading the developer's machine.
+  cat > "$DRY_SCRIPT" <<ZEOF
+source "$REPO_DIR/modules/functions.zsh"
+brew()   { print -r -- "brew \$*"   >>"$DRY_LOG" }
+mise()   { print -r -- "mise \$*"   >>"$DRY_LOG" }
+npm()    { print -r -- "npm \$*"    >>"$DRY_LOG" }
+rustup() { print -r -- "rustup \$*" >>"$DRY_LOG" }
+claude() { :; }
+upgrade --dry-run >/dev/null 2>&1
+wait
+ZEOF
+
+  zsh "$DRY_SCRIPT" &>/dev/null || true
+
+  if [[ -s "$DRY_LOG" ]]; then
+    fail "upgrade --dry-run executed real commands"
+    sed 's/^/    /' "$DRY_LOG"
+  else
+    ok "upgrade --dry-run ran no upgrade commands"
+  fi
+else
+  skip "zsh not found — skipping upgrade --dry-run check"
 fi
 
 # -----------------------------------------------------------------------------
