@@ -130,6 +130,29 @@ _ztool_init mise "$(command -v mise)" "mise activate zsh"
 }
 
 # =============================================================================
+# HERDR (terminal workspace manager — completions only; no shell init needed)
+# NOT run through _ztool_init: herdr's generated script self-registers via a
+# `compdef` call when sourced directly, but zsh-completions/zicompinit load in
+# zinit turbo mode (deferred to the first prompt) — compdef doesn't exist yet
+# during synchronous .zshrc sourcing, so eager-sourcing threw "command not
+# found: compdef" on every new shell. Dropping the script into a directory on
+# $fpath instead lets compinit autoload it lazily once it's actually ready;
+# the same script's autoload fallback (checked via `funcstack[1]`) registers
+# itself correctly once compinit calls it as a named completion function.
+# =============================================================================
+if (( $+commands[herdr] )); then
+  _zherdr_comp_dir="$_ztool_cache/completions"
+  mkdir -p "$_zherdr_comp_dir"
+  _zherdr_comp_file="$_zherdr_comp_dir/_herdr"
+  if [[ ! -s "$_zherdr_comp_file" || "${commands[herdr]}" -nt "$_zherdr_comp_file" ]]; then
+    herdr completion zsh >"$_zherdr_comp_file.tmp" 2>/dev/null \
+      && mv -f "$_zherdr_comp_file.tmp" "$_zherdr_comp_file"
+  fi
+  fpath+=("$_zherdr_comp_dir")
+  unset _zherdr_comp_dir _zherdr_comp_file
+fi
+
+# =============================================================================
 # CLEANUP
 # =============================================================================
 unset -f _ztool_init

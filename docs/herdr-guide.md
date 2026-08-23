@@ -25,6 +25,12 @@ terminal, btop popup). Press `prefix+?` any time for the live keymap.
 | Rename current workspace | `C-a Shift+w` (prompts inline) |
 | Close current workspace | `C-a Shift+d` (prompts) |
 | Detach (leave agents running) | `C-a q` |
+| Open an existing git worktree workspace | `C-a Shift+o` |
+| New git worktree workspace | `C-a Shift+g` (default) |
+
+> `remove_worktree` is deliberately left unbound — it opens a destructive
+> confirmation, and worktree removal is rare enough to do via
+> `herdr worktree remove` or the picker instead of a muscle-memory key.
 
 > herdr's `goto`/`workspace_picker` pickers are mouse-native and fuzzy by
 > default — there's no `tmux-sessionizer.sh`-style custom script anymore.
@@ -57,6 +63,8 @@ terminal, btop popup). Press `prefix+?` any time for the live keymap.
 | Resize mode (then h/j/k/l) | `C-a r` |
 | Close pane | `C-a x` |
 | Cycle panes | `C-a Tab` / `C-a Shift+Tab` |
+| Jump back to last-focused pane | `` C-a ` `` |
+| Jump directly to agent row 1–9 | `alt+1`…`alt+9` |
 
 ---
 
@@ -142,16 +150,48 @@ herdr integration status              # check what's installed
 
 ---
 
+## Grok CLI integration
+
+`install.sh` also runs `herdr integration install grok` when both `herdr` and
+`grok` are on `PATH`, mirroring the Claude Code setup above.
+
+**Quirk (not a bug in herdr):** Grok's own hook discovery only scans
+project-scoped `.grok/hooks/` — there is no global `~/.grok/hooks/` directory
+it reads automatically (unlike Claude Code/Copilot, which do read their
+global hook dirs). `herdr integration install grok` still writes the hook
+script to `~/.grok/hooks/herdr-agent-state.sh` (so `herdr integration status`
+tracks it), but for it to actually fire on every session, `install.sh` also
+appends a `[[hooks.SessionStart]]` block to `~/.grok/config.toml` (config-layer
+hooks *are* read globally per Grok's docs) — see the
+`# >>> herdr:grok_integration >>>` marker in that file.
+
+If `herdr integration install grok` is ever re-run manually and the script
+path changes, update the `command` in that `[[hooks.SessionStart]]` block to
+match.
+
+```sh
+herdr integration install grok        # (re)install the hook script
+herdr integration uninstall grok      # remove it (also remove the
+                                       # [[hooks.SessionStart]] block by hand)
+herdr integration status              # check what's installed
+```
+
+---
+
 ## Notifications
 
 ```toml
 [ui.toast]
-delivery = "herdr"
+delivery      = "system"
+delay_seconds = 1
 ```
 
 Replaces tmux's `monitor-activity` (which only recolored the tab list).
-herdr's toasts name the agent and the workspace/tab/pane it's in — click one,
-or press `C-a o`, to jump straight there.
+`delivery = "system"` routes through native OS notifications instead of
+herdr's own in-app toast (which would only be visible while herdr has
+terminal focus). herdr's notifications name the agent and the
+workspace/tab/pane it's in — click one, or press `C-a o`, to jump straight
+there.
 
 ---
 

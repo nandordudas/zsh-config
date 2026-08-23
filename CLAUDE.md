@@ -75,3 +75,13 @@ No `tmux`-style wrapper function exists anymore: bare `herdr` already attaches-o
 
 `herdr/config.toml` has no per-machine override file — herdr's TOML config has no `source-file`/include directive (unlike tmux), and the file holds no secrets, so machine-specific tweaks go directly into the tracked file.
 
+## Agent skills
+
+### Issue tracker
+
+Issues tracked via GitHub Issues on `nandordudas/zsh-config`, using the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+Single-context layout — `CONTEXT.md` + `docs/adr/` at repo root. See `docs/agents/domain.md`.
+

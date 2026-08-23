@@ -293,6 +293,40 @@ if command -v herdr &>/dev/null && command -v claude &>/dev/null; then
   fi
 fi
 
+# 5a-2. Grok CLI <-> herdr native integration (agent state hook).
+# Unlike claude/copilot, Grok does NOT scan a global ~/.grok/hooks/ directory —
+# it only auto-discovers PROJECT-scoped .grok/hooks/ (see `grok`'s own
+# README, "Hooks" section). `herdr integration install grok` still writes the
+# hook script/JSON under ~/.grok/hooks/ (kept so `herdr integration status`
+# reports it and re-installs stay in sync), but it only actually fires once
+# also registered as a config-layer hook in ~/.grok/config.toml, appended here.
+if command -v herdr &>/dev/null && command -v grok &>/dev/null; then
+  mkdir -p "${GROK_HOME:-$HOME/.grok}"
+  if herdr integration install grok &>/dev/null; then
+    info "Installed herdr's Grok CLI integration (agent state hook)"
+  else
+    warn "herdr integration install grok failed — run it manually later"
+  fi
+
+  GROK_CONF="${GROK_HOME:-$HOME/.grok}/config.toml"
+  touch "$GROK_CONF"
+  if ! grep -q "herdr-agent-state.sh' session" "$GROK_CONF" 2>/dev/null; then
+    cat >>"$GROK_CONF" <<EOF
+
+# >>> herdr:grok_integration >>>
+# Config-layer registration — required because Grok only reads hooks from
+# project-scoped .grok/hooks/, never from a global ~/.grok/hooks/ directory.
+[[hooks.SessionStart]]
+  [[hooks.SessionStart.hooks]]
+  type = "command"
+  command = "sh '${GROK_HOME:-$HOME/.grok}/hooks/herdr-agent-state.sh' session"
+  timeout = 10
+# <<< herdr:grok_integration <<<
+EOF
+    info "Registered herdr's SessionStart hook in ~/.grok/config.toml"
+  fi
+fi
+
 # 5b. alacritty config — create a local wrapper that imports the versioned base.
 #     A real file (not a symlink) so local overrides placed after the import win.
 mkdir -p "$XDG_CONFIG_HOME/alacritty"
