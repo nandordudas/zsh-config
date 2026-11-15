@@ -19,7 +19,7 @@ branch/maintenance concerns freespace never touched. No changes to `freespace`.
 scripts/repo-maintenance.sh <branches|maintenance|clean|caches|all> [--root PATH] [--dry-run] [--yes]
 ```
 
-- `--root PATH` — override the scan root. Default: `${CODE_DIR:-$HOME/Development/code}`
+- `--root PATH` — override the scan root. Default: `${CODE_DIR:-$HOME/Developer/code}`
   (same fallback used in `.zprofile:88` and `functions.zsh:580`).
 - `--dry-run` — no mutation anywhere (no `git branch -D`, no `rm -rf`, no `cargo clean`
   etc., no cache deletion). Prints what would happen.

@@ -232,12 +232,12 @@ if [[ -f "$GIT_DIR/config" ]]; then
   fi
 
   # Per-host identities only work if includeIf directives actually exist
-  if [[ "$(git config --file "$GIT_DIR/config" --get 'includeif.gitdir:~/Development/code/github/.path')" == *"github/.gitconfig" ]]; then
+  if [[ "$(git config --file "$GIT_DIR/config" --get 'includeif.gitdir:~/Developer/code/github/.path')" == *"github/.gitconfig" ]]; then
     ok "includeIf for github identity present"
   else
     fail "includeIf for github identity missing — per-host config never loads"
   fi
-  if [[ "$(git config --file "$GIT_DIR/config" --get 'includeif.gitdir:~/Development/code/bitbucket/.path')" == *"bitbucket/.gitconfig" ]]; then
+  if [[ "$(git config --file "$GIT_DIR/config" --get 'includeif.gitdir:~/Developer/code/bitbucket/.path')" == *"bitbucket/.gitconfig" ]]; then
     ok "includeIf for bitbucket identity present"
   else
     fail "includeIf for bitbucket identity missing — per-host config never loads"
@@ -455,6 +455,46 @@ ZEOF
   fi
 else
   skip "zsh not found — skipping upgrade --dry-run check"
+fi
+
+# -----------------------------------------------------------------------------
+# 10. upgrade argument validation and job supervision
+# -----------------------------------------------------------------------------
+section "upgrade argument handling and job supervision"
+
+if command -v zsh &>/dev/null; then
+  UPG_SCRIPT="$(mktemp)"
+  trap 'rm -rf "$TMP_HOME" "$RT_HOME" "$DECOY_XDG" "$DISCOVER_ROOT" "$MAINT_ROOT" "$DRY_LOG" "$DRY_SCRIPT" "$UPG_SCRIPT"' EXIT
+
+  upg_rc() { zsh -c "source '$REPO_DIR/modules/functions.zsh'; upgrade $1" &>/dev/null; echo $?; }
+  [[ "$(upg_rc '--only bogus')" == 1 ]] && ok "upgrade --only <unknown> exits 1"   || fail "upgrade --only <unknown> did not exit 1"
+  [[ "$(upg_rc '--only')"       == 1 ]] && ok "upgrade --only (no value) exits 1" || fail "upgrade --only (no value) did not exit 1"
+  [[ "$(upg_rc '--bogus')"      == 1 ]] && ok "upgrade <unknown flag> exits 1"    || fail "upgrade <unknown flag> did not exit 1"
+
+  # Regression: the spinner's liveness check once stored the literal text "$!"
+  # as the job pid, so every job still running was reported FAILED. That path
+  # only runs on a TTY and only while a job is still in flight, hence the pty
+  # (script) and a deliberately slow stub.
+  if command -v script &>/dev/null; then
+    cat > "$UPG_SCRIPT" <<ZEOF
+source "$REPO_DIR/modules/functions.zsh"
+softwareupdate() { sleep 2; echo "No new software available" }
+upgrade --only macos
+print "rc=\$?"
+ZEOF
+    UPG_OUT="$(perl -e 'alarm 60; exec @ARGV' script -q /dev/null zsh "$UPG_SCRIPT" 2>&1 \
+      | tr '\r' '\n' | sed $'s/\\x1b\\[[0-9;?]*[A-Za-z]//g' || true)"
+    if grep -q 'rc=0' <<<"$UPG_OUT" && grep -q '✓ macos' <<<"$UPG_OUT" && ! grep -q 'FAILED' <<<"$UPG_OUT"; then
+      ok "slow job is not misreported as FAILED under the spinner"
+    else
+      fail "slow job misreported under the spinner"
+      grep -v "^[[:space:]]*$" <<<"$UPG_OUT" | tail -8 | sed "s/^/    /"
+    fi
+  else
+    skip "script(1) not found — skipping spinner check"
+  fi
+else
+  skip "zsh not found — skipping upgrade argument checks"
 fi
 
 # -----------------------------------------------------------------------------

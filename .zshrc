@@ -56,3 +56,6 @@ source "$_zconfig_root/modules/tools.zsh"
 # zprof  # uncomment when profiling
 
 unset _zconfig_root
+
+# gpg-agent needs the tty for pinentry (commit signing)
+export GPG_TTY=$(tty 2>/dev/null)

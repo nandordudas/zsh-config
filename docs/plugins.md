@@ -185,16 +185,12 @@ $ glo
 
 ---
 
-## OMZ Completions (golang / rust / docker-compose / npm / mise)
+## OMZ Completions (rust / docker-compose / npm / mise)
 
 Individual completion plugins from oh-my-zsh, loaded without the full OMZ
 framework. Each adds `<Tab>` completions for its tool.
 
 ```
-# golang
-$ go test -<Tab>
-  -bench       -benchmem    -count       -cover       -run    -v    ...
-
 # rust
 $ rustup <Tab>
   component    default    override    show    target    toolchain    update    ...

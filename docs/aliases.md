@@ -14,10 +14,10 @@ All aliases defined in `modules/aliases.zsh`, with example calls and output.
 
 ```
 $ gg
-~/Development/code/github/nandordudas
+~/Developer/code/github/nandordudas
 
 $ gb
-~/Development/code/bitbucket/nandordudas
+~/Developer/code/bitbucket/nandordudas
 
 $ cr
 # opens current directory in the existing VS Code window
@@ -95,16 +95,16 @@ overwrite config.toml.bak? n
 
 ```
 $ pwd
-/Users/user/Development/code/github/nandordudas/my-project/src
+/Users/user/Developer/code/github/nandordudas/my-project/src
 
 $ ..
-/Users/user/Development/code/github/nandordudas/my-project
+/Users/user/Developer/code/github/nandordudas/my-project
 
 $ ~
 ~
 
 $ cdd
-/Users/user/Development/code/github/nandordudas/my-project   # jumps back to previous dir
+/Users/user/Developer/code/github/nandordudas/my-project   # jumps back to previous dir
 ```
 
 ---
@@ -312,7 +312,7 @@ $ uuid
 
 ## Development Tools
 
-Node, Go, and other runtimes are managed by [mise](https://mise.jdx.dev/) —
+Node and other runtimes are managed by [mise](https://mise.jdx.dev/) —
 use `mise use node@22`, `mise ls`, `mise upgrade` directly (no aliases needed).
 
 ### Cargo (Rust)
@@ -352,26 +352,6 @@ warning: unused variable `x`
 error: treating warnings as errors
 ```
 
-### Go
-
-| Alias | Expands to |
-|-------|-----------|
-| `got` | `go test ./...` |
-| `gomod` | `go mod tidy` |
-| `gocover` | run tests with coverage, open HTML report |
-
-```
-$ got
-ok      github.com/user/myapp/internal/parser   0.012s
-ok      github.com/user/myapp/cmd               0.003s
-
-$ gomod
-# removes unused dependencies, adds missing ones, updates go.sum
-
-$ gocover
-# runs go test -coverprofile=/tmp/cover.out ./...
-# then opens the HTML coverage report in your default browser
-```
 
 ### Node / pnpm
 

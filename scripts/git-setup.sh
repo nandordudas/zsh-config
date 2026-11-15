@@ -447,9 +447,9 @@ cat > "$GIT_DIR/config" << 'CONFIG_EOF'
 # config (name/email/signingKey overrides). Trailing / matches recursively.
 # These come LAST so they override the [user] defaults above.
 # If you change CODE_DIR in modules/local.zsh, update these paths to match.
-[includeIf "gitdir:~/Development/code/github/"]
+[includeIf "gitdir:~/Developer/code/github/"]
 	path = ~/.config/git/github/.gitconfig
-[includeIf "gitdir:~/Development/code/bitbucket/"]
+[includeIf "gitdir:~/Developer/code/bitbucket/"]
 	path = ~/.config/git/bitbucket/.gitconfig
 CONFIG_EOF
 

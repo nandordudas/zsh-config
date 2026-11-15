@@ -512,15 +512,7 @@ upgrade --dry-run           # preview without executing
 zsh-health
 ```
 
-Scans for core tools (git, fzf, eza, bat, fd), language runtimes (Go, Rust, Node, Python), PATH entries, and shell configuration. Prints a green checkmark or a warning for each item. Run this after a fresh install or if something stops working.
-
-### Clean up disk space
-
-```sh
-freespace --dry-run       # see what would be removed
-freespace                 # remove node_modules + vendor under $CODE_DIR
-freespace --aggressive    # also clean npm, pip, go, cargo, and brew caches
-```
+Scans for core tools (git, fzf, eza, bat, fd), language runtimes (Rust, Node, Python), PATH entries, and shell configuration. Prints a green checkmark or a warning for each item. Run this after a fresh install or if something stops working.
 
 ### Reload config after changes
 
@@ -619,7 +611,6 @@ FZF
 SHELL
   upgrade              full system upgrade
   zsh-health           check all tools
-  freespace            disk cleanup
   ik                   interactive process kill
   ports                show listening ports
   reload               restart shell

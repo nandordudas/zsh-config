@@ -51,7 +51,6 @@ typeset -U PATH path
 path=(
   "$HOME/.local/bin"           # user-installed tools
   "$HOME/.cargo/bin"           # cargo-installed tools
-  "$HOME/go/bin"               # go-installed binaries
   "$XDG_CONFIG_HOME/zsh/bin"   # personal scripts
   $path                        # homebrew + system dirs (/opt/homebrew/bin, /usr/bin, …)
 )
@@ -82,23 +81,16 @@ fi
 export VISUAL="$EDITOR"
 
 # =============================================================================
-# GO
-# Go itself is per-project via mise (GOROOT handled by mise); GOPATH is
-# where `go install` puts binaries — kept stable across versions.
-# =============================================================================
-export GOPATH="${GOPATH:-$HOME/go}"
-
-# =============================================================================
 # GIT & PERSONAL IDENTIFIERS
 # =============================================================================
 export GIT_CONFIG_GLOBAL="$HOME/.config/git/config"
 
 # =============================================================================
 # PROJECT ROOT
-# Used by the gg/gb navigation aliases and freespace cleanup.
+# Used by the gg/gb navigation aliases.
 # Override in modules/local.zsh if your projects live elsewhere.
 # =============================================================================
-export CODE_DIR="${CODE_DIR:-$HOME/Development/code}"
+export CODE_DIR="${CODE_DIR:-$HOME/Developer/code}"
 
 # =============================================================================
 # RUST / CARGO

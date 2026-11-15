@@ -5,9 +5,9 @@
 # =============================================================================
 # NAVIGATION
 # =============================================================================
-# CODE_DIR (default ~/Development/code) is set in .zprofile, override in local.zsh
-alias gg='[[ -n "$GITHUB_USER" ]] && cd "${CODE_DIR:-$HOME/Development/code}/github/$GITHUB_USER" || echo "GITHUB_USER not set in modules/local.zsh"'
-alias gb='[[ -n "$BITBUCKET_USER" ]] && cd "${CODE_DIR:-$HOME/Development/code}/bitbucket/$BITBUCKET_USER" || echo "BITBUCKET_USER not set in modules/local.zsh"'
+# CODE_DIR (default ~/Developer/code) is set in .zprofile, override in local.zsh
+alias gg='[[ -n "$GITHUB_USER" ]] && cd "${CODE_DIR:-$HOME/Developer/code}/github/$GITHUB_USER" || echo "GITHUB_USER not set in modules/local.zsh"'
+alias gb='[[ -n "$BITBUCKET_USER" ]] && cd "${CODE_DIR:-$HOME/Developer/code}/bitbucket/$BITBUCKET_USER" || echo "BITBUCKET_USER not set in modules/local.zsh"'
 alias cr='code --reuse-window .'
 
 # =============================================================================
@@ -103,16 +103,6 @@ alias crun='cargo run'
 alias cch='cargo check'  # not `cc` — that would shadow the system C compiler
 alias cf='cargo fmt'
 alias clippy='cargo clippy -- -D warnings'
-
-# =============================================================================
-# GO (Most aliases provided by OMZP::golang)
-# =============================================================================
-alias gocover='go test -coverprofile=/tmp/cover.out ./... && go tool cover -html=/tmp/cover.out'
-
-# =============================================================================
-# NODE / PNPM
-# =============================================================================
-(( $+commands[taze] )) && alias taze='taze -r'  # Check all workspaces for outdated deps
 
 # =============================================================================
 # HERDR

@@ -10,9 +10,7 @@ __functions_zsh_loaded=1
 # convenience alias leaked into these function bodies:
 #   mkdir -p   → broke the brew mutex (mkdir -p never fails, so it stopped
 #                being atomic and both jobs ran brew at once)
-#   rm -i      → made `rm` inside zsh-cache-clear prompt per file, and turned
-#                freespace's `rm -rf` into `rm -i -rf` (harmless only because
-#                -f happens to win)
+#   rm -i      → made `rm` inside zsh-cache-clear prompt per file
 #   ls/df/du   → would silently become eza/duf/dust
 # Restored at the bottom of the file. Commands that genuinely want an alias's
 # behaviour should spell out the flags.
@@ -201,7 +199,7 @@ upgrade() {
   [[ ! -t 1 ]] && quiet_mode=1
 
   local _u_usage="Usage: upgrade [--only brew,zinit,rust,mise,claude,macos] [--dry-run]"
-  while [[ -n "$1" ]]; do
+  while (( $# )); do
     case "$1" in
       # Guard the shift: `upgrade --only` with no value would otherwise make
       # `shift 2` fail with "shift count must be <= $#".
@@ -212,8 +210,17 @@ upgrade() {
     esac
   done
 
+  # Reject unknown names: `--only bew` used to match nothing and exit 0.
+  local _t
+  for _t in ${(s:,:)only_tools}; do
+    [[ $_t == (brew|zinit|rust|mise|claude|macos) ]] || {
+      printf "upgrade: unknown tool '%s'\n%s\n" "$_t" "$_u_usage" >&2
+      return 1
+    }
+  done
+
   local tmpdir
-  tmpdir=$(mktemp -d)
+  tmpdir=$(mktemp -d) || return 1
   # MONITOR is unset above, so background jobs stay in this shell's process
   # group — `kill -- -$pid` would find no such group and silently do nothing.
   # Kill the job's children first (brew, mise, …), then the job itself.
@@ -227,9 +234,13 @@ upgrade() {
     rm -rf "$tmpdir"
     printf "\n[upgrade] cancelled\n"
     trap - INT TERM
+    # Without this the handler returns 0 and the function carries on into the
+    # display loop / summary with its tmpdir already deleted.
+    return 130
   ' INT TERM
 
   local -a names=() pids=()
+  local -A pid_of=()
   local total_start=$EPOCHSECONDS
 
   # Drop every helper defined below. zsh scopes nested function definitions
@@ -261,9 +272,13 @@ upgrade() {
     names+=($tool)
     (( dry_run )) && return
     # _job_tool lets _job_warn find this job's warn file from inside the subshell.
+    # </dev/null: a job that wants stdin (sudo, a prompt) fails instead of hanging.
     { _job_start $tool; ( set -e; _job_tool=$tool; $fn ); _job_end $tool $? } \
-      >"$tmpdir/$tool.log" 2>&1 &
+      </dev/null >"$tmpdir/$tool.log" 2>&1 &
     pids+=($!)
+    # Quoted on purpose: an unquoted `pid_of[$tool]=$!` stores the literal text
+    # "$!" in zsh, so the liveness check below saw every live job as dead.
+    pid_of[$tool]="$!"
   }
 
   # Record a non-fatal problem: shows in the log and flips the job to 'warned'.
@@ -320,6 +335,8 @@ upgrade() {
 
   # Per-tool upgrade functions
   _upgrade_brew() {
+    # `brew update` runs explicitly below; don't let every upgrade repeat it.
+    export HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_ENV_HINTS=1
     # No --quiet: this output is the only diagnostic when the job fails.
     _brew_lock brew update
     _brew_lock brew upgrade
@@ -346,7 +363,7 @@ upgrade() {
     fi
   }
   _upgrade_zinit() {
-    (( ${+functions[zinit]} )) || return 0
+    (( ${+functions[zinit]} )) || { echo "skipped: zinit not loaded (headless mode?)"; return 0 }
     # BIN_DIR, not HOME_DIR. HOME_DIR is the parent (…/zinit) and is not a git
     # repo at all; the checkout lives in …/zinit/zinit.git. Because HOME_DIR is
     # always set, the `:-` fallback never applied, every fetch failed, `behind`
@@ -360,8 +377,9 @@ upgrade() {
     # zinit silently stopped self-updating for good.
     if git -C "$zinit_dir" fetch origin --quiet 2>/dev/null; then
       local behind
-      behind=$(git -C "$zinit_dir" rev-list HEAD..FETCH_HEAD --count 2>/dev/null || echo 0)
-      if (( behind > 0 )); then
+      if ! behind=$(git -C "$zinit_dir" rev-list HEAD..FETCH_HEAD --count 2>/dev/null); then
+        _job_warn "could not compare $zinit_dir with FETCH_HEAD — skipped zinit self-update"
+      elif (( behind > 0 )); then
         _warn_step zinit self-update --quiet
       else
         echo "zinit itself is up to date"
@@ -376,6 +394,7 @@ upgrade() {
     local stamp="$(_zcache_dir)/zinit-plugins-updated" last=0 age
     [[ -f "$stamp" ]] && last=$(<"$stamp")
     age=$(( EPOCHSECONDS - last ))
+    command mkdir -p "${stamp:h}"
     if (( age < 86400 )); then
       printf 'plugins updated %dh ago — skipping (next in %dh, or rm %s to force)\n' \
         $(( age / 3600 )) $(( (86400 - age + 3599) / 3600 )) "$stamp"
@@ -408,13 +427,14 @@ upgrade() {
     return 0
   }
   _upgrade_mise() {
-    command -v mise &>/dev/null || return 0
+    command -v mise &>/dev/null || { echo "skipped: mise not installed"; return 0 }
     # Upgrade managed runtimes (node + any per-project pins) within their ranges
     _warn_step mise upgrade --yes
     # Refresh global npm packages; ~/.default-npm-packages is the source of truth
-    command -v npm &>/dev/null || return 0
+    command -v npm &>/dev/null || { echo "skipped: npm not found"; return 0 }
     local pkgs
-    pkgs=$(xargs < "$HOME/.default-npm-packages" 2>/dev/null)
+    # Strip `#` comments, which xargs would otherwise pass as package names.
+    pkgs=$(sed 's/#.*//' "$HOME/.default-npm-packages" 2>/dev/null | xargs)
     [[ -z "$pkgs" ]] && pkgs="pnpm @antfu/ni taze npkill ccstatusline eslint"
     if npm outdated --global 2>/dev/null | grep -q .; then
       _warn_step npm install --global npm@latest ${=pkgs}
@@ -424,7 +444,7 @@ upgrade() {
     return 0
   }
   _upgrade_claude() {
-    command -v claude &>/dev/null || return 0
+    command -v claude &>/dev/null || { echo "skipped: claude not installed"; return 0 }
     # Optional app, so a failure warns rather than failing the run. stderr is
     # NOT discarded any more — it used to be `2>/dev/null || true`, which meant
     # a broken cask upgrade showed a clean ✓ with no evidence anywhere.
@@ -486,6 +506,19 @@ upgrade() {
         s=$(<"$tmpdir/${name}.status" 2>/dev/null)
         start_t=$(<"$tmpdir/${name}.start" 2>/dev/null)
         start_t=${start_t:-$now}
+        # A job killed from outside (SIGKILL, OOM) never reaches _job_end and
+        # would sit at 'running' forever. Re-read the status after the liveness
+        # check so a job that finished in between is not misreported.
+        if [[ -z "$s" || "$s" == 'running' ]] && [[ "${pid_of[$name]}" == <-> ]] \
+           && ! kill -0 "${pid_of[$name]}" 2>/dev/null; then
+          s=$(<"$tmpdir/${name}.status" 2>/dev/null)
+          if [[ -z "$s" || "$s" == 'running' ]]; then
+            printf 'failed' >"$tmpdir/${name}.status"
+            printf '%s' $now >"$tmpdir/${name}.end"
+            print -r -- "! job exited without reporting a status" >>"$tmpdir/${name}.log"
+            s='failed'
+          fi
+        fi
         if [[ "$s" == 'done' ]]; then
           end_t=$(<"$tmpdir/${name}.end" 2>/dev/null)
           elapsed=$(( ${end_t:-$now} - start_t ))
@@ -539,15 +572,22 @@ upgrade() {
     [[ -n "$log" ]] && printf "${_COLOR_DIM}── %s ──${_COLOR_RESET}\n%s\n\n" "$name" "$log"
   done
 
+  # mise only refreshes PATH in its precmd hook, which has not run yet: without
+  # this, `node --version` below reports the pre-upgrade (or a removed) Node.
+  (( $+commands[mise] )) && eval "$(mise hook-env -s zsh 2>/dev/null)"
+  hash -r
+
   # Version summary — data-driven
   _ver() {
     local label=$1 val; shift
-    val=$("$@" 2>/dev/null) || true
+    # Read-only probe: a mise shim for a tool that is not installed would
+    # otherwise start downloading it (and may wait on stdin) just to print a
+    # version. Auto-install off, stdin closed.
+    val=$(MISE_NOT_FOUND_AUTO_INSTALL=0 "$@" </dev/null 2>/dev/null) || true
     [[ -n "$val" ]] && printf '  %-12s %s\n' "$label" "$val"
   }
   _ver 'OS:'     sh -c 'echo "$(sw_vers -productName 2>/dev/null) $(sw_vers -productVersion 2>/dev/null) ($(uname -m))"'
   _ver 'Kernel:' uname -r
-  _ver 'Go:'     sh -c 'go version 2>/dev/null | awk "{print \$3}"'
   _ver 'Rust:'   sh -c 'rustc --version 2>/dev/null | awk "{print \$2}"'
   _ver 'Cargo:'  sh -c 'cargo --version 2>/dev/null | awk "{print \$2}"'
   _ver 'mise:'   sh -c 'mise --version 2>/dev/null | awk "{print \$1}"'
@@ -623,7 +663,7 @@ zsh-health() {
   # Check language tools (label:binary:version-command)
   printf "Language Tools:\n"
   local spec_lang label_lang bin_lang
-  for spec_lang in "Go:go:go version" "Rust:rustc:rustc --version" \
+  for spec_lang in "Rust:rustc:rustc --version" \
                    "Node:node:node --version" "Python:python3:python3 --version"; do
     label_lang="${spec_lang%%:*}"
     bin_lang="${${spec_lang#*:}%%:*}"
@@ -717,13 +757,13 @@ tmpcd() {
 # Useful when auto-invalidation via mtime doesn't trigger (e.g., manual edits).
 zsh-cache-clear() {
   local cache_dir="$(_zcache_dir)"
-  local removed=0
-  for f in starship.zsh zoxide.zsh mise.zsh fzf.zsh; do
-    if [[ -f "$cache_dir/$f" ]]; then
-      rm "$cache_dir/$f"
-      (( removed++ ))
-      print "Removed: $cache_dir/$f"
-    fi
+  local removed=0 f
+  # Glob, not a fixed list: every _ztool_init cache is <tool>.zsh, so a newly
+  # cached tool is covered without touching this function.
+  for f in "$cache_dir"/*.zsh(N); do
+    command rm -f "$f"
+    (( ++removed ))
+    print "Removed: $f"
   done
   print "Cleared $removed cache file(s). Restart shell to regenerate."
 }
@@ -758,130 +798,6 @@ zsh-cache-clear() {
 # VERIFY a signed commit:
 #   git log --show-signature -1
 #   # Expected: Good "git" signature for your@email.com with ED25519 key SHA256:...
-
-# =============================================================================
-# DISK SPACE CLEANUP
-# =============================================================================
-
-# Smart disk cleanup: targets project dirs (node_modules, vendor) and system caches
-# Usage: freespace [--dry-run] [--aggressive]
-#   --dry-run     Show what would be deleted without deleting
-#   --aggressive  Also clean system caches (brew, npm, pip, go, cargo)
-freespace() {
-  local dry_run=0 aggressive=0
-  while [[ -n "$1" ]]; do
-    case "$1" in
-      --dry-run)    dry_run=1; shift ;;
-      --aggressive) aggressive=1; shift ;;
-      *)            printf "Usage: freespace [--dry-run] [--aggressive]\n" >&2; return 1 ;;
-    esac
-  done
-
-  local start_kb=$(/bin/df -k "$HOME" | awk 'NR==2 {print $4}')
-  local removed_kb=0
-  local -a actions=()   # action keywords, executed by _freespace_run below (no eval)
-
-  printf "${_COLOR_YELLOW}Analyzing disk usage...${_COLOR_RESET}\n\n"
-
-  # === Project cleanup (always safe) ===
-  local code_dir="${CODE_DIR:-$HOME/Development/code}"
-  printf "Project directories (%s):\n" "${code_dir/#$HOME/~}"
-
-  # Node modules
-  local nm_count=$(command find "$code_dir" -maxdepth 4 -type d -name node_modules 2>/dev/null | wc -l | tr -d ' ')
-  if (( nm_count > 0 )); then
-    local nm_size=$(command find "$code_dir" -maxdepth 4 -type d -name node_modules -exec du -sk {} + 2>/dev/null | awk '{s+=$1} END {print s+0}')
-    printf "  ${_COLOR_YELLOW}→${_COLOR_RESET} node_modules (%d dirs, %s MB)\n" "$nm_count" "$(( nm_size / 1024 ))"
-    actions+=(node_modules)
-    (( removed_kb += nm_size ))
-  fi
-
-  # Vendor directories
-  local vendor_count=$(command find "$code_dir" -maxdepth 4 -type d -name vendor 2>/dev/null | wc -l | tr -d ' ')
-  if (( vendor_count > 0 )); then
-    local vendor_size=$(command find "$code_dir" -maxdepth 4 -type d -name vendor -exec du -sk {} + 2>/dev/null | awk '{s+=$1} END {print s+0}')
-    printf "  ${_COLOR_YELLOW}→${_COLOR_RESET} vendor (%d dirs, %s MB)\n" "$vendor_count" "$(( vendor_size / 1024 ))"
-    actions+=(vendor)
-    (( removed_kb += vendor_size ))
-  fi
-
-  printf "\n"
-
-  # === System cache cleanup (if --aggressive) ===
-  # Table: action-keyword:label:directory — sizes computed in one loop
-  if (( aggressive )); then
-    printf "System caches (--aggressive):\n"
-
-    local -a cache_specs=(
-      "npm_cache:npm cache:$HOME/.npm"
-      "pip_cache:pip cache:$HOME/.cache/pip"
-      "go_cache:go build cache:$HOME/.cache/go-build"
-      "cargo_cache:cargo registry cache:$HOME/.cargo/registry/cache"
-    )
-    local spec action_kw cache_label cache_dir cache_size
-    for spec in "${cache_specs[@]}"; do
-      action_kw="${spec%%:*}"
-      cache_label="${${spec#*:}%%:*}"
-      cache_dir="${spec##*:}"
-      [[ -d "$cache_dir" ]] || continue
-      cache_size=$(/usr/bin/du -sk "$cache_dir" 2>/dev/null | awk '{print $1}'); cache_size=${cache_size:-0}
-      if (( cache_size > 0 )); then
-        printf "  ${_COLOR_YELLOW}→${_COLOR_RESET} %s (%s MB)\n" "$cache_label" "$(( cache_size / 1024 ))"
-        actions+=("$action_kw"); (( removed_kb += cache_size ))
-      fi
-    done
-
-    if (( $+commands[brew] )); then
-      printf "  ${_COLOR_YELLOW}→${_COLOR_RESET} homebrew cache (brew cleanup)\n"
-      actions+=(brew_cache)
-    fi
-
-    printf "\n"
-  fi
-
-  # Summary
-  printf "Total space to recover: ${_COLOR_GREEN}%s MB${_COLOR_RESET}\n\n" "$(( removed_kb / 1024 ))"
-
-  [[ ${#actions[@]} -eq 0 ]] && { printf "Nothing to clean.\n"; return 0; }
-
-  # Dry-run or execute
-  if (( dry_run )); then
-    printf "${_COLOR_YELLOW}Dry-run mode — no changes made.${_COLOR_RESET}\n"
-    printf "Run ${_COLOR_GREEN}freespace${_COLOR_RESET}"
-    (( aggressive )) && printf " ${_COLOR_GREEN}--aggressive${_COLOR_RESET}"
-    printf " to clean.\n"
-    return 0
-  fi
-
-  if ! confirm "Delete these directories?"; then
-    printf "Cancelled.\n"
-    return 1
-  fi
-
-  _freespace_run() {
-    case "$1" in
-      node_modules) command find "$code_dir" -maxdepth 4 -type d -name node_modules -exec rm -rf {} + 2>/dev/null ;;
-      vendor)       command find "$code_dir" -maxdepth 4 -type d -name vendor -exec rm -rf {} + 2>/dev/null ;;
-      npm_cache)    npm cache clean --force 2>/dev/null ;;
-      pip_cache)    rm -rf "$HOME/.cache/pip" 2>/dev/null ;;
-      go_cache)     go clean -cache 2>/dev/null; rm -rf "$HOME/.cache/go-build" 2>/dev/null ;;
-      cargo_cache)  rm -rf "$HOME/.cargo/registry/cache" 2>/dev/null ;;
-      brew_cache)   brew cleanup --prune=all 2>/dev/null ;;
-    esac
-    return 0
-  }
-
-  printf "\n${_COLOR_YELLOW}Cleaning...${_COLOR_RESET}\n"
-  local action
-  for action in "${actions[@]}"; do
-    _freespace_run "$action"
-  done
-  unfunction _freespace_run
-
-  local end_kb=$(/bin/df -k "$HOME" | awk 'NR==2 {print $4}')
-  local freed=$(( (end_kb - start_kb) / 1024 ))
-  printf "\n${_COLOR_GREEN}✓ Done!${_COLOR_RESET} Freed ~${_COLOR_GREEN}%s MB${_COLOR_RESET}\n" "$freed"
-}
 
 # Restore alias expansion for whatever is sourced after this file (see the
 # NO_ALIASES note at the top).

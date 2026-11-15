@@ -169,7 +169,7 @@ if (( ! CONFIG_ONLY )); then
     fi
 
     # Node is the only GLOBAL runtime — always-on tools (ccstatusline, taze, …)
-    # need it. Go/Python/etc. are per-project: run `mise use go@1.24` inside a
+    # need it. Python/etc. are per-project: run `mise use python@3.13` inside a
     # project to pin and install on demand (writes .mise.toml).
     #
     # ~/.default-npm-packages: mise auto-installs these into EVERY node version
@@ -374,11 +374,11 @@ fi
 ln -sf "$ZSH_DIR/starship/starship.toml" "$STARSHIP_CONF"
 info "Linked starship config"
 
-# 6. Project root for gg/gb aliases and freespace
-mkdir -p "$HOME/Development/code"
-touch "$HOME/Development/.metadata_never_index"
-info "Project root: ~/Development/code (override CODE_DIR in modules/local.zsh)"
-info "Spotlight indexing disabled for ~/Development (.metadata_never_index)"
+# 6. Project root for gg/gb aliases
+mkdir -p "$HOME/Developer/code"
+touch "$HOME/Developer/.metadata_never_index"
+info "Project root: ~/Developer/code (override CODE_DIR in modules/local.zsh)"
+info "Spotlight indexing disabled for ~/Developer (.metadata_never_index)"
 
 # 7. Git identity + SSH signing (optional)
 if [[ -n "$GIT_NAME" && -n "$GIT_EMAIL" ]]; then

@@ -7,7 +7,7 @@
 
 set -euo pipefail
 
-ROOT="${CODE_DIR:-$HOME/Development/code}"
+ROOT="${CODE_DIR:-$HOME/Developer/code}"
 DRY_RUN=0
 ASSUME_YES=0
 
@@ -25,7 +25,7 @@ Not yet implemented — these list the repos they would act on, then exit 2:
   all          run maintenance, branches, clean, then caches, in that order
 
 Options:
-  --root PATH  scan root (default: ${CODE_DIR:-\$HOME/Development/code})
+  --root PATH  scan root (default: ${CODE_DIR:-\$HOME/Developer/code})
   --dry-run    print actions without mutating anything
   --yes        skip confirmation prompts
 USAGE

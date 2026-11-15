@@ -60,7 +60,6 @@ Plugin config vars (`ZSH_AUTOSUGGEST_*`, `ZSH_HIGHLIGHT_*`, etc.) must be set **
 | `upgrade` | Parallel updater: brew, zinit, rust, mise runtimes, npm globals, claude-code |
 | `zsh-health` | Diagnostic: platform, tool presence, PATH correctness |
 | `zsh-cache-clear` | Deletes `$XDG_CACHE_HOME/zsh/*.zsh` eval caches |
-| `freespace` | Cleans `node_modules`/vendor under `$CODE_DIR`; `--aggressive` also clears package manager caches |
 | `toggle_interactive` | Enables/disables Zinit + Starship for headless use |
 | `extract` | Universal archive extractor (zip, tar, gz, bz2, 7z, rar, …) |
 

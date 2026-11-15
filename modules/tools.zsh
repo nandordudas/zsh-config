@@ -45,11 +45,11 @@ _ztool_init() {
   if (( _zt_stale )); then
     # Write to a temp file first so a failed or empty init never leaves a
     # bad cache behind (which would be silently sourced on every future start).
-    if ! eval "$init_cmd" >"$cache.tmp" 2>/dev/null || [[ ! -s "$cache.tmp" ]]; then
-      rm -f "$cache.tmp"
+    if ! eval "$init_cmd" >"$cache.tmp.$$" 2>/dev/null || [[ ! -s "$cache.tmp.$$" ]]; then
+      rm -f "$cache.tmp.$$"
       return 1
     fi
-    mv -f "$cache.tmp" "$cache"
+    mv -f "$cache.tmp.$$" "$cache"
   fi
   # Suppress "can't change option: zle" errors from starship init when zle isn't ready
   source "$cache" 2>/dev/null || source "$cache"
@@ -145,8 +145,9 @@ if (( $+commands[herdr] )); then
   mkdir -p "$_zherdr_comp_dir"
   _zherdr_comp_file="$_zherdr_comp_dir/_herdr"
   if [[ ! -s "$_zherdr_comp_file" || "${commands[herdr]}" -nt "$_zherdr_comp_file" ]]; then
-    herdr completion zsh >"$_zherdr_comp_file.tmp" 2>/dev/null \
-      && mv -f "$_zherdr_comp_file.tmp" "$_zherdr_comp_file"
+    herdr completion zsh >"$_zherdr_comp_file.tmp.$$" 2>/dev/null \
+      && mv -f "$_zherdr_comp_file.tmp.$$" "$_zherdr_comp_file" \
+      || rm -f "$_zherdr_comp_file.tmp.$$"
   fi
   fpath+=("$_zherdr_comp_dir")
   unset _zherdr_comp_dir _zherdr_comp_file

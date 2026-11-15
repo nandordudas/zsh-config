@@ -355,16 +355,3 @@ for the multiplexer this config uses instead of tmux — session/workspace
 switching (`C-a w`, `C-a g`) is now handled natively by herdr, with no
 custom picker script needed.
 
----
-
-## freespace
-
-Smart disk cleanup with confirmation prompts. Targets `node_modules` and
-`vendor` directories under `$CODE_DIR` (default `~/Development/code`); with `--aggressive` also cleans system
-caches (npm, pip, go, cargo, brew).
-
-```
-$ freespace --dry-run              # preview, no changes
-$ freespace                        # clean project dirs (asks first)
-$ freespace --aggressive           # also clean system caches
-```

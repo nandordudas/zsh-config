@@ -165,7 +165,7 @@ fi
 export GITHUB_USER="your-github-username"
 export BITBUCKET_USER="your-bitbucket-username"
 
-# Project root for gg/gb and freespace (default: ~/Development/code).
+# Project root for gg/gb (default: ~/Developer/code).
 # NOTE: if you change this, also update the [includeIf] paths in
 # ~/.config/git/config so per-host git identities keep working.
 # export CODE_DIR="$HOME/Developer"
@@ -206,7 +206,7 @@ Full reference: [docs/aliases.md](docs/aliases.md), [docs/keybindings.md](docs/k
 ### Update everything
 
 ```bash
-upgrade              # brew, zinit, rust, mise (node/go), claude-code@latest — in parallel
+upgrade              # brew, zinit, rust, mise (node), claude-code@latest — in parallel
 upgrade --dry-run    # see what would run
 upgrade --only mise  # update only mise-managed runtimes + npm globals
 ```
@@ -229,16 +229,6 @@ zsh-cache-clear      # removes eval caches (starship, zoxide, mise, fzf)
 exec zsh             # restart shell (regenerates caches)
 ```
 
-### Free up disk space
-
-```bash
-freespace --dry-run              # preview (no changes)
-freespace                        # clean node_modules/vendor under ~/Development/code
-freespace --aggressive           # also clean npm/pip/go/cargo/brew caches
-```
-
-Always asks for confirmation before deleting.
-
 ### Interactive git (forgit + aliases)
 
 ```bash
@@ -260,7 +250,7 @@ need it). Everything else is pinned **per project**:
 
 ```bash
 cd myproject
-mise use go@1.24 python@3.13   # writes .mise.toml, installs on demand
+mise use python@3.13   # writes .mise.toml, installs on demand
 mise ls                        # what's active here
 ```
 
@@ -279,7 +269,7 @@ toolchain is installed; for ad-hoc rust outside a project, run
 
 | brew | mise |
 |------|------|
-| Apps & daemons (Docker Desktop, etc. — casks) | Language runtimes: node, go, python, java, … |
+| Apps & daemons (Docker Desktop, etc. — casks) | Language runtimes: node, python, java, … |
 | System CLI tools, one version forever: git, herdr, fzf, bat, ripgrep, jq, gh, delta, … | Anything pinned in a project's `.mise.toml` |
 | mise itself | |
 
@@ -368,10 +358,10 @@ First start after install/update is slow (plugin downloads + cache generation) �
 
 ### Spotlight indexing dev folders (high I/O during npm install)
 
-`mdutil -i off` only works on whole volumes. To exclude `~/Development` from Spotlight:
+`mdutil -i off` only works on whole volumes. To exclude `~/Developer` from Spotlight:
 
 ```bash
-touch ~/Development/.metadata_never_index
+touch ~/Developer/.metadata_never_index
 ```
 
 The installer does this automatically. If you moved your project root (`CODE_DIR`), add the marker there too.
@@ -443,7 +433,7 @@ To disable plugins temporarily without uninstalling: `toggle_interactive off`.
 │   ├── completions.zsh       # completion rules + fzf-tab previews
 │   ├── keybindings.zsh       # key mappings
 │   ├── aliases.zsh           # command aliases
-│   ├── functions.zsh         # upgrade, zsh-health, freespace, …
+│   ├── functions.zsh         # upgrade, zsh-health, …
 │   ├── tools.zsh             # cached tool init (starship, zoxide, mise, …)
 │   └── local.zsh             # machine-local overrides (gitignored)
 ├── herdr/
