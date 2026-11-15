@@ -2,16 +2,15 @@
 # Install with: brew bundle --file=~/.config/zsh/Brewfile.dev
 
 # Both entries below are MANAGERS, not runtimes — no global toolchains here.
-brew "mise"       # node, go, python, … — per-project via .mise.toml (node pinned globally)
+brew "mise"       # node, python, … — per-project via .mise.toml (node pinned globally)
 brew "rustup"     # rust — per-project via rust-toolchain.toml (no global toolchain)
 brew "fastfetch"  # system info
 
 # Build tooling
 brew "just"       # command runner (justfile)
-brew "just-lsp"   # LSP for just
+brew "terror/tap/just-lsp"   # LSP for just
 
 # Containers
-brew "colima"          # container runtime (Docker alternative daemon)
 brew "docker"
 brew "docker-buildx"
 brew "docker-compose"
@@ -20,7 +19,7 @@ brew "docker-compose"
 brew "mkcert"     # local HTTPS certificates
 
 # AI / local LLMs
-# brew "ollama"
+brew "ollama"
 
 # Apps
 cask "claude"
