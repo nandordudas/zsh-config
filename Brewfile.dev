@@ -17,6 +17,14 @@ brew "docker-compose"
 
 # Local dev utilities
 brew "mkcert"     # local HTTPS certificates
+brew "libpq"      # keg-only Postgres client libs (PATH/flags set in .zprofile)
+brew "mago"       # PHP toolchain
+brew "cocoapods"  # iOS dependency manager
+brew "dnsmasq"    # local DNS (*.test)
+brew "wireguard-tools"
+brew "sox"
+brew "poppler"    # pdftotext etc.
+brew "jpeg-xl"
 
 # AI / local LLMs
 brew "ollama"
@@ -28,4 +36,10 @@ cask "claude"
 # than assuming the install is broken.
 cask "claude-code@latest"
 cask "visual-studio-code"
+cask "android-commandlinetools"
+cask "mitmproxy"
+cask "tabularis"
+cask "gortex"
+cask "tablepro"
+cask "vorssaint"
 # cask "zed"

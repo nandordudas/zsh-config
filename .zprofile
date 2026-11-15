@@ -3,6 +3,11 @@
 # terminal, ssh session). Sets up PATH, persistent env vars, and creates
 # required directories. This config targets macOS.
 
+# Non-interactive login shells (`ssh host cmd`, some editor integrations) return
+# early: nothing below is needed to run one command, and skipping the brew
+# shellenv fork keeps them fast.
+[[ -o interactive ]] || return
+
 # =============================================================================
 # XDG BASE DIRECTORIES
 # ~/.zshenv normally sets these, but zsh reads $ZDOTDIR/.zshenv — NOT
@@ -39,6 +44,11 @@ if [[ -z "$HOMEBREW_PREFIX" ]]; then
   done
   unset _brew
 fi
+
+# $HOMEBREW_PREFIX instead of $(brew --prefix): shellenv above already exported
+# it, and each `brew --prefix` is a ~40ms ruby fork at every login. Fall back to
+# the arch default so paths still resolve if brew was never found.
+: "${HOMEBREW_PREFIX:=/opt/homebrew}"
 
 # =============================================================================
 # PATH (deduplicated via typeset -U)
@@ -98,3 +108,19 @@ export CODE_DIR="${CODE_DIR:-$HOME/Developer/code}"
 # ~/.cargo/bin is already in PATH above, but this also sets other Cargo vars.
 # =============================================================================
 [[ -f "$HOME/.cargo/env" ]] && source "$HOME/.cargo/env"
+
+# =============================================================================
+# LOCAL TOOL ENV
+# =============================================================================
+[[ -f "$HOME/.local/bin/env" ]] && . "$HOME/.local/bin/env"
+
+# libpq is keg-only, so its bin/lib/include are not linked into the prefix.
+# Derived from $HOMEBREW_PREFIX rather than forking `brew --prefix libpq`.
+_libpq_prefix="$HOMEBREW_PREFIX/opt/libpq"
+if [[ -d "$_libpq_prefix" ]]; then
+  path=("$_libpq_prefix/bin" $path)
+  export LDFLAGS="-L$_libpq_prefix/lib"
+  export CPPFLAGS="-I$_libpq_prefix/include"
+  export PKG_CONFIG_PATH="$_libpq_prefix/lib/pkgconfig"
+fi
+unset _libpq_prefix

@@ -42,16 +42,9 @@ for f in "$REPO_DIR"/scripts/*.sh "$REPO_DIR"/install.sh "$REPO_DIR"/uninstall.s
 done
 
 if command -v zsh &>/dev/null; then
-  # acme/ is a real profile (~/.zshenv can point ZDOTDIR at it), not a scratch
-  # dir — its startup files need checking just like the top-level ones.
   for f in "$REPO_DIR"/modules/*.zsh \
             "$REPO_DIR"/.zshrc \
-            "$REPO_DIR"/.zprofile \
-            "$REPO_DIR"/acme/.zshenv \
-            "$REPO_DIR"/acme/.zshrc \
-            "$REPO_DIR"/acme/.zprofile \
-            "$REPO_DIR"/acme/.zlogin \
-            "$REPO_DIR"/acme/.zlogout; do
+            "$REPO_DIR"/.zprofile; do
     [[ -f "$f" ]] || continue
     check "zsh -n ${f#"$REPO_DIR"/}" zsh -n "$f"
   done

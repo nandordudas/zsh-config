@@ -29,9 +29,9 @@ _ztool_init() {
   # .zprofile/.zshrc must invalidate it too — otherwise the stale snapshot
   # silently overwrites the freshly built PATH on every shell start, and the
   # new entry appears to work in a test shell while failing in every terminal.
-  # $ZDOTDIR holds the startup files actually being sourced (which is acme/ when
-  # running that profile); $_zconfig_root is the repo root. Check both, since
-  # either can define PATH. Listing the same file twice is harmless.
+  # $ZDOTDIR holds the startup files actually being sourced; $_zconfig_root is
+  # the repo root. Check both, since either can define PATH. Listing the same
+  # file twice is harmless.
   local -a _zt_inputs=("$bin")
   [[ -n "$ZDOTDIR" ]] && _zt_inputs+=("$ZDOTDIR/.zprofile" "$ZDOTDIR/.zshrc")
   [[ -n "$_zconfig_root" ]] && _zt_inputs+=("$_zconfig_root/.zprofile" "$_zconfig_root/.zshrc")

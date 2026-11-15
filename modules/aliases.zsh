@@ -79,7 +79,7 @@ alias rand='openssl rand -base64 32'
 # ${=EDITOR} word-splits "code --wait" so the shell waits for the editor
 # to close before reloading
 alias zshconfig='${=EDITOR:-vi} "$ZDOTDIR" && exec zsh'
-alias reload='exec zsh'
+alias reload='exec -l zsh'  # login shell: re-reads .zprofile too
 # jq comes from the Brewfile; python3 fallback needs Xcode CLT
 if (( $+commands[jq] )); then
   alias json='jq .'

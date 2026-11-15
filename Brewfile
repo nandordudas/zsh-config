@@ -23,6 +23,10 @@ brew "procs"      # ps replacement (pss alias)
 brew "btop"       # top replacement
 brew "jq"         # JSON processor
 brew "glow"       # markdown renderer
+brew "dua-cli"    # disk usage analyser (dua i)
+brew "ncdu"       # ncurses disk usage
+brew "chezmoi"    # dotfile manager
+brew "mole"       # macOS cleaner / uninstaller
 brew "rtk"        # token-optimised CLI proxy for Claude Code (see ~/.claude RTK.md)
 brew "wget"       # download tool
 
@@ -43,3 +47,13 @@ cask "1password-cli"
 cask "alacritty"
 cask "font-maple-mono"
 cask "font-maple-mono-nf"
+cask "ghostty"
+cask "iterm2"
+cask "font-ioskeley-mono"
+cask "google-chrome"
+cask "thunderbird"
+cask "monitorcontrol"
+cask "keycastr"
+cask "zoomit"
+cask "plex"
+cask "rustdesk"

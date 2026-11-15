@@ -22,9 +22,8 @@ export LESSHISTFILE="$XDG_CACHE_HOME/lesshst"
 
 # zmodload zsh/zprof  # uncomment to profile
 
-# Repo root — same as $ZDOTDIR here, but modules/*.zsh use $_zconfig_root
-# (not $ZDOTDIR) for repo-relative paths so they also work under acme/,
-# where $ZDOTDIR points at the acme/ subdir instead of the repo root.
+# Repo root. modules/*.zsh use $_zconfig_root (not $ZDOTDIR) for repo-relative
+# paths, so they keep working if ZDOTDIR is ever pointed elsewhere.
 _zconfig_root="$ZDOTDIR"
 
 # 1. Shell options (setopt only, no external deps)
