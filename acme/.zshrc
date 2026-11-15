@@ -41,3 +41,6 @@ source "$_zconfig_root/modules/tools.zsh"        # Tool inits (starship, mise, f
 alias reload='exec -l zsh'
 
 unset _zconfig_root
+
+# gpg-agent needs the tty for pinentry (commit signing)
+export GPG_TTY=$(tty 2>/dev/null)
