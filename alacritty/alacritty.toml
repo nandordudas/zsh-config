@@ -23,8 +23,10 @@ option_as_alt = "Both"
 
 [font]
 # brew install --cask font-maple-mono font-maple-mono-nf
-normal = { family = "Maple Mono NF", style = "Regular" }
-size = 12.0
+# normal = { family = "Maple Mono NF", style = "Regular" }
+# size = 12.0
+normal = { family = "Obel Mono" }
+size = 12
 
 [cursor]
 style = { shape = "Underline", blinking = "Off" }

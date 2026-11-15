@@ -2,13 +2,16 @@
 # Opinionated herdr configuration — replaces tmux (see docs/herdr-guide.md).
 # Reference: https://herdr.dev/docs/configuration/
 #
-# Deliberately minimal: herdr's *default* keymap already matches almost all of
-# the old tmux setup (pane nav = prefix+h/j/k/l, zoom = prefix+z, close_pane =
-# prefix+x, tabs/workspaces = prefix+c/w/shift+n/shift+w/shift+d, goto =
-# prefix+g, reload = prefix+shift+r, copy mode = vi-style out of the box). The
-# only thing that carries over unchanged from the old config is the prefix
-# key, so that's the only [keys] override below — no point re-declaring
-# defaults just to look busy.
+# herdr's *default* keymap already matches almost all of the old tmux setup
+# (pane nav = prefix+h/j/k/l, zoom = prefix+z, close_pane = prefix+x,
+# tabs/workspaces = prefix+c/w/shift+n/shift+w/shift+d, goto = prefix+g,
+# reload = prefix+shift+r, copy mode = vi-style out of the box), so only
+# deliberate deviations are declared below: the prefix, agent cycling, worktree
+# and last-pane shortcuts, indexed agent jumps, and the custom commands/plugin
+# actions. Don't re-declare defaults just to look busy.
+#
+# Validate after editing:  herdr config check
+# Apply to a running server: herdr server reload-config  (or prefix+shift+r)
 #
 # herdr's config.toml has no tmux-style `source-file`/include directive, so
 # there is no per-machine "local.toml" layered on top of this file (unlike
@@ -59,6 +62,20 @@ width = "95%"
 height = "95%"
 description = "system monitor (btop)"
 
+# File viewer — provided by the `herdr-file-viewer` plugin (see plugins.json;
+# actions are namespaced <plugin>.<action>).
+[[keys.command]]
+key = "prefix+f"
+type = "plugin_action"
+command = "herdr-file-viewer.open-file-viewer"
+description = "open file viewer in split"
+
+[[keys.command]]
+key = "prefix+shift+f"
+type = "plugin_action"
+command = "herdr-file-viewer.open-file-viewer-tab"
+description = "open file viewer in tab"
+
 # =============================================================================
 # THEME
 # auto_switch is OFF deliberately. herdr can follow the system appearance, but
@@ -80,15 +97,20 @@ dark_name   = "gruvbox"
 # UI — tuned for running Claude Code (and friends) as visible, labeled panes
 # =============================================================================
 [ui]
-accent                             = "green"
-show_agent_labels_on_pane_borders  = true
-agent_panel_sort = "priority"
-mouse_capture                      = true
+accent                            = "green"
+show_agent_labels_on_pane_borders = true
+agent_panel_sort                  = "priority"
+mouse_capture                     = true
+# Tuned for a narrow VS Code terminal panel: distinct state glyphs instead of
+# colour-only dots, and no spare rows/columns for chrome that isn't needed.
+status_indicators                 = "symbols"
+hide_tab_bar_when_single_tab      = true
+pane_scrollbars                   = false
 
+# One shared layout for every agent (herdr has no wildcard in rows_by_agent, but
+# `rows` is the fallback for any agent without an override).
 [ui.sidebar.agents]
-rows_by_agent.claude  = [["state_icon", "workspace", "tab"], ["terminal_title_stripped"]]
-rows_by_agent.grok    = [["state_icon", "workspace", "tab"], ["terminal_title_stripped"]]
-rows_by_agent.copilot = [["state_icon", "workspace", "tab"], ["terminal_title_stripped"]]
+rows = [["state_icon", "workspace", "tab"], ["terminal_title_stripped"]]
 
 [ui.sidebar.spaces]
 rows = [["state_icon", "workspace"], ["branch", "git_status"]]
@@ -99,10 +121,20 @@ rows = [["state_icon", "workspace"], ["branch", "git_status"]]
 # =============================================================================
 [ui.toast]
 delivery      = "herdr"
-delay_seconds = 1
+delay_seconds = 3   # only notify if the agent is still waiting after 3s
 
 [ui.sound]
-enabled = false
+enabled = true
+
+# =============================================================================
+# UPDATES — herdr is Homebrew-managed (`upgrade` in modules/functions.zsh), so
+# the in-app version check is redundant and only logs a failure every 30 min
+# when herdr.dev/Homebrew is unreachable. manifest_check stays on: it fetches
+# agent-detection updates (bundled manifests still apply when offline).
+# =============================================================================
+[update]
+version_check  = false
+manifest_check = true
 
 # =============================================================================
 # SESSION — resume Claude Code (and other supported agents) in their native
@@ -119,19 +151,7 @@ resume_agents_on_restore = true
 # guard refuses the inner session and `prefix+t` opens an empty popup with no
 # error message. Being under [experimental], the key can be renamed or removed
 # in any herdr release — if prefix+t ever stops working, check this first
-# against `herdr --version` (known good: 0.4.x).
+# against `herdr --version` (key still present in the 0.9.5 config reference).
 # =============================================================================
 [experimental]
 allow_nested = true
-
-[[keys.command]]
-key = "prefix+f"
-type = "plugin_action"
-command = "herdr-file-viewer.open-file-viewer"
-description = "open file viewer in split"
-
-[[keys.command]]
-key = "prefix+shift+f"
-type = "plugin_action"
-command = "herdr-file-viewer.open-file-viewer-tab"
-description = "open file viewer in tab"
