@@ -43,6 +43,7 @@ done
 
 if command -v zsh &>/dev/null; then
   for f in "$REPO_DIR"/modules/*.zsh \
+            "$REPO_DIR"/.zshenv \
             "$REPO_DIR"/.zshrc \
             "$REPO_DIR"/.zprofile; do
     [[ -f "$f" ]] || continue
